@@ -175,3 +175,27 @@ After wedding validation:
 ---
 
 Tiri — Where Celebrations Begin.
+
+---
+
+## API Documentation (Swagger)
+
+Swagger documentation is available after running the app:
+
+- UI: `/api-docs`
+- OpenAPI JSON: `/api/openapi`
+- Postman Collection JSON: `/api/postman`
+
+### How to use
+
+1. Start server: `npm run dev`
+2. Open `http://localhost:3000/api-docs` (or the active dev port)
+3. Login via `/api/auth/login` first to receive `studio_session` cookie
+4. Use protected `/api/studio/*` endpoints from Swagger UI
+
+### Postman Import
+
+1. Start server: `npm run dev`
+2. Open `http://localhost:3000/api/postman`
+3. Save the downloaded file and import it into Postman
+4. Set Postman variable `baseUrl` to your running API host
