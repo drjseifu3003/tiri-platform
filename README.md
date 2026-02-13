@@ -2,7 +2,7 @@
 
 Tiri is a digital event infrastructure platform built for photo studios and event organizers in Ethiopia — starting with weddings and expanding into a pan-African event ecosystem.
 
-The goal of Tiri is to simplify event invitations, guest management, check-in, and post-event media delivery.
+Our strategic entry point is high-quality, culturally designed digital wedding invitation templates that photo studios cannot resist offering to their clients.
 
 ---
 
@@ -10,130 +10,168 @@ The goal of Tiri is to simplify event invitations, guest management, check-in, a
 
 Tiri aims to become the event infrastructure layer for Africa.
 
-We start with:
+We start with wedding digital invitations and grow into:
 
-- Wedding digital invitations
-- Studio-powered event creation
-- Guest management & check-in
-- Photo & video delivery after events
+- Guest management
+- Event check-in systems
+- Post-event media delivery
+- Studio infrastructure tools
 
-Long term, Tiri will evolve into a full event operating system supporting multiple event types across Africa.
+Long term, Tiri evolves into a full event operating system across Africa.
+
+---
+
+## Our Strategic Advantage
+
+Photo studios are the gatekeepers of weddings.
+
+Instead of competing with them, Tiri empowers them.
+
+Our core wedge:
+
+### Premium Wedding Invitation Card Templates
+
+- Designed specifically for Ethiopian cultures and regions
+- Religious variations (Orthodox, Muslim, Protestant)
+- Traditional + modern styles
+- Studio branding included
+- Mobile-first digital experience
+- Easy to customize
+
+Studios get:
+
+- A new product to sell
+- Increased perceived professionalism
+- Recurring digital revenue
+- Zero technical burden
+
+This makes Tiri difficult to resist.
 
 ---
 
 ## MVP Focus
 
-This MVP is designed specifically for:
-
-- Photo studios (manually onboarded)
-- Wedding events
-- Guest list management
-- Guest check-in system
-- Media sharing after events
-- Studio branding on invitations
+This MVP is studio-first.
 
 We are intentionally:
 
 - Disabling public signup
-- Onboarding studios manually
-- Focusing on clean architecture
-- Prioritizing simplicity over feature overload
+- Manually onboarding studios
+- Giving studios login credentials
+- Prioritizing beautiful invitation templates
+- Building clean event creation flows
 
 ---
 
-## Core Features (MVP)
+## Core MVP Features
 
-### 1. Studio Management
+### 1. Invitation Card Templates (Primary Hook)
+
+- High-end, mobile-optimized templates
+- Regionally and culturally adapted designs
+- Studio-branded invitation pages
+- Event shareable link
+- Elegant typography & layout
+
+This is the main reason studios adopt Tiri.
+
+---
+
+### 2. Studio Management
+
 - Manual onboarding
-- Studio branding (logo, primary color)
-- Studio-based multi-tenant isolation
+- Studio branding (logo, color)
+- Multi-tenant data isolation
 
-### 2. Event Creation
+---
+
+### 3. Event Creation
+
 - Create wedding event
-- Custom event page (digital invitation)
-- Event slug (shareable link)
-- Cover image
+- Choose invitation template
+- Customize couple details
 - Event date & location
+- Cover image
+- Shareable event slug
 
-### 3. Guest Management
-- Add guests manually or bulk import
+---
+
+### 4. Guest Management
+
+- Add guests manually or bulk upload
 - Unique invitation code per guest
-- Guest phone number support
+- Phone number support
 - Guest tracking
 
-### 4. Guest Check-In
-- Mark guest as checked-in
-- Store check-in timestamp
-- Designed for QR / manual check-in extension later
+---
 
-### 5. Media Sharing
-- Upload photos & videos after event
-- Media linked per event
-- Guests can access via event link
+### 5. Guest Check-In
+
+- Mark guest as checked-in
+- Store timestamp
+- Designed for future QR extension
+
+---
+
+### 6. Post-Event Media Sharing
+
+- Upload wedding photos
+- Upload videos
+- Event-based media access
+- Organized digital delivery
+
+This solves the chaotic post-wedding media distribution problem.
 
 ---
 
 ## Tech Stack
 
-- **Next.js** (App Router) — frontend & API
-- **Prisma ORM**
-- **PostgreSQL (Supabase for MVP)**
-- **Supabase Storage**
-- Manual authentication system (no public signup)
+- Next.js (App Router)
+- Prisma ORM
+- PostgreSQL (Supabase for MVP)
+- Supabase Storage
 
-The architecture is designed so we can migrate from Supabase to our own PostgreSQL infrastructure later without rewriting the system.
-
----
-
-## Database Philosophy
-
-- Studio-based multi-tenancy
-- Strict studio isolation
-- UUID primary keys
-- Migration-controlled schema
-- Production-safe Prisma client setup
-
-All database changes are tracked via Prisma migrations.
+The system is designed for future migration to dedicated infrastructure.
 
 ---
 
-## Why This Exists
+## Why Tiri Exists
 
-In Ethiopia, wedding digital invitations are fragmented:
+Wedding digital invitations in Ethiopia are fragmented:
 
-- Many designs
-- No standard system
-- Studios managing manually
-- Media delivery after events is chaotic
+- Design-only solutions
+- No infrastructure
+- No guest tracking
+- No structured media delivery
 
-Tiri creates structure.
+Tiri combines:
+
+Design + Infrastructure + Studio Distribution
 
 We are not just building invitation templates.
 
-We are building event infrastructure.
+We are building event infrastructure — starting with the most emotionally important event: weddings.
 
 ---
 
 ## Long-Term Direction
 
-After validating with wedding studios:
+After wedding validation:
 
 - Expand to other event types
 - Introduce payments
-- Add RSVP flows
-- Add analytics for studios
-- Enable African expansion
+- Studio analytics
+- RSVP automation
+- Pan-African expansion
 
 ---
 
-## Current Development Status
+## Current Status
 
-🚧 MVP in active development  
-🎯 Target: Be ready before post-Easter wedding season  
+🚧 MVP in development  
+🎯 Target: Launch before post-Easter wedding season  
 📍 Starting in Ethiopia  
 
 ---
 
-## Author
-
-Built by a founder focused on long-term African infrastructure plays.
+Tiri — Where Celebrations Begin.
