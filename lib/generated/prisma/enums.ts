@@ -9,7 +9,26 @@
 * 🟢 You can import this file directly.
 */
 
+export const UserRole = {
+  ADMIN: 'ADMIN',
+  STAFF: 'STAFF'
+} as const
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const MediaType = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO'
+} as const
+
+export type MediaType = (typeof MediaType)[keyof typeof MediaType]
+
+
+export const TemplateCategory = {
+  TRADITIONAL: 'TRADITIONAL',
+  MODERN: 'MODERN',
+  RELIGIOUS: 'RELIGIOUS'
+} as const
+
+export type TemplateCategory = (typeof TemplateCategory)[keyof typeof TemplateCategory]

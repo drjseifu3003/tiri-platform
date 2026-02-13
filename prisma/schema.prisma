@@ -13,8 +13,149 @@ datasource db {
   provider = "postgresql"
 }
 
-model Test {
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+enum TemplateCategory {
+  TRADITIONAL
+  MODERN
+  RELIGIOUS
+}
+
+//////////////////////////////////////////////////////
+// STUDIO (Multi-Tenant Root)
+//////////////////////////////////////////////////////
+
+model Studio {
+  id            String   @id @default(uuid())
+  name          String
+  email         String?   
+  phone         String  @unique
+  logoUrl       String?
+  primaryColor  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users         User[]
+  events        Event[]
+}
+
+//////////////////////////////////////////////////////
+// STUDIO USERS (No Public Signup)
+//////////////////////////////////////////////////////
+
+model User {
   id        String   @id @default(uuid())
-  name      String
+  phone     String   @unique       // instead of email
+  password  String
+  role      UserRole @default(STAFF)
+  studioId  String
+
+  studio    Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//////////////////////////////////////////////////////
+// INVITATION TEMPLATES (Your Core Wedge)
+//////////////////////////////////////////////////////
+
+model Template {
+  id            String           @id @default(uuid())
+  name          String
+  slug          String           @unique
+  previewImage  String?
+  category      TemplateCategory
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  events        Event[]
+}
+
+//////////////////////////////////////////////////////
+// EVENTS (Wedding Events)
+//////////////////////////////////////////////////////
+
+model Event {
+  id              String    @id @default(uuid())
+  studioId        String
+  templateId      String
+
+  title           String
+  brideName       String?
+  groomName       String?
+
+  bridePhone      String?
+  groomPhone      String?
+
+  coupleAccessToken String  @unique @default(uuid())
+
+  eventDate       DateTime
+  location        String?
+  description     String?
+  coverImage      String?
+
+  slug            String    @unique
+  subdomain       String?   @unique
+
+  isPublished     Boolean   @default(false)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  studio          Studio    @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  template        Template  @relation(fields: [templateId], references: [id])
+
+  guests          Guest[]
+  media           Media[]
+
+  @@index([studioId])
+}
+
+//////////////////////////////////////////////////////
+// GUESTS
+//////////////////////////////////////////////////////
+
+model Guest {
+  id              String    @id @default(uuid())
+  eventId         String
+  name            String
+  phone           String?
+  email           String?
+  invitationCode  String    @unique
+  checkedIn       Boolean   @default(false)
+  checkedInAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  event           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+//////////////////////////////////////////////////////
+// MEDIA (POST-EVENT PHOTOS & VIDEOS)
+//////////////////////////////////////////////////////
+
+model Media {
+  id          String     @id @default(uuid())
+  eventId     String
+  type        MediaType
+  url         String
+  createdAt   DateTime   @default(now())
+
+  event       Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
 }

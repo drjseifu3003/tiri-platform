@@ -8,5 +8,10 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/Test'
+export type * from './models/Studio'
+export type * from './models/User'
+export type * from './models/Template'
+export type * from './models/Event'
+export type * from './models/Guest'
+export type * from './models/Media'
 export type * from './commonInputTypes'
