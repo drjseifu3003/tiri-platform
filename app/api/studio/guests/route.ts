@@ -3,6 +3,7 @@ import {
   notFoundResponse,
   requireStudioSession,
 } from "@/lib/api-auth";
+import { GuestCategory } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -12,6 +13,7 @@ const createGuestSchema = z.object({
   name: z.string().min(2),
   phone: z.string().optional(),
   email: z.string().email().optional(),
+  category: z.nativeEnum(GuestCategory).optional(),
   invitationCode: z.string().min(3),
 });
 
@@ -20,19 +22,43 @@ export async function GET(request: NextRequest) {
   if (session instanceof NextResponse) return session;
 
   const eventId = request.nextUrl.searchParams.get("eventId");
-  if (!eventId) {
-    return badRequestResponse("eventId query param is required");
+  const scope = request.nextUrl.searchParams.get("scope");
+
+  if (!eventId && scope !== "studio") {
+    return badRequestResponse("eventId query param is required, or set scope=studio");
+  }
+
+  if (scope === "studio") {
+    const guests = await prisma.guest.findMany({
+      where: {
+        event: {
+          studioId: session.studioId,
+        },
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    return NextResponse.json({ guests });
   }
 
   const event = await prisma.event.findFirst({
-    where: { id: eventId, studioId: session.studioId },
+    where: { id: eventId!, studioId: session.studioId },
     select: { id: true },
   });
 
   if (!event) return notFoundResponse("Event not found");
 
   const guests = await prisma.guest.findMany({
-    where: { eventId },
+    where: { eventId: eventId! },
     orderBy: { createdAt: "desc" },
   });
 
@@ -63,6 +89,7 @@ export async function POST(request: NextRequest) {
       name: parsed.data.name,
       phone: parsed.data.phone,
       email: parsed.data.email,
+      category: parsed.data.category ?? GuestCategory.GENERAL,
       invitationCode: parsed.data.invitationCode,
     },
   });

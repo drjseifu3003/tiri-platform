@@ -33,6 +33,12 @@ enum TemplateCategory {
   RELIGIOUS
 }
 
+enum GuestCategory {
+  GENERAL
+  BRIDE_GUEST
+  GROOM_GUEST
+}
+
 //////////////////////////////////////////////////////
 // STUDIO (Multi-Tenant Root)
 //////////////////////////////////////////////////////
@@ -134,6 +140,7 @@ model Guest {
   name            String
   phone           String?
   email           String?
+  category        GuestCategory @default(GENERAL)
   invitationCode  String    @unique
   checkedIn       Boolean   @default(false)
   checkedInAt     DateTime?

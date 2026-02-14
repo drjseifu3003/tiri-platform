@@ -1,5 +1,5 @@
 import { LoginView } from "@/app/login/login-view";
 
-export default function Home() {
+export default function LoginPage() {
   return <LoginView />;
 }

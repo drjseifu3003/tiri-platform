@@ -32,3 +32,12 @@ export const TemplateCategory = {
 } as const
 
 export type TemplateCategory = (typeof TemplateCategory)[keyof typeof TemplateCategory]
+
+
+export const GuestCategory = {
+  GENERAL: 'GENERAL',
+  BRIDE_GUEST: 'BRIDE_GUEST',
+  GROOM_GUEST: 'GROOM_GUEST'
+} as const
+
+export type GuestCategory = (typeof GuestCategory)[keyof typeof GuestCategory]

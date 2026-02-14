@@ -30,6 +30,7 @@ export type GuestMinAggregateOutputType = {
   name: string | null
   phone: string | null
   email: string | null
+  category: $Enums.GuestCategory | null
   invitationCode: string | null
   checkedIn: boolean | null
   checkedInAt: Date | null
@@ -42,6 +43,7 @@ export type GuestMaxAggregateOutputType = {
   name: string | null
   phone: string | null
   email: string | null
+  category: $Enums.GuestCategory | null
   invitationCode: string | null
   checkedIn: boolean | null
   checkedInAt: Date | null
@@ -54,6 +56,7 @@ export type GuestCountAggregateOutputType = {
   name: number
   phone: number
   email: number
+  category: number
   invitationCode: number
   checkedIn: number
   checkedInAt: number
@@ -68,6 +71,7 @@ export type GuestMinAggregateInputType = {
   name?: true
   phone?: true
   email?: true
+  category?: true
   invitationCode?: true
   checkedIn?: true
   checkedInAt?: true
@@ -80,6 +84,7 @@ export type GuestMaxAggregateInputType = {
   name?: true
   phone?: true
   email?: true
+  category?: true
   invitationCode?: true
   checkedIn?: true
   checkedInAt?: true
@@ -92,6 +97,7 @@ export type GuestCountAggregateInputType = {
   name?: true
   phone?: true
   email?: true
+  category?: true
   invitationCode?: true
   checkedIn?: true
   checkedInAt?: true
@@ -177,6 +183,7 @@ export type GuestGroupByOutputType = {
   name: string
   phone: string | null
   email: string | null
+  category: $Enums.GuestCategory
   invitationCode: string
   checkedIn: boolean
   checkedInAt: Date | null
@@ -210,6 +217,7 @@ export type GuestWhereInput = {
   name?: Prisma.StringFilter<"Guest"> | string
   phone?: Prisma.StringNullableFilter<"Guest"> | string | null
   email?: Prisma.StringNullableFilter<"Guest"> | string | null
+  category?: Prisma.EnumGuestCategoryFilter<"Guest"> | $Enums.GuestCategory
   invitationCode?: Prisma.StringFilter<"Guest"> | string
   checkedIn?: Prisma.BoolFilter<"Guest"> | boolean
   checkedInAt?: Prisma.DateTimeNullableFilter<"Guest"> | Date | string | null
@@ -223,6 +231,7 @@ export type GuestOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
   email?: Prisma.SortOrderInput | Prisma.SortOrder
+  category?: Prisma.SortOrder
   invitationCode?: Prisma.SortOrder
   checkedIn?: Prisma.SortOrder
   checkedInAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -240,6 +249,7 @@ export type GuestWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Guest"> | string
   phone?: Prisma.StringNullableFilter<"Guest"> | string | null
   email?: Prisma.StringNullableFilter<"Guest"> | string | null
+  category?: Prisma.EnumGuestCategoryFilter<"Guest"> | $Enums.GuestCategory
   checkedIn?: Prisma.BoolFilter<"Guest"> | boolean
   checkedInAt?: Prisma.DateTimeNullableFilter<"Guest"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Guest"> | Date | string
@@ -252,6 +262,7 @@ export type GuestOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   phone?: Prisma.SortOrderInput | Prisma.SortOrder
   email?: Prisma.SortOrderInput | Prisma.SortOrder
+  category?: Prisma.SortOrder
   invitationCode?: Prisma.SortOrder
   checkedIn?: Prisma.SortOrder
   checkedInAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -270,6 +281,7 @@ export type GuestScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Guest"> | string
   phone?: Prisma.StringNullableWithAggregatesFilter<"Guest"> | string | null
   email?: Prisma.StringNullableWithAggregatesFilter<"Guest"> | string | null
+  category?: Prisma.EnumGuestCategoryWithAggregatesFilter<"Guest"> | $Enums.GuestCategory
   invitationCode?: Prisma.StringWithAggregatesFilter<"Guest"> | string
   checkedIn?: Prisma.BoolWithAggregatesFilter<"Guest"> | boolean
   checkedInAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Guest"> | Date | string | null
@@ -281,6 +293,7 @@ export type GuestCreateInput = {
   name: string
   phone?: string | null
   email?: string | null
+  category?: $Enums.GuestCategory
   invitationCode: string
   checkedIn?: boolean
   checkedInAt?: Date | string | null
@@ -294,6 +307,7 @@ export type GuestUncheckedCreateInput = {
   name: string
   phone?: string | null
   email?: string | null
+  category?: $Enums.GuestCategory
   invitationCode: string
   checkedIn?: boolean
   checkedInAt?: Date | string | null
@@ -305,6 +319,7 @@ export type GuestUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  category?: Prisma.EnumGuestCategoryFieldUpdateOperationsInput | $Enums.GuestCategory
   invitationCode?: Prisma.StringFieldUpdateOperationsInput | string
   checkedIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   checkedInAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -318,6 +333,7 @@ export type GuestUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  category?: Prisma.EnumGuestCategoryFieldUpdateOperationsInput | $Enums.GuestCategory
   invitationCode?: Prisma.StringFieldUpdateOperationsInput | string
   checkedIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   checkedInAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -330,6 +346,7 @@ export type GuestCreateManyInput = {
   name: string
   phone?: string | null
   email?: string | null
+  category?: $Enums.GuestCategory
   invitationCode: string
   checkedIn?: boolean
   checkedInAt?: Date | string | null
@@ -341,6 +358,7 @@ export type GuestUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  category?: Prisma.EnumGuestCategoryFieldUpdateOperationsInput | $Enums.GuestCategory
   invitationCode?: Prisma.StringFieldUpdateOperationsInput | string
   checkedIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   checkedInAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -353,6 +371,7 @@ export type GuestUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  category?: Prisma.EnumGuestCategoryFieldUpdateOperationsInput | $Enums.GuestCategory
   invitationCode?: Prisma.StringFieldUpdateOperationsInput | string
   checkedIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   checkedInAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -375,6 +394,7 @@ export type GuestCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   phone?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  category?: Prisma.SortOrder
   invitationCode?: Prisma.SortOrder
   checkedIn?: Prisma.SortOrder
   checkedInAt?: Prisma.SortOrder
@@ -387,6 +407,7 @@ export type GuestMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   phone?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  category?: Prisma.SortOrder
   invitationCode?: Prisma.SortOrder
   checkedIn?: Prisma.SortOrder
   checkedInAt?: Prisma.SortOrder
@@ -399,6 +420,7 @@ export type GuestMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   phone?: Prisma.SortOrder
   email?: Prisma.SortOrder
+  category?: Prisma.SortOrder
   invitationCode?: Prisma.SortOrder
   checkedIn?: Prisma.SortOrder
   checkedInAt?: Prisma.SortOrder
@@ -447,6 +469,10 @@ export type GuestUncheckedUpdateManyWithoutEventNestedInput = {
   deleteMany?: Prisma.GuestScalarWhereInput | Prisma.GuestScalarWhereInput[]
 }
 
+export type EnumGuestCategoryFieldUpdateOperationsInput = {
+  set?: $Enums.GuestCategory
+}
+
 export type NullableDateTimeFieldUpdateOperationsInput = {
   set?: Date | string | null
 }
@@ -456,6 +482,7 @@ export type GuestCreateWithoutEventInput = {
   name: string
   phone?: string | null
   email?: string | null
+  category?: $Enums.GuestCategory
   invitationCode: string
   checkedIn?: boolean
   checkedInAt?: Date | string | null
@@ -467,6 +494,7 @@ export type GuestUncheckedCreateWithoutEventInput = {
   name: string
   phone?: string | null
   email?: string | null
+  category?: $Enums.GuestCategory
   invitationCode: string
   checkedIn?: boolean
   checkedInAt?: Date | string | null
@@ -508,6 +536,7 @@ export type GuestScalarWhereInput = {
   name?: Prisma.StringFilter<"Guest"> | string
   phone?: Prisma.StringNullableFilter<"Guest"> | string | null
   email?: Prisma.StringNullableFilter<"Guest"> | string | null
+  category?: Prisma.EnumGuestCategoryFilter<"Guest"> | $Enums.GuestCategory
   invitationCode?: Prisma.StringFilter<"Guest"> | string
   checkedIn?: Prisma.BoolFilter<"Guest"> | boolean
   checkedInAt?: Prisma.DateTimeNullableFilter<"Guest"> | Date | string | null
@@ -519,6 +548,7 @@ export type GuestCreateManyEventInput = {
   name: string
   phone?: string | null
   email?: string | null
+  category?: $Enums.GuestCategory
   invitationCode: string
   checkedIn?: boolean
   checkedInAt?: Date | string | null
@@ -530,6 +560,7 @@ export type GuestUpdateWithoutEventInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  category?: Prisma.EnumGuestCategoryFieldUpdateOperationsInput | $Enums.GuestCategory
   invitationCode?: Prisma.StringFieldUpdateOperationsInput | string
   checkedIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   checkedInAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -541,6 +572,7 @@ export type GuestUncheckedUpdateWithoutEventInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  category?: Prisma.EnumGuestCategoryFieldUpdateOperationsInput | $Enums.GuestCategory
   invitationCode?: Prisma.StringFieldUpdateOperationsInput | string
   checkedIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   checkedInAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -552,6 +584,7 @@ export type GuestUncheckedUpdateManyWithoutEventInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   phone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  category?: Prisma.EnumGuestCategoryFieldUpdateOperationsInput | $Enums.GuestCategory
   invitationCode?: Prisma.StringFieldUpdateOperationsInput | string
   checkedIn?: Prisma.BoolFieldUpdateOperationsInput | boolean
   checkedInAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -566,6 +599,7 @@ export type GuestSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   name?: boolean
   phone?: boolean
   email?: boolean
+  category?: boolean
   invitationCode?: boolean
   checkedIn?: boolean
   checkedInAt?: boolean
@@ -579,6 +613,7 @@ export type GuestSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   phone?: boolean
   email?: boolean
+  category?: boolean
   invitationCode?: boolean
   checkedIn?: boolean
   checkedInAt?: boolean
@@ -592,6 +627,7 @@ export type GuestSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   phone?: boolean
   email?: boolean
+  category?: boolean
   invitationCode?: boolean
   checkedIn?: boolean
   checkedInAt?: boolean
@@ -605,13 +641,14 @@ export type GuestSelectScalar = {
   name?: boolean
   phone?: boolean
   email?: boolean
+  category?: boolean
   invitationCode?: boolean
   checkedIn?: boolean
   checkedInAt?: boolean
   createdAt?: boolean
 }
 
-export type GuestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "eventId" | "name" | "phone" | "email" | "invitationCode" | "checkedIn" | "checkedInAt" | "createdAt", ExtArgs["result"]["guest"]>
+export type GuestOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "eventId" | "name" | "phone" | "email" | "category" | "invitationCode" | "checkedIn" | "checkedInAt" | "createdAt", ExtArgs["result"]["guest"]>
 export type GuestInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   event?: boolean | Prisma.EventDefaultArgs<ExtArgs>
 }
@@ -633,6 +670,7 @@ export type $GuestPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     name: string
     phone: string | null
     email: string | null
+    category: $Enums.GuestCategory
     invitationCode: string
     checkedIn: boolean
     checkedInAt: Date | null
@@ -1066,6 +1104,7 @@ export interface GuestFieldRefs {
   readonly name: Prisma.FieldRef<"Guest", 'String'>
   readonly phone: Prisma.FieldRef<"Guest", 'String'>
   readonly email: Prisma.FieldRef<"Guest", 'String'>
+  readonly category: Prisma.FieldRef<"Guest", 'GuestCategory'>
   readonly invitationCode: Prisma.FieldRef<"Guest", 'String'>
   readonly checkedIn: Prisma.FieldRef<"Guest", 'Boolean'>
   readonly checkedInAt: Prisma.FieldRef<"Guest", 'DateTime'>

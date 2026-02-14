@@ -3,6 +3,7 @@ import {
   notFoundResponse,
   requireStudioSession,
 } from "@/lib/api-auth";
+import { GuestCategory } from "@/lib/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -15,6 +16,7 @@ const bulkGuestSchema = z.object({
         name: z.string().min(2),
         phone: z.string().optional(),
         email: z.string().email().optional(),
+        category: z.nativeEnum(GuestCategory).optional(),
         invitationCode: z.string().min(3),
       })
     )
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
           name: guest.name,
           phone: guest.phone,
           email: guest.email,
+          category: guest.category ?? GuestCategory.GENERAL,
           invitationCode: guest.invitationCode,
         },
       })

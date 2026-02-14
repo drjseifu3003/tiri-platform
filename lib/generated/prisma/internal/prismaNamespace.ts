@@ -963,6 +963,7 @@ export const GuestScalarFieldEnum = {
   name: 'name',
   phone: 'phone',
   email: 'email',
+  category: 'category',
   invitationCode: 'invitationCode',
   checkedIn: 'checkedIn',
   checkedInAt: 'checkedInAt',
@@ -1073,6 +1074,20 @@ export type ListEnumTemplateCategoryFieldRefInput<$PrismaModel> = FieldRefInputT
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
+ * Reference to a field of type 'GuestCategory'
+ */
+export type EnumGuestCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GuestCategory'>
+    
+
+
+/**
+ * Reference to a field of type 'GuestCategory[]'
+ */
+export type ListEnumGuestCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GuestCategory[]'>
     
 
 

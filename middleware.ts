@@ -4,7 +4,12 @@ import { SESSION_COOKIE_NAME } from "@/lib/auth-constants";
 export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (!sessionCookie) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const loginUrl = new URL("/", request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
