@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f7fb;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --border-subtle: #e2e8f0;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -12,15 +16,91 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 35%),
+    radial-gradient(circle at left top, rgba(167, 139, 250, 0.12), transparent 35%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+html,
 body {
-  background: var(--background);
+  background-color: var(--background);
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.2);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .ui-page {
+    @apply rounded-2xl border p-6 shadow-sm;
+    border-color: var(--border-subtle);
+    background: var(--surface);
+  }
+
+  .ui-page-header {
+    @apply flex flex-wrap items-center justify-between gap-3;
+  }
+
+  .ui-title {
+    @apply text-2xl font-semibold tracking-tight text-violet-700;
+  }
+
+  .ui-subtitle {
+    @apply mt-1 text-sm text-slate-500;
+  }
+
+  .ui-panel {
+    @apply rounded-2xl border p-4 sm:p-5;
+    border-color: var(--border-subtle);
+    background: var(--surface-muted);
+  }
+
+  .ui-kpi-grid {
+    @apply mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
+  }
+
+  .ui-kpi-card {
+    @apply rounded-xl border p-3;
+    border-color: var(--border-subtle);
+    background: var(--surface-muted);
+  }
+
+  .ui-input,
+  .ui-select,
+  .ui-textarea {
+    @apply w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-cyan-300 transition focus:ring-2;
+    border-color: #d1d5db;
+  }
+
+  .ui-textarea {
+    @apply min-h-20;
+  }
+
+  .ui-button-primary {
+    @apply rounded-lg bg-gradient-to-r from-cyan-400 to-violet-400 px-4 py-2 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70;
+  }
+
+  .ui-button-secondary {
+    @apply rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700;
+  }
+
+  .ui-chip-active {
+    @apply rounded-lg bg-gradient-to-r from-cyan-400 to-violet-400 px-3 py-1.5 text-xs font-medium text-white;
+  }
+
+  .ui-chip {
+    @apply rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-600;
+  }
+
+  .ui-table {
+    @apply mt-5 overflow-hidden rounded-xl border;
+    border-color: var(--border-subtle);
+    background: var(--surface);
+  }
 }

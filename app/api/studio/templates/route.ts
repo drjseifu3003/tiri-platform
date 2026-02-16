@@ -24,6 +24,13 @@ export async function GET(request: NextRequest) {
 
   const templates = await prisma.template.findMany({
     where: includeInactive ? {} : { isActive: true },
+    include: {
+      _count: {
+        select: {
+          events: true,
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 

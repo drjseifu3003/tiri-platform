@@ -1,14 +1,18 @@
 "use client";
 
 import { useSession } from "@/lib/session-context";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 type EventListItem = {
   id: string;
+  templateId?: string;
   title: string;
   brideName: string | null;
   groomName: string | null;
+  bridePhone?: string | null;
+  groomPhone?: string | null;
   eventDate: string;
   location: string | null;
   isPublished: boolean;
@@ -26,9 +30,11 @@ type GuestCategory = "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST";
 
 type GuestListItem = {
   id: string;
+  eventId?: string;
   name: string;
   category: GuestCategory;
   checkedIn: boolean;
+  checkedInAt?: string | null;
   createdAt: string;
   event: {
     id: string;
@@ -46,6 +52,14 @@ type TemplatesResponse = {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+function isSameDate(left: Date, right: Date) {
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
 }
 
 export default function DashboardPage() {
@@ -113,57 +127,119 @@ export default function DashboardPage() {
 
   const coreStats = useMemo(() => {
     const totalEvents = events.length;
-    const publishedEvents = events.filter((event) => event.isPublished).length;
-    const totalGuests = guests.length;
+    const now = new Date();
+    const inThirtyDays = new Date();
+    inThirtyDays.setDate(inThirtyDays.getDate() + 30);
+    const upcomingThirtyDays = events.filter((event) => {
+      const date = new Date(event.eventDate);
+      return date >= now && date <= inThirtyDays;
+    }).length;
+
+    const guestsCheckedInToday = guests.filter((guest) => {
+      if (!guest.checkedInAt) return false;
+      return isSameDate(new Date(guest.checkedInAt), now);
+    }).length;
+
+    const totalGuestsInvited = guests.length;
     const totalMedia = events.reduce((sum, event) => sum + event._count.media, 0);
-    const draftEvents = totalEvents - publishedEvents;
 
     return [
-      { label: "Wedding Events", value: totalEvents },
-      { label: "Published", value: publishedEvents },
-      { label: "Draft Events", value: draftEvents },
-      { label: "Total Guests", value: totalGuests },
-      { label: "Media Assets", value: totalMedia },
-      { label: "Active Templates", value: templateCount },
+      { label: "Total events", value: totalEvents },
+      { label: "Upcoming events (30 days)", value: upcomingThirtyDays },
+      { label: "Total guests invited", value: totalGuestsInvited },
+      { label: "Guests checked-in today", value: guestsCheckedInToday },
+      { label: "Total media files uploaded", value: totalMedia },
+      { label: "Active templates", value: templateCount },
     ];
-  }, [events, guests.length, templateCount]);
+  }, [events, guests, templateCount]);
 
   const checkedInCount = useMemo(() => guests.filter((guest) => guest.checkedIn).length, [guests]);
-  const pendingCount = useMemo(() => guests.length - checkedInCount, [checkedInCount, guests.length]);
   const publishedCount = useMemo(() => events.filter((event) => event.isPublished).length, [events]);
   const draftCount = useMemo(() => events.length - publishedCount, [events.length, publishedCount]);
 
-  const recentGuests = useMemo(() => guests.slice(0, 3), [guests]);
+  const eventsToday = useMemo(() => {
+    const now = new Date();
+    return events.filter((event) => isSameDate(new Date(event.eventDate), now));
+  }, [events]);
 
-  const guestTrafficBuckets = useMemo(() => {
-    const labels = ["10m", "20m", "40m", "60m", "80m", "120m", "140m"];
-    const now = Date.now();
-    const stepMs = 20 * 60 * 1000;
-
-    const buckets = labels.map((label, index) => {
-      const minAge = index === 0 ? 0 : index * stepMs;
-      const maxAge = (index + 1) * stepMs;
-
-      const inBucket = guests.filter((guest) => {
-        const age = now - new Date(guest.createdAt).getTime();
-        return age >= minAge && age < maxAge;
-      });
-
-      return {
-        label,
-        total: inBucket.length,
-        checkedIn: inBucket.filter((guest) => guest.checkedIn).length,
-        pending: inBucket.filter((guest) => !guest.checkedIn).length,
-      };
+  const eventsThisWeek = useMemo(() => {
+    const now = new Date();
+    const end = new Date();
+    end.setDate(end.getDate() + 7);
+    return events.filter((event) => {
+      const date = new Date(event.eventDate);
+      return date >= now && date <= end;
     });
+  }, [events]);
 
-    return buckets.reverse();
-  }, [guests]);
+  const attentionItems = useMemo(() => {
+    const now = new Date();
+    const inSevenDays = new Date();
+    inSevenDays.setDate(inSevenDays.getDate() + 7);
 
-  const maxTraffic = useMemo(
-    () => Math.max(...guestTrafficBuckets.map((bucket) => bucket.total), 1),
-    [guestTrafficBuckets]
-  );
+    const items: Array<{ id: string; message: string; actionHref: string; actionLabel: string }> = [];
+
+    for (const event of events) {
+      const date = new Date(event.eventDate);
+
+      if (date >= now && date <= inSevenDays) {
+        if (event._count.guests === 0) {
+          items.push({
+            id: `${event.id}-missing-guests`,
+            message: `${event.title}: upcoming in less than 7 days with no guests added.`,
+            actionHref: "/studio/guests",
+            actionLabel: "Add guests",
+          });
+        }
+
+        if (!event.templateId) {
+          items.push({
+            id: `${event.id}-missing-template`,
+            message: `${event.title}: no template selected.`,
+            actionHref: "/studio/templates",
+            actionLabel: "Select template",
+          });
+        }
+
+        if (!event.isPublished) {
+          items.push({
+            id: `${event.id}-not-published`,
+            message: `${event.title}: invitation is not published.`,
+            actionHref: "/studio/events",
+            actionLabel: "Review event",
+          });
+        }
+      }
+
+      if (date < now && event._count.media === 0) {
+        items.push({
+          id: `${event.id}-missing-media`,
+          message: `${event.title}: event completed but no media uploaded.`,
+          actionHref: "/studio/media",
+          actionLabel: "Upload media",
+        });
+      }
+    }
+
+    return items.slice(0, 8);
+  }, [events]);
+
+  const upcomingWeddings = useMemo(() => {
+    const now = new Date();
+    return [...events]
+      .filter((event) => new Date(event.eventDate).getTime() >= now.getTime())
+      .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime());
+  }, [events]);
+
+  const recentWeddings = useMemo(() => {
+    const now = new Date();
+    return [...events]
+      .filter((event) => new Date(event.eventDate).getTime() < now.getTime())
+      .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());
+  }, [events]);
+
+  const nextWedding = upcomingWeddings[0];
+  const lastWedding = recentWeddings[0];
 
   const publishedRatio = useMemo(() => {
     if (events.length === 0) return "0%";
@@ -182,18 +258,6 @@ export default function DashboardPage() {
   return (
     <main className="flex min-h-full flex-col gap-6">
       <section className="rounded-2xl border border-zinc-200 bg-white px-4 sm:px-6">
-        <div className="flex items-center gap-8 border-b border-zinc-200">
-          <button type="button" className="border-b-2 border-cyan-400 pb-3 text-sm font-semibold text-cyan-700">
-            Overview
-          </button>
-          <button type="button" className="pb-3 text-sm text-zinc-500">
-            Guest list
-          </button>
-          <button type="button" className="pb-3 text-sm text-zinc-500">
-            Studio insights
-          </button>
-        </div>
-
         <div className="py-5">
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr_280px]">
             <article className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-200 via-cyan-100 to-cyan-300 p-6 text-cyan-900">
@@ -225,9 +289,13 @@ export default function DashboardPage() {
             </article>
 
             <article className="rounded-2xl border border-violet-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-5">
-              <p className="text-2xl font-semibold text-violet-700">Studio Activity</p>
-              <p className="mt-4 text-3xl font-semibold text-cyan-700">{formatNumber(guests.length)}</p>
-              <p className="text-sm text-zinc-500">Pending check-in: {formatNumber(pendingCount)}</p>
+              <p className="text-2xl font-semibold text-violet-700">Operational Snapshot</p>
+              <p className="mt-4 text-lg font-semibold text-cyan-700">
+                Next: {nextWedding ? nextWedding.title : "No upcoming wedding"}
+              </p>
+              <p className="text-sm text-zinc-500">
+                Last: {lastWedding ? lastWedding.title : "No completed wedding yet"}
+              </p>
               <div className="mt-6 h-20 w-full">
                 <svg viewBox="0 0 220 80" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
                   <path
@@ -247,45 +315,50 @@ export default function DashboardPage() {
       <section className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
         <article className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-violet-700">Recent Guests</h2>
-            <p className="text-sm text-zinc-500">See more</p>
+            <h2 className="text-3xl font-semibold text-violet-700">Today Weddings</h2>
+            <p className="text-sm text-zinc-500">Wedding day queue</p>
           </div>
 
           {loadingData ? (
-            <p className="mt-6 text-sm text-zinc-600">Loading guests...</p>
+            <p className="mt-6 text-sm text-zinc-600">Loading weddings...</p>
           ) : error ? (
             <p className="mt-6 text-sm text-red-700">{error}</p>
-          ) : recentGuests.length === 0 ? (
-            <p className="mt-6 text-sm text-zinc-600">No guests yet.</p>
+          ) : eventsToday.length === 0 ? (
+            <p className="mt-6 text-sm text-zinc-600">No weddings scheduled for today.</p>
           ) : (
             <div className="mt-5 space-y-3">
-              {recentGuests.map((guest) => {
-                const initial = guest.name.slice(0, 1).toUpperCase();
-                const categoryLabel =
-                  guest.category === "BRIDE_GUEST"
-                    ? "Bride side"
-                    : guest.category === "GROOM_GUEST"
-                      ? "Groom side"
-                      : "General guest";
-
+              {eventsToday.map((event) => {
                 return (
-                  <article key={guest.id} className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-200 text-base font-semibold text-zinc-700">
-                        {initial}
+                  <article key={event.id} className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 text-sm font-semibold text-cyan-700">
+                        {new Date(event.eventDate).getDate()}
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-zinc-700">{guest.name}</p>
+                        <p className="font-semibold text-zinc-700">{event.title}</p>
                         <p className="text-xs text-zinc-500">
-                          {guest.event.title} • {categoryLabel}
+                          {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Bride & groom pending"}
                         </p>
+                        <p className="text-xs text-zinc-500">
+                          {new Date(event.eventDate).toLocaleDateString()} • {event.location ?? "Location pending"}
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <Link
+                            href="/studio/guests"
+                            className="rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700"
+                          >
+                            Open Check-in
+                          </Link>
+                          <Link
+                            href="/studio/events"
+                            className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700"
+                          >
+                            View Event
+                          </Link>
+                        </div>
                       </div>
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          guest.checkedIn ? "bg-emerald-100 text-emerald-700" : "bg-zinc-200 text-zinc-700"
-                        }`}
-                      >
-                        {guest.checkedIn ? "Checked in" : "Pending"}
+                      <span className="rounded-full bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700">
+                        {event._count.guests} guests
                       </span>
                     </div>
                   </article>
@@ -297,54 +370,85 @@ export default function DashboardPage() {
 
         <article className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-violet-700">Guest Flow Timeline</h2>
-            <p className="text-sm text-zinc-500">See more</p>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-zinc-500">
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-cyan-500" />Total guests
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-cyan-300" />Checked in
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-violet-300" />Pending
-            </span>
+            <h2 className="text-3xl font-semibold text-violet-700">This Week Weddings</h2>
+            <p className="text-sm text-zinc-500">Near-term operations</p>
           </div>
 
           {loadingData ? (
-            <p className="mt-6 text-sm text-zinc-600">Loading traffic...</p>
+            <p className="mt-6 text-sm text-zinc-600">Loading weddings...</p>
+          ) : error ? (
+            <p className="mt-6 text-sm text-red-700">{error}</p>
+          ) : eventsThisWeek.length === 0 ? (
+            <p className="mt-6 text-sm text-zinc-600">No weddings scheduled this week.</p>
           ) : (
-            <div className="mt-6 grid grid-cols-7 gap-3">
-              {guestTrafficBuckets.map((bucket) => {
-                const totalHeight = Math.max((bucket.total / maxTraffic) * 100, bucket.total > 0 ? 14 : 0);
-                const checkedInHeight = bucket.total > 0 ? (bucket.checkedIn / bucket.total) * totalHeight : 0;
-                const pendingHeight = bucket.total > 0 ? (bucket.pending / bucket.total) * totalHeight : 0;
-
+            <div className="mt-5 space-y-3">
+              {eventsThisWeek.slice(0, 5).map((event) => {
                 return (
-                  <div key={bucket.label} className="flex flex-col items-center gap-2">
-                    <div className="relative h-44 w-full rounded-lg bg-zinc-50">
-                      <div
-                        className="absolute inset-x-2 bottom-2 rounded-t-sm bg-cyan-500"
-                        style={{ height: `${totalHeight}%` }}
-                      />
-                      <div
-                        className="absolute inset-x-2 rounded-t-sm bg-cyan-300"
-                        style={{ height: `${checkedInHeight}%`, bottom: `calc(8px + ${totalHeight - checkedInHeight}%)` }}
-                      />
-                      <div
-                        className="absolute inset-x-2 rounded-t-sm bg-violet-300"
-                        style={{ height: `${pendingHeight}%`, bottom: `calc(8px + ${totalHeight - pendingHeight}%)` }}
-                      />
+                  <article key={event.id} className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">
+                        {new Date(event.eventDate).getDate()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-zinc-700">{event.title}</p>
+                        <p className="text-xs text-zinc-500">
+                          {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Bride & groom pending"}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {new Date(event.eventDate).toLocaleDateString()} • {event.location ?? "Location pending"}
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <Link
+                            href="/studio/guests"
+                            className="rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700"
+                          >
+                            Open Check-in
+                          </Link>
+                          <Link
+                            href="/studio/events"
+                            className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700"
+                          >
+                            View Event
+                          </Link>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700">
+                        {event._count.guests} guests
+                      </span>
                     </div>
-                    <p className="text-xs text-zinc-500">{bucket.label}</p>
-                  </div>
+                  </article>
                 );
               })}
             </div>
           )}
         </article>
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-semibold text-violet-700">Attention Needed</h2>
+          <p className="text-sm text-zinc-500">Operational alerts</p>
+        </div>
+
+        {attentionItems.length === 0 ? (
+          <p className="mt-4 rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-700">
+            No urgent actions right now. Studio workflow is healthy.
+          </p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {attentionItems.map((item) => (
+              <article key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <p className="text-sm text-zinc-700">{item.message}</p>
+                <Link
+                  href={item.actionHref}
+                  className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700"
+                >
+                  {item.actionLabel}
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

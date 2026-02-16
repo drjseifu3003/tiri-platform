@@ -19,8 +19,32 @@ export async function GET(request: NextRequest) {
   if (session instanceof NextResponse) return session;
 
   const eventId = request.nextUrl.searchParams.get("eventId");
-  if (!eventId) {
-    return badRequestResponse("eventId query param is required");
+  const scope = request.nextUrl.searchParams.get("scope");
+
+  if (!eventId && scope !== "studio") {
+    return badRequestResponse("eventId query param is required, or set scope=studio");
+  }
+
+  if (scope === "studio") {
+    const media = await prisma.media.findMany({
+      where: {
+        event: {
+          studioId: session.studioId,
+        },
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+
+    return NextResponse.json({ media });
   }
 
   const event = await prisma.event.findFirst({
@@ -32,6 +56,14 @@ export async function GET(request: NextRequest) {
 
   const media = await prisma.media.findMany({
     where: { eventId },
+    include: {
+      event: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 

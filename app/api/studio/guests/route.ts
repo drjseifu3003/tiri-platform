@@ -8,6 +8,10 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+function isMissingColumnError(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2022";
+}
+
 const createGuestSchema = z.object({
   eventId: z.string().uuid(),
   name: z.string().min(2),
@@ -29,25 +33,58 @@ export async function GET(request: NextRequest) {
   }
 
   if (scope === "studio") {
-    const guests = await prisma.guest.findMany({
-      where: {
-        event: {
-          studioId: session.studioId,
-        },
-      },
-      include: {
-        event: {
-          select: {
-            id: true,
-            title: true,
+    try {
+      const guests = await prisma.guest.findMany({
+        where: {
+          event: {
+            studioId: session.studioId,
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    });
+        include: {
+          event: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
 
-    return NextResponse.json({ guests });
+      return NextResponse.json({ guests });
+    } catch (error) {
+      if (!isMissingColumnError(error)) throw error;
+
+      const guests = await prisma.guest.findMany({
+        where: {
+          event: {
+            studioId: session.studioId,
+          },
+        },
+        select: {
+          id: true,
+          eventId: true,
+          name: true,
+          phone: true,
+          email: true,
+          invitationCode: true,
+          checkedIn: true,
+          checkedInAt: true,
+          createdAt: true,
+          event: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+
+      return NextResponse.json({ guests: guests.map((guest) => ({ ...guest, category: GuestCategory.GENERAL })) });
+    }
   }
 
   const event = await prisma.event.findFirst({
@@ -57,12 +94,34 @@ export async function GET(request: NextRequest) {
 
   if (!event) return notFoundResponse("Event not found");
 
-  const guests = await prisma.guest.findMany({
-    where: { eventId: eventId! },
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    const guests = await prisma.guest.findMany({
+      where: { eventId: eventId! },
+      orderBy: { createdAt: "desc" },
+    });
 
-  return NextResponse.json({ guests });
+    return NextResponse.json({ guests });
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+
+    const guests = await prisma.guest.findMany({
+      where: { eventId: eventId! },
+      select: {
+        id: true,
+        eventId: true,
+        name: true,
+        phone: true,
+        email: true,
+        invitationCode: true,
+        checkedIn: true,
+        checkedInAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ guests: guests.map((guest) => ({ ...guest, category: GuestCategory.GENERAL })) });
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -83,16 +142,32 @@ export async function POST(request: NextRequest) {
 
   if (!event) return notFoundResponse("Event not found");
 
-  const guest = await prisma.guest.create({
-    data: {
-      eventId: parsed.data.eventId,
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      email: parsed.data.email,
-      category: parsed.data.category ?? GuestCategory.GENERAL,
-      invitationCode: parsed.data.invitationCode,
-    },
-  });
+  try {
+    const guest = await prisma.guest.create({
+      data: {
+        eventId: parsed.data.eventId,
+        name: parsed.data.name,
+        phone: parsed.data.phone,
+        email: parsed.data.email,
+        category: parsed.data.category ?? GuestCategory.GENERAL,
+        invitationCode: parsed.data.invitationCode,
+      },
+    });
 
-  return NextResponse.json({ guest }, { status: 201 });
+    return NextResponse.json({ guest }, { status: 201 });
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+
+    const guest = await prisma.guest.create({
+      data: {
+        eventId: parsed.data.eventId,
+        name: parsed.data.name,
+        phone: parsed.data.phone,
+        email: parsed.data.email,
+        invitationCode: parsed.data.invitationCode,
+      },
+    });
+
+    return NextResponse.json({ guest: { ...guest, category: GuestCategory.GENERAL } }, { status: 201 });
+  }
 }

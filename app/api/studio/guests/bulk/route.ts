@@ -8,6 +8,10 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+function isMissingColumnError(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2022";
+}
+
 const bulkGuestSchema = z.object({
   eventId: z.string().uuid(),
   guests: z
@@ -41,20 +45,40 @@ export async function POST(request: NextRequest) {
 
   if (!event) return notFoundResponse("Event not found");
 
-  const created = await prisma.$transaction(
-    parsed.data.guests.map((guest) =>
-      prisma.guest.create({
-        data: {
-          eventId: parsed.data.eventId,
-          name: guest.name,
-          phone: guest.phone,
-          email: guest.email,
-          category: guest.category ?? GuestCategory.GENERAL,
-          invitationCode: guest.invitationCode,
-        },
-      })
-    )
-  );
+  try {
+    const created = await prisma.$transaction(
+      parsed.data.guests.map((guest) =>
+        prisma.guest.create({
+          data: {
+            eventId: parsed.data.eventId,
+            name: guest.name,
+            phone: guest.phone,
+            email: guest.email,
+            category: guest.category ?? GuestCategory.GENERAL,
+            invitationCode: guest.invitationCode,
+          },
+        })
+      )
+    );
 
-  return NextResponse.json({ guests: created }, { status: 201 });
+    return NextResponse.json({ guests: created }, { status: 201 });
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+
+    const created = await prisma.$transaction(
+      parsed.data.guests.map((guest) =>
+        prisma.guest.create({
+          data: {
+            eventId: parsed.data.eventId,
+            name: guest.name,
+            phone: guest.phone,
+            email: guest.email,
+            invitationCode: guest.invitationCode,
+          },
+        })
+      )
+    );
+
+    return NextResponse.json({ guests: created.map((guest) => ({ ...guest, category: GuestCategory.GENERAL })) }, { status: 201 });
+  }
 }

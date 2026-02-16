@@ -16,31 +16,27 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
 
   const navigation = useMemo(
     () => [
-      { label: "Studio Dashboard", href: "/studio/dashboard" },
-      { label: "Event Management", href: "/studio/events" },
-      { label: "Guest Management", href: "/studio/guests" },
-      { label: "Template Library", href: "/studio/templates" },
-      { label: "Media Delivery", href: "/studio/media" },
+      { label: "Overview", href: "/studio/dashboard" },
+      { label: "Events", href: "/studio/events" },
+      { label: "Templates", href: "/studio/templates" },
+      { label: "Guests", href: "/studio/guests" },
+      { label: "Media", href: "/studio/media" },
+      { label: "Settings", href: "/studio/settings/account" },
     ],
     []
   );
 
   const titleByPath = useMemo(
     () => ({
-      "/studio/dashboard": "Studio Dashboard",
-      "/studio/events": "Event Management",
-      "/studio/guests": "Guest Management",
-      "/studio/templates": "Template Library",
-      "/studio/media": "Media Delivery",
+      "/studio/dashboard": "Overview",
+      "/studio/events": "Events",
+      "/studio/guests": "Guests",
+      "/studio/templates": "Templates",
+      "/studio/media": "Media",
+      "/studio/settings/account": "Settings",
+      "/studio/settings/notifications": "Settings",
+      "/studio/settings/team": "Settings",
     }),
-    []
-  );
-
-  const utilityNavigation = useMemo(
-    () => [
-      { label: "Studio Alerts", href: "/studio/settings/notifications" },
-      { label: "Account Settings", href: "/studio/settings/account" },
-    ],
     []
   );
 
@@ -87,7 +83,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   function NavIcon({ label, active }: { label: string; active: boolean }) {
     const iconClass = active ? "text-white" : "text-zinc-500";
 
-    if (label === "Studio Dashboard") {
+    if (label === "Overview") {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
           <rect x="4" y="4" width="7" height="7" rx="1.5" />
@@ -98,7 +94,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       );
     }
 
-    if (label === "Event Management") {
+    if (label === "Events") {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
           <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -107,7 +103,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       );
     }
 
-    if (label === "Guest Management") {
+    if (label === "Guests") {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
           <circle cx="9" cy="8" r="3" />
@@ -117,7 +113,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       );
     }
 
-    if (label === "Template Library") {
+    if (label === "Templates") {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
           <path d="M4 6h16v12H4z" />
@@ -126,7 +122,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       );
     }
 
-    if (label === "Media Delivery") {
+    if (label === "Media") {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
           <rect x="3" y="5" width="18" height="14" rx="2" />
@@ -136,11 +132,11 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       );
     }
 
-    if (label === "Studio Alerts") {
+    if (label === "Settings") {
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
-          <path d="M4 10h4l8-4v12l-8-4H4z" />
-          <path d="M8 14l1 4h3" />
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a2 2 0 1 1-4 0v-.1a1 1 0 0 0-.6-.9 1 1 0 0 0-1.1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a2 2 0 1 1 0-4h.1a1 1 0 0 0 .9-.6 1 1 0 0 0-.2-1.1l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1 1 0 0 0 1.1.2h.1a1 1 0 0 0 .6-.9V4a2 2 0 1 1 4 0v.1a1 1 0 0 0 .6.9 1 1 0 0 0 1.1-.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1 1 0 0 0-.2 1.1v.1a1 1 0 0 0 .9.6H20a2 2 0 1 1 0 4h-.1a1 1 0 0 0-.9.6z" />
         </svg>
       );
     }
@@ -154,9 +150,9 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <main className="h-screen w-full overflow-hidden bg-zinc-100">
+    <main className="h-screen w-full overflow-hidden bg-transparent">
       <div className="grid h-full w-full lg:grid-cols-[240px_1fr]">
-        <aside className="sticky top-0 flex h-screen flex-col border-r border-zinc-200 bg-zinc-50 px-3 py-4">
+        <aside className="sticky top-0 flex h-screen flex-col border-r border-zinc-200 bg-white/90 px-3 py-4 backdrop-blur">
           <div className="flex items-center gap-2 px-2 pb-3">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-r from-cyan-400 to-violet-400 text-white">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden>
@@ -177,7 +173,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                   href={item.href}
                   className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
                     active
-                      ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white"
+                      ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white shadow-sm"
                       : "text-zinc-700 hover:bg-zinc-100"
                   }`}
                 >
@@ -188,29 +184,11 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             })}
           </nav>
 
-          <div className="mt-auto space-y-1 border-t border-zinc-200 px-1 pt-4">
-            {utilityNavigation.map((item) => {
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                    active
-                      ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white"
-                      : "text-zinc-700 hover:bg-zinc-100"
-                  }`}
-                >
-                  <NavIcon label={item.label} active={active} />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </div>
+          <div className="mt-auto border-t border-zinc-200 px-3 pt-4 text-xs text-zinc-500">Studio Operations</div>
         </aside>
 
-        <section className="h-screen overflow-y-auto bg-white">
-          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 sm:px-6">
+        <section className="h-screen overflow-y-auto bg-transparent">
+          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
             <div className="flex items-center gap-2">
               <button
                 type="button"

@@ -8,6 +8,10 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+function isMissingColumnError(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2022";
+}
+
 type RouteContext = {
   params: Promise<{ guestId: string }>;
 };
@@ -22,14 +26,40 @@ const updateGuestSchema = z.object({
 });
 
 async function findStudioGuest(studioId: string, guestId: string) {
-  return prisma.guest.findFirst({
-    where: {
-      id: guestId,
-      event: {
-        studioId,
+  try {
+    return await prisma.guest.findFirst({
+      where: {
+        id: guestId,
+        event: {
+          studioId,
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+
+    const guest = await prisma.guest.findFirst({
+      where: {
+        id: guestId,
+        event: {
+          studioId,
+        },
+      },
+      select: {
+        id: true,
+        eventId: true,
+        name: true,
+        phone: true,
+        email: true,
+        invitationCode: true,
+        checkedIn: true,
+        checkedInAt: true,
+        createdAt: true,
+      },
+    });
+
+    return guest ? { ...guest, category: GuestCategory.GENERAL } : null;
+  }
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -62,15 +92,33 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         ? existing.checkedInAt ?? new Date()
         : null;
 
-  const guest = await prisma.guest.update({
-    where: { id: guestId },
-    data: {
-      ...parsed.data,
-      checkedInAt: nextCheckedInAt,
-    },
-  });
+  try {
+    const guest = await prisma.guest.update({
+      where: { id: guestId },
+      data: {
+        ...parsed.data,
+        checkedInAt: nextCheckedInAt,
+      },
+    });
 
-  return NextResponse.json({ guest });
+    return NextResponse.json({ guest });
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+
+    const guest = await prisma.guest.update({
+      where: { id: guestId },
+      data: {
+        name: parsed.data.name,
+        phone: parsed.data.phone,
+        email: parsed.data.email,
+        invitationCode: parsed.data.invitationCode,
+        checkedIn: parsed.data.checkedIn,
+        checkedInAt: nextCheckedInAt,
+      },
+    });
+
+    return NextResponse.json({ guest: { ...guest, category: GuestCategory.GENERAL } });
+  }
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
