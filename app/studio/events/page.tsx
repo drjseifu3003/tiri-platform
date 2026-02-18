@@ -60,9 +60,9 @@ function statusForEvent(event: EventListItem) {
 }
 
 function statusClasses(status: string) {
-  if (status === "Published") return "border-cyan-200 bg-cyan-50 text-cyan-700";
-  if (status === "Completed") return "border-zinc-200 bg-zinc-100 text-zinc-700";
-  return "border-violet-200 bg-violet-50 text-violet-700";
+  if (status === "Published") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "Completed") return "border-neutral-200 bg-neutral-100 text-neutral-700";
+  return "border-amber-200 bg-amber-50 text-amber-700";
 }
 
 function formatEventDate(value: string) {
@@ -310,12 +310,18 @@ export default function StudioEventsPage() {
         </div>
 
         <div className="flex w-full max-w-2xl flex-wrap items-center justify-end gap-2">
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search bride, groom, phone, or date"
-            className="ui-input max-w-xs"
-          />
+          <div className="relative w-full max-w-xs">
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search bride, groom, phone, or date"
+              className="ui-input w-full pl-10"
+            />
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -323,26 +329,27 @@ export default function StudioEventsPage() {
               setCreateSuccess(null);
               setIsCreateOpen((value) => !value);
             }}
-            className="ui-button-primary"
+            className="ui-button-primary whitespace-nowrap"
           >
-            {isCreateOpen ? "Close" : "Add Event"}
+            {isCreateOpen ? "Cancel" : "+ Event"}
           </button>
         </div>
       </div>
 
-      {createSuccess ? <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{createSuccess}</p> : null}
+      {createSuccess ? <p className="mt-3 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{createSuccess}</p> : null}
 
       {isCreateOpen ? (
-        <section className="ui-panel mt-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-zinc-800">Create New Event</h3>
-            <p className="mt-1 text-sm text-zinc-600">Add event details, assign a template, and publish when ready.</p>
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Create New Event</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Add event details, assign a template, and publish when ready.</p>
+            </div>
 
           <form className="space-y-4" onSubmit={handleCreateEventSubmit}>
             <div className="grid gap-3 md:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Template *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Template *</span>
                 <select
                   value={formData.templateId}
                   onChange={(event) => setFormData((current) => ({ ...current, templateId: event.target.value }))}
@@ -359,7 +366,7 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Event Title *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Title *</span>
                 <input
                   value={formData.title}
                   onChange={(event) => setFormData((current) => ({ ...current, title: event.target.value }))}
@@ -370,7 +377,7 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Bride Name</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Name</span>
                 <input
                   value={formData.brideName}
                   onChange={(event) => setFormData((current) => ({ ...current, brideName: event.target.value }))}
@@ -380,7 +387,7 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Groom Name</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Name</span>
                 <input
                   value={formData.groomName}
                   onChange={(event) => setFormData((current) => ({ ...current, groomName: event.target.value }))}
@@ -390,7 +397,7 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Bride Phone *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Phone *</span>
                 <input
                   value={formData.bridePhone}
                   onChange={(event) => setFormData((current) => ({ ...current, bridePhone: event.target.value }))}
@@ -401,7 +408,7 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Groom Phone *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Phone *</span>
                 <input
                   value={formData.groomPhone}
                   onChange={(event) => setFormData((current) => ({ ...current, groomPhone: event.target.value }))}
@@ -412,7 +419,7 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Event Date & Time *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Date & Time *</span>
                 <input
                   type="datetime-local"
                   value={formData.eventDate}
@@ -423,7 +430,7 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Location</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Location</span>
                 <input
                   value={formData.location}
                   onChange={(event) => setFormData((current) => ({ ...current, location: event.target.value }))}
@@ -443,19 +450,19 @@ export default function StudioEventsPage() {
               />
             </label>
 
-            <label className="inline-flex items-center gap-2 text-sm text-zinc-700">
+            <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
               <input
                 type="checkbox"
                 checked={formData.isPublished}
                 onChange={(event) => setFormData((current) => ({ ...current, isPublished: event.target.checked }))}
-                className="h-4 w-4 rounded border-zinc-300 text-cyan-500 focus:ring-cyan-400"
+                className="h-4 w-4 rounded border" style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
               />
               Publish invitation immediately
             </label>
 
-            {createError ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</p> : null}
+            {createError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{createError}</p> : null}
 
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(false)}
@@ -472,7 +479,8 @@ export default function StudioEventsPage() {
               </button>
             </div>
           </form>
-        </section>
+          </div>
+        </div>
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -493,11 +501,12 @@ export default function StudioEventsPage() {
               key={value}
               type="button"
               onClick={() => setFilter(value as EventFilter)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                 active
-                  ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white"
-                  : "border border-zinc-300 bg-zinc-50 text-zinc-600"
+                  ? "text-white"
+                  : "border text-zinc-600 hover:opacity-75"
               }`}
+              style={active ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" } : { borderColor: "var(--border-subtle)", background: "var(--surface)" }}
             >
               {label}
             </button>
@@ -506,21 +515,21 @@ export default function StudioEventsPage() {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Total events</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">{events.length}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Total events</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--primary)" }}>{events.length}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Published</p>
-          <p className="mt-1 text-xl font-semibold text-cyan-700">{summary.published}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Published</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--primary)" }}>{summary.published}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Upcoming</p>
-          <p className="mt-1 text-xl font-semibold text-violet-700">{summary.upcoming}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Upcoming</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--secondary)" }}>{summary.upcoming}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Check-ins</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Check-ins</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
             {summary.checkedIn} / {summary.guests}
           </p>
         </div>
@@ -534,15 +543,15 @@ export default function StudioEventsPage() {
         <div className="ui-table">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
+              <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
               <tr>
-                <th className="px-4 py-3 font-medium">Event</th>
-                <th className="px-4 py-3 font-medium">Couple</th>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Attendance</th>
-                <th className="px-4 py-3 font-medium">Media</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
+                <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Event</th>
+                <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Couple</th>
+                <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Date</th>
+                <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Status</th>
+                <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Attendance</th>
+                <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Media</th>
+                <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Actions</th>
               </tr>
               </thead>
               <tbody>
@@ -553,7 +562,7 @@ export default function StudioEventsPage() {
                   const status = statusForEvent(event);
 
                   return (
-                    <tr key={event.id} className="border-t border-zinc-100 align-top hover:bg-zinc-50">
+                    <tr key={event.id} className="border-t align-top transition hover:opacity-80" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
                       <td className="px-4 py-3">
                         <p className="font-medium text-zinc-800">{event.title}</p>
                         <p className="mt-1 text-xs text-zinc-500">
