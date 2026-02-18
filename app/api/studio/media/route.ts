@@ -47,6 +47,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ media });
   }
 
+  if (!eventId) {
+    return badRequestResponse("eventId query param is required");
+  }
+
   const event = await prisma.event.findFirst({
     where: { id: eventId, studioId: session.studioId },
     select: { id: true },
