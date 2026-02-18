@@ -1,19 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf8f6;
-  --foreground: #3d3732;
+  --background: #f9f8f6;
+  --foreground: #2a2a2a;
   --surface: #ffffff;
-  --surface-muted: #fcfbf9;
-  --border-subtle: #e8e3dd;
-  --primary-rose: #c97d7d;
-  --primary-rose-light: #e8d4d1;
-  --primary-rose-lighter: #f3ebe8;
-  --primary-green: #2d5a47;
-  --primary-green-light: #d0dcd4;
-  --primary-green-lighter: #eff3f0;
-  --accent-warm: #d4a574;
-  --accent-cool: #a0bfb8;
+  --surface-muted: #fcfbfa;
+  --border-subtle: #e5e0db;
+  --primary: #1a4d3e;
+  --primary-light: #2d6f56;
+  --primary-lighter: #e6f0eb;
+  --secondary: #b8956f;
+  --secondary-light: #d4b89e;
+  --secondary-lighter: #f5ece1;
+  --accent: #8b7355;
+  --accent-light: #d4c5b5;
+  --accent-lighter: #f0ebe5;
+  --success: #2d6f56;
+  --warning: #d4a574;
+  --error: #b83e4c;
+  --text-primary: #2a2a2a;
+  --text-secondary: #6b6b6b;
+  --text-tertiary: #9a9a9a;
   color-scheme: light;
 }
 
@@ -27,8 +34,8 @@
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top right, rgba(201, 125, 125, 0.06), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(45, 90, 71, 0.06), transparent 40%),
+    radial-gradient(circle at top right, rgba(26, 77, 62, 0.04), transparent 50%),
+    radial-gradient(circle at bottom left, rgba(184, 149, 111, 0.03), transparent 50%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
@@ -57,12 +64,12 @@ body {
 
   .ui-title {
     @apply text-2xl font-semibold tracking-tight;
-    color: var(--primary-green);
+    color: var(--primary);
   }
 
   .ui-subtitle {
     @apply mt-1 text-sm;
-    color: #8b8680;
+    color: var(--text-secondary);
   }
 
   .ui-panel {
@@ -86,8 +93,8 @@ body {
   .ui-textarea {
     @apply w-full rounded-lg border bg-white px-3 py-2 text-sm outline-none transition focus:ring-2;
     border-color: var(--border-subtle);
-    color: var(--foreground);
-    ring-color: var(--primary-rose-light);
+    color: var(--text-primary);
+    ring-color: var(--primary-lighter);
   }
 
   .ui-textarea {
@@ -95,26 +102,26 @@ body {
   }
 
   .ui-button-primary {
-    @apply rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70;
-    background: linear-gradient(135deg, var(--primary-rose) 0%, var(--primary-green) 100%);
+    @apply rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
   }
 
   .ui-button-secondary {
     @apply rounded-lg border bg-white px-4 py-2 text-sm font-medium transition hover:opacity-80;
     border-color: var(--border-subtle);
-    color: var(--primary-green);
+    color: var(--primary);
   }
 
   .ui-chip-active {
     @apply rounded-lg px-3 py-1.5 text-xs font-medium text-white;
-    background: linear-gradient(135deg, var(--primary-rose) 0%, var(--primary-green) 100%);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
   }
 
   .ui-chip {
     @apply rounded-lg border px-3 py-1.5 text-xs font-medium;
-    border-color: var(--border-subtle);
-    background: var(--primary-rose-lighter);
-    color: var(--primary-rose);
+    border-color: var(--secondary-lighter);
+    background: var(--secondary-lighter);
+    color: var(--secondary);
   }
 
   .ui-table {
