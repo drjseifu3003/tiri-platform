@@ -145,27 +145,27 @@ export default function StudioAccountSettingsPage() {
   return (
     <main className="ui-page">
       <div>
-        <h2 className="ui-title">Account Settings</h2>
-        <p className="ui-subtitle">Manage login details, studio profile, and identity configuration.</p>
+        <h2 className="ui-title">Settings</h2>
+        <p className="ui-subtitle">Manage your account, studio profile, and studio operations.</p>
       </div>
 
-      <div className="mt-3 flex gap-2 text-xs">
-        <Link href="/studio/settings/account" className="rounded-md bg-gradient-to-r from-cyan-400 to-violet-400 px-3 py-1.5 text-white">Account</Link>
-        <Link href="/studio/settings/notifications" className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-zinc-700">Notifications</Link>
-        <Link href="/studio/settings/team" className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-zinc-700">Team</Link>
+      <div className="mt-5 flex gap-2">
+        <Link href="/studio/settings/account" className="rounded-lg px-3 py-2 text-sm font-medium" style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))", color: "white" }}>Account</Link>
+        <Link href="/studio/settings/notifications" className="rounded-lg border px-3 py-2 text-sm font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>Notifications</Link>
+        <Link href="/studio/settings/team" className="rounded-lg border px-3 py-2 text-sm font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>Team</Link>
       </div>
 
       {loading ? (
-        <p className="mt-5 text-sm text-zinc-600">Loading account settings...</p>
+        <p className="mt-5 text-sm" style={{ color: "var(--text-secondary)" }}>Loading account settings...</p>
       ) : (
         <form className="mt-5 space-y-5" onSubmit={handleSave}>
           <section className="ui-panel">
-            <h3 className="text-lg font-semibold text-zinc-800">User Credentials</h3>
-            <p className="mt-1 text-sm text-zinc-600">Role: {role}. Update login phone and optionally rotate password.</p>
+            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>User Credentials</h3>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Role: {role}. Update login phone and optionally rotate password.</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Login Phone *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Login Phone *</span>
                 <input
                   value={formData.phone}
                   onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))}
@@ -177,7 +177,7 @@ export default function StudioAccountSettingsPage() {
               <div className="hidden md:block" />
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Current Password</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Current Password</span>
                 <input
                   type="password"
                   value={formData.currentPassword}
@@ -187,7 +187,7 @@ export default function StudioAccountSettingsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">New Password</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>New Password</span>
                 <input
                   type="password"
                   value={formData.newPassword}
@@ -199,8 +199,8 @@ export default function StudioAccountSettingsPage() {
           </section>
 
           <section className="ui-panel">
-            <h3 className="text-lg font-semibold text-zinc-800">Studio Profile</h3>
-            <p className="mt-1 text-sm text-zinc-600">
+            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Studio Profile</h3>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
               {role === "ADMIN"
                 ? "Update your studio identity visible across events and invitations."
                 : "Studio profile fields are read-only for staff accounts."}
@@ -208,7 +208,7 @@ export default function StudioAccountSettingsPage() {
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Studio Name</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Name</span>
                 <input
                   value={formData.studioName}
                   onChange={(event) => setFormData((current) => ({ ...current, studioName: event.target.value }))}
@@ -218,7 +218,7 @@ export default function StudioAccountSettingsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Studio Email</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Email</span>
                 <input
                   type="email"
                   value={formData.studioEmail}
@@ -229,7 +229,7 @@ export default function StudioAccountSettingsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Studio Phone</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Phone</span>
                 <input
                   value={formData.studioPhone}
                   onChange={(event) => setFormData((current) => ({ ...current, studioPhone: event.target.value }))}
@@ -239,7 +239,7 @@ export default function StudioAccountSettingsPage() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Logo URL</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Logo URL</span>
                 <input
                   type="url"
                   value={formData.studioLogoUrl}
@@ -250,7 +250,7 @@ export default function StudioAccountSettingsPage() {
               </label>
 
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium text-zinc-600">Primary Color Token / Value</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Primary Color Token / Value</span>
                 <input
                   value={formData.studioPrimaryColor}
                   onChange={(event) => setFormData((current) => ({ ...current, studioPrimaryColor: event.target.value }))}
@@ -261,8 +261,8 @@ export default function StudioAccountSettingsPage() {
             </div>
           </section>
 
-          {error ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-          {success ? <p className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p> : null}
+          {error ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{error}</p> : null}
+          {success ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{success}</p> : null}
 
           <div className="flex justify-end">
             <button

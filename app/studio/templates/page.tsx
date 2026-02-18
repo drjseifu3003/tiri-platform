@@ -262,12 +262,18 @@ export default function StudioTemplatesPage() {
         </div>
 
         <div className="flex w-full max-w-2xl flex-wrap items-center justify-end gap-2">
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search template, slug, category"
-            className="ui-input max-w-xs"
-          />
+          <div className="relative w-full max-w-xs">
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search template, slug, category"
+              className="ui-input w-full pl-10"
+            />
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
           <button
             type="button"
             onClick={() => {
@@ -276,25 +282,26 @@ export default function StudioTemplatesPage() {
               setActionError(null);
               setIsCreateOpen((value) => !value);
             }}
-            className="ui-button-primary"
+            className="ui-button-primary whitespace-nowrap"
           >
-            {isCreateOpen ? "Close" : "Add Template"}
+            {isCreateOpen ? "Cancel" : "+ Template"}
           </button>
         </div>
       </div>
 
-      {successMessage ? <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{successMessage}</p> : null}
-      {actionError ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p> : null}
+      {successMessage ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{successMessage}</p> : null}
+      {actionError ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{actionError}</p> : null}
       {!isAdmin ? (
-        <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">You are in STAFF mode. Viewing is enabled, create/edit/delete requires ADMIN role.</p>
+        <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--warning-light)", color: "var(--warning)" }}>You are in STAFF mode. Viewing is enabled, create/edit/delete requires ADMIN role.</p>
       ) : null}
 
       {isCreateOpen ? (
-        <section className="ui-panel mt-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-zinc-800">Create New Template</h3>
-            <p className="mt-1 text-sm text-zinc-600">Define a reusable invitation template for upcoming events.</p>
-          </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Create New Template</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Define a reusable invitation template for upcoming events.</p>
+            </div>
 
           <form className="space-y-4" onSubmit={handleCreateTemplate}>
             <div className="grid gap-3 md:grid-cols-2">
@@ -370,9 +377,9 @@ export default function StudioTemplatesPage() {
               Keep template active for event creation
             </label>
 
-            {createError ? <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{createError}</p> : null}
+            {createError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{createError}</p> : null}
 
-            <div className="flex flex-wrap justify-end gap-2">
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setIsCreateOpen(false)}
@@ -389,25 +396,26 @@ export default function StudioTemplatesPage() {
               </button>
             </div>
           </form>
-        </section>
+          </div>
+        </div>
       ) : null}
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Total templates</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">{templates.length}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Total templates</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--primary)" }}>{templates.length}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Active</p>
-          <p className="mt-1 text-xl font-semibold text-cyan-700">{summary.active}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Active</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--success)" }}>{summary.active}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Inactive</p>
-          <p className="mt-1 text-xl font-semibold text-violet-700">{summary.inactive}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Inactive</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--secondary)" }}>{summary.inactive}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Used in events</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">{summary.totalUsage}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Used in events</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{summary.totalUsage}</p>
         </div>
       </div>
 
@@ -424,11 +432,12 @@ export default function StudioTemplatesPage() {
               key={value}
               type="button"
               onClick={() => setCategoryFilter(value as "all" | TemplateCategory)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                 active
-                  ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white"
-                  : "border border-zinc-300 bg-zinc-50 text-zinc-600"
+                  ? "text-white"
+                  : "border text-zinc-600 hover:opacity-75"
               }`}
+              style={active ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" } : { borderColor: "var(--border-subtle)", background: "var(--surface)" }}
             >
               {label}
             </button>
@@ -446,11 +455,12 @@ export default function StudioTemplatesPage() {
               key={value}
               type="button"
               onClick={() => setStatusFilter(value as "all" | "active" | "inactive")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                 active
-                  ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white"
-                  : "border border-zinc-300 bg-zinc-50 text-zinc-600"
+                  ? "text-white"
+                  : "border text-zinc-600 hover:opacity-75"
               }`}
+              style={active ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" } : { borderColor: "var(--border-subtle)", background: "var(--surface)" }}
             >
               {label}
             </button>
@@ -466,20 +476,20 @@ export default function StudioTemplatesPage() {
         <div className="ui-table">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
+              <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
                 <tr>
-                  <th className="px-4 py-3 font-medium">Template</th>
-                  <th className="px-4 py-3 font-medium">Category</th>
-                  <th className="px-4 py-3 font-medium">Slug</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Used</th>
-                  <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Template</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Category</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Slug</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Used</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Created</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTemplates.map((template) => (
-                  <tr key={template.id} className="border-t border-zinc-100 align-top hover:bg-zinc-50">
+                  <tr key={template.id} className="border-t align-top transition hover:opacity-80" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
                     <td className="px-4 py-3">
                       <p className="font-medium text-zinc-800">{template.name}</p>
                       <p className="mt-1 text-xs text-zinc-500">{template.previewImage ? "Has preview image" : "No preview image"}</p>

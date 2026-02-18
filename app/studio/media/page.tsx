@@ -204,43 +204,67 @@ export default function StudioMediaPage() {
           <p className="ui-subtitle">Organize image/video assets for all studio events.</p>
         </div>
 
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search event title or URL"
-          className="ui-input max-w-xs"
-        />
+        <div className="flex w-full max-w-2xl flex-wrap items-center justify-end gap-2">
+          <div className="relative w-full max-w-xs">
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search event title or URL"
+              className="ui-input w-full pl-10"
+            />
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Total media</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">{media.length}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Total media</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--primary)" }}>{media.length}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Images</p>
-          <p className="mt-1 text-xl font-semibold text-cyan-700">{summary.images}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Images</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--success)" }}>{summary.images}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Videos</p>
-          <p className="mt-1 text-xl font-semibold text-violet-700">{summary.videos}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Videos</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--secondary)" }}>{summary.videos}</p>
         </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Events with media</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">{new Set(media.map((item) => item.eventId)).size}</p>
+        <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Events with media</p>
+          <p className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{new Set(media.map((item) => item.eventId)).size}</p>
         </div>
       </div>
 
-      <section className="ui-panel mt-5">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-zinc-800">Add Media</h3>
-          <p className="mt-1 text-sm text-zinc-600">Attach image/video links to an event timeline.</p>
-        </div>
+      <div className="mt-5 flex justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            setActionError(null);
+            setSuccess(null);
+          }}
+          className="ui-button-primary"
+        >
+          + Add Media
+        </button>
+      </div>
 
-        <form className="space-y-4" onSubmit={handleCreateMedia}>
-          <div className="grid gap-3 md:grid-cols-3">
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-zinc-600">Event *</span>
+      {/* Media Creation Form Modal */}
+      {true && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Add Media</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Attach image/video links to an event timeline.</p>
+            </div>
+
+          <form className="space-y-4" onSubmit={handleCreateMedia}>
+            <div className="grid gap-3 md:grid-cols-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event *</span>
               <select
                 value={formData.eventId}
                 onChange={(event) => setFormData((current) => ({ ...current, eventId: event.target.value }))}
@@ -257,7 +281,7 @@ export default function StudioMediaPage() {
             </label>
 
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-zinc-600">Type *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Type *</span>
               <select
                 value={formData.type}
                 onChange={(event) =>
@@ -274,7 +298,7 @@ export default function StudioMediaPage() {
             </label>
 
             <label className="block md:col-span-1">
-              <span className="mb-1 block text-xs font-medium text-zinc-600">Media URL *</span>
+              <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Media URL *</span>
               <input
                 type="url"
                 value={formData.url}
@@ -285,7 +309,17 @@ export default function StudioMediaPage() {
             </label>
           </div>
 
-          <div className="flex justify-end">
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setActionError(null);
+                setSuccess(null);
+              }}
+              className="ui-button-secondary"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={createLoading}
@@ -295,11 +329,13 @@ export default function StudioMediaPage() {
             </button>
           </div>
         </form>
-      </section>
+        </div>
+      </div>
+      )}
 
-      {error ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-      {actionError ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p> : null}
-      {success ? <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p> : null}
+      {error ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{error}</p> : null}
+      {actionError ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{actionError}</p> : null}
+      {success ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{success}</p> : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
         {["all", "IMAGE", "VIDEO"].map((value) => {
@@ -309,11 +345,12 @@ export default function StudioMediaPage() {
               key={value}
               type="button"
               onClick={() => setTypeFilter(value as "all" | "IMAGE" | "VIDEO")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                 active
-                  ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white"
-                  : "border border-zinc-300 bg-zinc-50 text-zinc-600"
+                  ? "text-white"
+                  : "border text-zinc-600 hover:opacity-75"
               }`}
+              style={active ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" } : { borderColor: "var(--border-subtle)", background: "var(--surface)" }}
             >
               {value === "all" ? "All types" : value}
             </button>
@@ -323,7 +360,8 @@ export default function StudioMediaPage() {
         <select
           value={eventFilter}
           onChange={(event) => setEventFilter(event.target.value)}
-          className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs text-zinc-700"
+          className="rounded-lg border px-3 py-1.5 text-xs"
+          style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-primary)" }}
         >
           <option value="all">All events</option>
           {events.map((studioEvent) => (
@@ -340,18 +378,18 @@ export default function StudioMediaPage() {
         <div className="ui-table">
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
+              <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
                 <tr>
-                  <th className="px-4 py-3 font-medium">Event</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">URL</th>
-                  <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Event</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Type</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">URL</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Created</th>
+                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMedia.map((item) => (
-                  <tr key={item.id} className="border-t border-zinc-100 align-top hover:bg-zinc-50">
+                  <tr key={item.id} className="border-t align-top transition hover:opacity-80" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
                     <td className="px-4 py-3 text-zinc-700">{item.event?.title ?? "Unknown event"}</td>
                     <td className="px-4 py-3">
                       <span
