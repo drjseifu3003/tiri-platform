@@ -152,15 +152,15 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   return (
     <main className="h-screen w-full overflow-hidden bg-transparent">
       <div className="grid h-full w-full lg:grid-cols-[240px_1fr]">
-        <aside className="sticky top-0 flex h-screen flex-col border-r border-zinc-200 bg-white/90 px-3 py-4 backdrop-blur">
+        <aside className="sticky top-0 flex h-screen flex-col border-r px-3 py-4 backdrop-blur" style={{ borderColor: "var(--border-subtle)", background: "rgba(255, 255, 255, 0.9)" }}>
           <div className="flex items-center gap-2 px-2 pb-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-rose-400 to-green-600 text-white">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br text-white" style={{ background: "linear-gradient(to bottom right, var(--secondary), var(--primary))" }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden>
                 <path d="M12 3v18M3 12h18" />
               </svg>
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold" style={{ color: "var(--primary-green)" }}>{session?.studio?.name ?? "Studio"}</p>
+              <p className="truncate text-sm font-semibold" style={{ color: "var(--primary)" }}>{session?.studio?.name ?? "Studio"}</p>
             </div>
           </div>
 
@@ -173,10 +173,10 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                   href={item.href}
                   className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
                     active
-                      ? "bg-gradient-to-br from-rose-300 to-green-600 text-white shadow-sm"
-                      : "transition hover:opacity-80"
+                      ? "text-white shadow-sm"
+                      : "transition hover:opacity-70"
                   }`}
-                  style={!active ? { color: "var(--primary-green)" } : {}}
+                  style={active ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" } : { color: "var(--text-secondary)" }}
                 >
                   <NavIcon label={item.label} active={active} />
                   {item.label}
@@ -185,15 +185,16 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             })}
           </nav>
 
-          <div className="mt-auto border-t border-zinc-200 px-3 pt-4 text-xs text-zinc-500">Studio Operations</div>
+          <div className="mt-auto border-t px-3 pt-4 text-xs" style={{ borderColor: "var(--border-subtle)", color: "var(--text-tertiary)" }}>Studio Operations</div>
         </aside>
 
         <section className="h-screen overflow-y-auto bg-transparent">
-          <header className="sticky top-0 z-20 flex items-center justify-between border-b border-zinc-200 bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
+          <header className="sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 backdrop-blur sm:px-6" style={{ borderColor: "var(--border-subtle)", background: "rgba(255, 255, 255, 0.9)" }}>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-md bg-gradient-to-br from-rose-300 to-green-600 px-3 py-1.5 text-xs font-medium text-white"
+                className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-white"
+                style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))" }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden>
                   <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -204,7 +205,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
               <button
                 type="button"
                 className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
-                style={{ background: "var(--primary-rose-lighter)", color: "var(--primary-rose)" }}
+                style={{ background: "var(--secondary-lighter)", color: "var(--secondary)" }}
               >
                 Studio Overview
               </button>
@@ -219,7 +220,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                     setAccountOpen(false);
                   }}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:opacity-80"
-                  style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}
+                  style={{ background: "var(--primary-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary)" }}
                   aria-label="Open notifications"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden>
@@ -229,19 +230,20 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                 </button>
 
                 {notificationsOpen ? (
-                  <div className="absolute right-0 z-30 mt-2 w-72 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg">
-                    <p className="text-sm font-semibold text-violet-700">Notifications</p>
+                  <div className="absolute right-0 z-30 mt-2 w-72 rounded-xl border bg-white p-3 shadow-lg" style={{ borderColor: "var(--border-subtle)" }}>
+                    <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Notifications</p>
                     <div className="mt-2 space-y-2">
-                      <p className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                      <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
                         Guest check-in activity is up for recent events.
                       </p>
-                      <p className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                      <p className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
                         Two event pages are still in draft and ready for review.
                       </p>
                     </div>
                     <Link
                       href="/studio/settings/notifications"
-                      className="mt-3 inline-flex text-xs font-medium text-cyan-700"
+                      className="mt-3 inline-flex text-xs font-medium"
+                      style={{ color: "var(--primary)" }}
                       onClick={() => setNotificationsOpen(false)}
                     >
                       Manage notifications
@@ -258,10 +260,10 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                     setNotificationsOpen(false);
                   }}
                   className="flex items-center gap-2 rounded-full border py-1 pl-1 pr-2 transition hover:opacity-80"
-                  style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
+                  style={{ background: "var(--secondary-lighter)", borderColor: "var(--border-subtle)", color: "var(--secondary)" }}
                   aria-label="Open account menu"
                 >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold" style={{ background: "var(--primary-rose-light)", color: "var(--primary-rose)" }}>
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold" style={{ background: "var(--secondary-light)", color: "var(--secondary)" }}>
                     {(session?.studio?.name ?? "S").slice(0, 1).toUpperCase()}
                   </span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden>
@@ -270,20 +272,21 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                 </button>
 
                 {accountOpen ? (
-                  <div className="absolute right-0 z-30 mt-2 w-64 rounded-xl border border-zinc-200 bg-white p-3 shadow-lg">
-                    <p className="text-sm font-semibold text-violet-700">Studio Account</p>
-                    <p className="mt-1 text-xs text-zinc-500">{session?.studio?.name ?? "Studio"}</p>
+                  <div className="absolute right-0 z-30 mt-2 w-64 rounded-xl border bg-white p-3 shadow-lg" style={{ borderColor: "var(--border-subtle)" }}>
+                    <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Studio Account</p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>{session?.studio?.name ?? "Studio"}</p>
 
-                    <div className="mt-3 space-y-2 rounded-lg border border-zinc-100 bg-zinc-50 p-3">
-                      <p className="text-xs text-zinc-500">Phone</p>
-                      <p className="text-sm font-medium text-zinc-700">{session?.user.phone}</p>
-                      <p className="text-xs text-zinc-500">Role</p>
-                      <p className="text-sm font-medium text-zinc-700">{session?.user.role}</p>
+                    <div className="mt-3 space-y-2 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                      <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Phone</p>
+                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{session?.user.phone}</p>
+                      <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Role</p>
+                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{session?.user.role}</p>
                     </div>
 
                     <Link
                       href="/studio/settings/account"
-                      className="mt-3 inline-flex rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-medium text-cyan-700"
+                      className="mt-3 inline-flex rounded-lg border px-3 py-2 text-xs font-medium"
+                      style={{ borderColor: "var(--border-subtle)", background: "var(--primary-lighter)", color: "var(--primary)" }}
                       onClick={() => setAccountOpen(false)}
                     >
                       Account settings
@@ -291,7 +294,8 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="mt-2 inline-flex w-full justify-center rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-medium text-violet-700"
+                      className="mt-2 inline-flex w-full justify-center rounded-lg border px-3 py-2 text-xs font-medium"
+                      style={{ borderColor: "var(--border-subtle)", background: "var(--secondary-lighter)", color: "var(--secondary)" }}
                     >
                       Sign out
                     </button>
