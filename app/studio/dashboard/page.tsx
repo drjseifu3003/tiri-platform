@@ -260,40 +260,40 @@ export default function DashboardPage() {
       <section className="rounded-2xl border border-zinc-200 bg-white px-4 sm:px-6">
         <div className="py-5">
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr_280px]">
-            <article className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-200 via-cyan-100 to-cyan-300 p-6 text-cyan-900">
-              <p className="text-lg font-semibold">Guest Operations</p>
+            <article className="rounded-2xl border p-6" style={{ background: "linear-gradient(135deg, var(--primary-rose-lighter) 0%, var(--primary-green-lighter) 100%)", borderColor: "var(--border-subtle)" }}>
+              <p className="text-lg font-semibold" style={{ color: "var(--primary-green)" }}>Guest Operations</p>
               <div className="mt-5 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-zinc-700">Total guests</p>
-                  <p className="mt-1 text-4xl font-semibold">{formatNumber(guests.length)}</p>
+                  <p className="text-sm" style={{ color: "#8b8680" }}>Total guests</p>
+                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-rose)" }}>{formatNumber(guests.length)}</p>
                 </div>
-                <div className="border-l border-zinc-400/30 pl-4">
-                  <p className="text-sm text-zinc-700">Checked in</p>
-                  <p className="mt-1 text-4xl font-semibold">{formatNumber(checkedInCount)}</p>
+                <div className="border-l pl-4" style={{ borderColor: "rgba(61, 55, 50, 0.1)" }}>
+                  <p className="text-sm" style={{ color: "#8b8680" }}>Checked in</p>
+                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-green)" }}>{formatNumber(checkedInCount)}</p>
                 </div>
               </div>
             </article>
 
-            <article className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-200 via-fuchsia-100 to-violet-300 p-6 text-violet-900">
-              <p className="text-lg font-semibold">Event Pipeline</p>
+            <article className="rounded-2xl border p-6" style={{ background: "linear-gradient(135deg, #e8d4d1 0%, #d0dcd4 100%)", borderColor: "var(--border-subtle)" }}>
+              <p className="text-lg font-semibold" style={{ color: "var(--primary-green)" }}>Event Pipeline</p>
               <div className="mt-5 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-zinc-700">Published</p>
-                  <p className="mt-1 text-4xl font-semibold">{formatNumber(publishedCount)}</p>
+                  <p className="text-sm" style={{ color: "#8b8680" }}>Published</p>
+                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-green)" }}>{formatNumber(publishedCount)}</p>
                 </div>
-                <div className="border-l border-zinc-400/30 pl-4">
-                  <p className="text-sm text-zinc-700">Draft</p>
-                  <p className="mt-1 text-4xl font-semibold">{formatNumber(draftCount)}</p>
+                <div className="border-l pl-4" style={{ borderColor: "rgba(61, 55, 50, 0.1)" }}>
+                  <p className="text-sm" style={{ color: "#8b8680" }}>Draft</p>
+                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-rose)" }}>{formatNumber(draftCount)}</p>
                 </div>
               </div>
             </article>
 
-            <article className="rounded-2xl border border-violet-100 bg-gradient-to-br from-cyan-50 via-white to-violet-50 p-5">
-              <p className="text-2xl font-semibold text-violet-700">Operational Snapshot</p>
-              <p className="mt-4 text-lg font-semibold text-cyan-700">
+            <article className="rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}>
+              <p className="text-2xl font-semibold" style={{ color: "var(--primary-green)" }}>Operational Snapshot</p>
+              <p className="mt-4 text-lg font-semibold" style={{ color: "var(--primary-rose)" }}>
                 Next: {nextWedding ? nextWedding.title : "No upcoming wedding"}
               </p>
-              <p className="text-sm text-zinc-500">
+              <p className="text-sm" style={{ color: "#8b8680" }}>
                 Last: {lastWedding ? lastWedding.title : "No completed wedding yet"}
               </p>
               <div className="mt-6 h-20 w-full">
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                     d="M0 52 C24 42, 42 32, 64 36 C88 40, 105 58, 128 50 C150 42, 170 24, 194 30 C205 33, 213 40, 220 45"
                     fill="none"
                     stroke="currentColor"
-                    className="text-violet-400"
+                    style={{ color: "var(--primary-rose-light)" }}
                     strokeWidth="2.5"
                   />
                 </svg>
@@ -313,10 +313,10 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <article className="rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}>
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-violet-700">Today Weddings</h2>
-            <p className="text-sm text-zinc-500">Wedding day queue</p>
+            <h2 className="text-3xl font-semibold" style={{ color: "var(--primary-green)" }}>Today Weddings</h2>
+            <p className="text-sm" style={{ color: "#8b8680" }}>Wedding day queue</p>
           </div>
 
           {loadingData ? (
@@ -329,35 +329,37 @@ export default function DashboardPage() {
             <div className="mt-5 space-y-3">
               {eventsToday.map((event) => {
                 return (
-                  <article key={event.id} className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                  <article key={event.id} className="rounded-xl border px-4 py-3" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
                     <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 text-sm font-semibold text-cyan-700">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold" style={{ background: "var(--primary-green-lighter)", color: "var(--primary-green)" }}>
                         {new Date(event.eventDate).getDate()}
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-zinc-700">{event.title}</p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="font-semibold" style={{ color: "var(--foreground)" }}>{event.title}</p>
+                        <p className="text-xs" style={{ color: "#8b8680" }}>
                           {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Bride & groom pending"}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs" style={{ color: "#8b8680" }}>
                           {new Date(event.eventDate).toLocaleDateString()} • {event.location ?? "Location pending"}
                         </p>
                         <div className="mt-2 flex gap-2">
                           <Link
                             href="/studio/guests"
-                            className="rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700"
+                            className="rounded-lg border px-2 py-1 text-xs font-medium"
+                            style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}
                           >
                             Open Check-in
                           </Link>
                           <Link
                             href="/studio/events"
-                            className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700"
+                            className="rounded-lg border px-2 py-1 text-xs font-medium"
+                            style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
                           >
                             View Event
                           </Link>
                         </div>
                       </div>
-                      <span className="rounded-full bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700">
+                      <span className="rounded-full px-2 py-1 text-xs font-medium" style={{ background: "var(--primary-rose-lighter)", color: "var(--primary-rose)" }}>
                         {event._count.guests} guests
                       </span>
                     </div>
@@ -368,10 +370,10 @@ export default function DashboardPage() {
           )}
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <article className="rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}>
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-semibold text-violet-700">This Week Weddings</h2>
-            <p className="text-sm text-zinc-500">Near-term operations</p>
+            <h2 className="text-3xl font-semibold" style={{ color: "var(--primary-green)" }}>This Week Weddings</h2>
+            <p className="text-sm" style={{ color: "#8b8680" }}>Near-term operations</p>
           </div>
 
           {loadingData ? (
@@ -384,35 +386,37 @@ export default function DashboardPage() {
             <div className="mt-5 space-y-3">
               {eventsThisWeek.slice(0, 5).map((event) => {
                 return (
-                  <article key={event.id} className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                  <article key={event.id} className="rounded-xl border px-4 py-3" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
                     <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-sm font-semibold text-violet-700">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold" style={{ background: "var(--primary-rose-lighter)", color: "var(--primary-rose)" }}>
                         {new Date(event.eventDate).getDate()}
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-zinc-700">{event.title}</p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="font-semibold" style={{ color: "var(--foreground)" }}>{event.title}</p>
+                        <p className="text-xs" style={{ color: "#8b8680" }}>
                           {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Bride & groom pending"}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs" style={{ color: "#8b8680" }}>
                           {new Date(event.eventDate).toLocaleDateString()} • {event.location ?? "Location pending"}
                         </p>
                         <div className="mt-2 flex gap-2">
                           <Link
                             href="/studio/guests"
-                            className="rounded-lg border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs font-medium text-cyan-700"
+                            className="rounded-lg border px-2 py-1 text-xs font-medium"
+                            style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}
                           >
                             Open Check-in
                           </Link>
                           <Link
                             href="/studio/events"
-                            className="rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-xs font-medium text-violet-700"
+                            className="rounded-lg border px-2 py-1 text-xs font-medium"
+                            style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
                           >
                             View Event
                           </Link>
                         </div>
                       </div>
-                      <span className="rounded-full bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700">
+                      <span className="rounded-full px-2 py-1 text-xs font-medium" style={{ background: "var(--primary-green-lighter)", color: "var(--primary-green)" }}>
                         {event._count.guests} guests
                       </span>
                     </div>
@@ -424,24 +428,25 @@ export default function DashboardPage() {
         </article>
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}>
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-violet-700">Attention Needed</h2>
-          <p className="text-sm text-zinc-500">Operational alerts</p>
+          <h2 className="text-2xl font-semibold" style={{ color: "var(--primary-green)" }}>Attention Needed</h2>
+          <p className="text-sm" style={{ color: "#8b8680" }}>Operational alerts</p>
         </div>
 
         {attentionItems.length === 0 ? (
-          <p className="mt-4 rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-700">
+          <p className="mt-4 rounded-xl border px-4 py-3 text-sm" style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}>
             No urgent actions right now. Studio workflow is healthy.
           </p>
         ) : (
           <div className="mt-4 space-y-3">
             {attentionItems.map((item) => (
-              <article key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
-                <p className="text-sm text-zinc-700">{item.message}</p>
+              <article key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
+                <p className="text-sm" style={{ color: "var(--foreground)" }}>{item.message}</p>
                 <Link
                   href={item.actionHref}
-                  className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700"
+                  className="rounded-lg border px-3 py-1.5 text-xs font-medium"
+                  style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
                 >
                   {item.actionLabel}
                 </Link>
@@ -453,22 +458,22 @@ export default function DashboardPage() {
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {coreStats.map((stat) => (
-          <article key={stat.label} className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-            <p className="text-xs uppercase tracking-wide text-zinc-500">{stat.label}</p>
-            <p className="mt-2 text-2xl font-semibold text-cyan-700">{formatNumber(stat.value)}</p>
+          <article key={stat.label} className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
+            <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>{stat.label}</p>
+            <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-rose)" }}>{formatNumber(stat.value)}</p>
           </article>
         ))}
-        <article className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Publishing Progress</p>
-          <p className="mt-2 text-2xl font-semibold text-violet-700">{publishedRatio}</p>
+        <article className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
+          <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>Publishing Progress</p>
+          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-green)" }}>{publishedRatio}</p>
         </article>
-        <article className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Studio Role</p>
-          <p className="mt-2 text-2xl font-semibold text-violet-700">{session?.user.role}</p>
+        <article className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
+          <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>Studio Role</p>
+          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-green)" }}>{session?.user.role}</p>
         </article>
-        <article className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500">Studio Contact</p>
-          <p className="mt-2 text-2xl font-semibold text-cyan-700">{session?.user.phone}</p>
+        <article className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
+          <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>Studio Contact</p>
+          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-rose)" }}>{session?.user.phone}</p>
         </article>
       </section>
     </main>

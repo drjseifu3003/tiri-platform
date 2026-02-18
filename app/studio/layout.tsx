@@ -154,13 +154,13 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       <div className="grid h-full w-full lg:grid-cols-[240px_1fr]">
         <aside className="sticky top-0 flex h-screen flex-col border-r border-zinc-200 bg-white/90 px-3 py-4 backdrop-blur">
           <div className="flex items-center gap-2 px-2 pb-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-r from-cyan-400 to-violet-400 text-white">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-rose-400 to-green-600 text-white">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden>
                 <path d="M12 3v18M3 12h18" />
               </svg>
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-zinc-700">{session?.studio?.name ?? "Studio"}</p>
+              <p className="truncate text-sm font-semibold" style={{ color: "var(--primary-green)" }}>{session?.studio?.name ?? "Studio"}</p>
             </div>
           </div>
 
@@ -173,9 +173,10 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                   href={item.href}
                   className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
                     active
-                      ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white shadow-sm"
-                      : "text-zinc-700 hover:bg-zinc-100"
+                      ? "bg-gradient-to-br from-rose-300 to-green-600 text-white shadow-sm"
+                      : "transition hover:bg-opacity-80"
                   }`}
+                  style={!active ? { color: "var(--primary-green)" } : {}}
                 >
                   <NavIcon label={item.label} active={active} />
                   {item.label}
@@ -192,7 +193,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-cyan-400 to-violet-400 px-3 py-1.5 text-xs font-medium text-white"
+                className="inline-flex items-center gap-1 rounded-md bg-gradient-to-br from-rose-300 to-green-600 px-3 py-1.5 text-xs font-medium text-white"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden>
                   <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -202,7 +203,8 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
               </button>
               <button
                 type="button"
-                className="inline-flex items-center rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600"
+                className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
+                style={{ background: "var(--primary-rose-lighter)", color: "var(--primary-rose)" }}
               >
                 Studio Overview
               </button>
@@ -216,7 +218,8 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                     setNotificationsOpen((value) => !value);
                     setAccountOpen(false);
                   }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 text-cyan-700 transition hover:bg-cyan-100"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:bg-opacity-80"
+                  style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}
                   aria-label="Open notifications"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden>
@@ -254,10 +257,11 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                     setAccountOpen((value) => !value);
                     setNotificationsOpen(false);
                   }}
-                  className="flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 py-1 pl-1 pr-2 text-violet-700 transition hover:bg-violet-100"
+                  className="flex items-center gap-2 rounded-full border py-1 pl-1 pr-2 transition hover:bg-opacity-80"
+                  style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
                   aria-label="Open account menu"
                 >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-violet-200 text-xs font-semibold text-violet-700">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold" style={{ background: "var(--primary-rose-light)", color: "var(--primary-rose)" }}>
                     {(session?.studio?.name ?? "S").slice(0, 1).toUpperCase()}
                   </span>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden>
