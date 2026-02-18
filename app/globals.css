@@ -100,7 +100,7 @@ body {
   }
 
   .ui-button-secondary {
-    @apply rounded-lg border bg-white px-4 py-2 text-sm font-medium transition hover:bg-opacity-80;
+    @apply rounded-lg border bg-white px-4 py-2 text-sm font-medium transition hover:opacity-80;
     border-color: var(--border-subtle);
     color: var(--primary-green);
   }

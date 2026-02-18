@@ -174,7 +174,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                   className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
                     active
                       ? "bg-gradient-to-br from-rose-300 to-green-600 text-white shadow-sm"
-                      : "transition hover:bg-opacity-80"
+                      : "transition hover:opacity-80"
                   }`}
                   style={!active ? { color: "var(--primary-green)" } : {}}
                 >
@@ -218,7 +218,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                     setNotificationsOpen((value) => !value);
                     setAccountOpen(false);
                   }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:bg-opacity-80"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:opacity-80"
                   style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}
                   aria-label="Open notifications"
                 >
@@ -257,7 +257,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                     setAccountOpen((value) => !value);
                     setNotificationsOpen(false);
                   }}
-                  className="flex items-center gap-2 rounded-full border py-1 pl-1 pr-2 transition hover:bg-opacity-80"
+                  className="flex items-center gap-2 rounded-full border py-1 pl-1 pr-2 transition hover:opacity-80"
                   style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
                   aria-label="Open account menu"
                 >
