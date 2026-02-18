@@ -174,7 +174,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
                   className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
                     active
                       ? "bg-gradient-to-br from-rose-300 to-green-600 text-white shadow-sm"
-                      : "transition hover:bg-opacity-80"
+                      : "transition hover:opacity-80"
                   }`}
                   style={!active ? { color: "var(--primary-green)" } : {}}
                 >
