@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 
 type EventListItem = {
   id: string;
-  templateId?: string;
   title: string;
   brideName: string | null;
   groomName: string | null;
@@ -46,10 +45,6 @@ type GuestsResponse = {
   guests: GuestListItem[];
 };
 
-type TemplatesResponse = {
-  templates: Array<{ id: string }>;
-};
-
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
@@ -67,7 +62,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [guests, setGuests] = useState<GuestListItem[]>([]);
-  const [templateCount, setTemplateCount] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,24 +82,21 @@ export default function DashboardPage() {
       setError(null);
 
       try {
-        const [eventsRes, templatesRes, guestsRes] = await Promise.all([
+        const [eventsRes, guestsRes] = await Promise.all([
           fetch("/api/studio/events", { credentials: "include" }),
-          fetch("/api/studio/templates", { credentials: "include" }),
           fetch("/api/studio/guests?scope=studio", { credentials: "include" }),
         ]);
 
-        if (!eventsRes.ok || !templatesRes.ok || !guestsRes.ok) {
+        if (!eventsRes.ok || !guestsRes.ok) {
           throw new Error("Unable to load dashboard data");
         }
 
         const eventsJson = (await eventsRes.json()) as EventsResponse;
-        const templatesJson = (await templatesRes.json()) as TemplatesResponse;
         const guestsJson = (await guestsRes.json()) as GuestsResponse;
 
         if (!cancelled) {
           setEvents(eventsJson.events ?? []);
           setGuests(guestsJson.guests ?? []);
-          setTemplateCount(templatesJson.templates?.length ?? 0);
         }
       } catch {
         if (!cancelled) {
@@ -149,9 +140,8 @@ export default function DashboardPage() {
       { label: "Total guests invited", value: totalGuestsInvited },
       { label: "Guests checked-in today", value: guestsCheckedInToday },
       { label: "Total media files uploaded", value: totalMedia },
-      { label: "Active templates", value: templateCount },
     ];
-  }, [events, guests, templateCount]);
+  }, [events, guests]);
 
   const checkedInCount = useMemo(() => guests.filter((guest) => guest.checkedIn).length, [guests]);
   const publishedCount = useMemo(() => events.filter((event) => event.isPublished).length, [events]);
@@ -189,15 +179,6 @@ export default function DashboardPage() {
             message: `${event.title}: upcoming in less than 7 days with no guests added.`,
             actionHref: "/studio/guests",
             actionLabel: "Add guests",
-          });
-        }
-
-        if (!event.templateId) {
-          items.push({
-            id: `${event.id}-missing-template`,
-            message: `${event.title}: no template selected.`,
-            actionHref: "/studio/templates",
-            actionLabel: "Select template",
           });
         }
 
@@ -310,171 +291,6 @@ export default function DashboardPage() {
             </article>
           </div>
         </div>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr]">
-        <article className="rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-semibold" style={{ color: "var(--primary-green)" }}>Today Weddings</h2>
-            <p className="text-sm" style={{ color: "#8b8680" }}>Wedding day queue</p>
-          </div>
-
-          {loadingData ? (
-            <p className="mt-6 text-sm text-zinc-600">Loading weddings...</p>
-          ) : error ? (
-            <p className="mt-6 text-sm text-red-700">{error}</p>
-          ) : eventsToday.length === 0 ? (
-            <p className="mt-6 text-sm text-zinc-600">No weddings scheduled for today.</p>
-          ) : (
-            <div className="mt-5 space-y-3">
-              {eventsToday.map((event) => {
-                return (
-                  <article key={event.id} className="rounded-xl border px-4 py-3" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold" style={{ background: "var(--primary-green-lighter)", color: "var(--primary-green)" }}>
-                        {new Date(event.eventDate).getDate()}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold" style={{ color: "var(--foreground)" }}>{event.title}</p>
-                        <p className="text-xs" style={{ color: "#8b8680" }}>
-                          {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Bride & groom pending"}
-                        </p>
-                        <p className="text-xs" style={{ color: "#8b8680" }}>
-                          {new Date(event.eventDate).toLocaleDateString()} • {event.location ?? "Location pending"}
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Link
-                            href="/studio/guests"
-                            className="rounded-lg border px-2 py-1 text-xs font-medium"
-                            style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}
-                          >
-                            Open Check-in
-                          </Link>
-                          <Link
-                            href="/studio/events"
-                            className="rounded-lg border px-2 py-1 text-xs font-medium"
-                            style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
-                          >
-                            View Event
-                          </Link>
-                        </div>
-                      </div>
-                      <span className="rounded-full px-2 py-1 text-xs font-medium" style={{ background: "var(--primary-rose-lighter)", color: "var(--primary-rose)" }}>
-                        {event._count.guests} guests
-                      </span>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </article>
-
-        <article className="rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-semibold" style={{ color: "var(--primary-green)" }}>This Week Weddings</h2>
-            <p className="text-sm" style={{ color: "#8b8680" }}>Near-term operations</p>
-          </div>
-
-          {loadingData ? (
-            <p className="mt-6 text-sm text-zinc-600">Loading weddings...</p>
-          ) : error ? (
-            <p className="mt-6 text-sm text-red-700">{error}</p>
-          ) : eventsThisWeek.length === 0 ? (
-            <p className="mt-6 text-sm text-zinc-600">No weddings scheduled this week.</p>
-          ) : (
-            <div className="mt-5 space-y-3">
-              {eventsThisWeek.slice(0, 5).map((event) => {
-                return (
-                  <article key={event.id} className="rounded-xl border px-4 py-3" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full text-sm font-semibold" style={{ background: "var(--primary-rose-lighter)", color: "var(--primary-rose)" }}>
-                        {new Date(event.eventDate).getDate()}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold" style={{ color: "var(--foreground)" }}>{event.title}</p>
-                        <p className="text-xs" style={{ color: "#8b8680" }}>
-                          {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Bride & groom pending"}
-                        </p>
-                        <p className="text-xs" style={{ color: "#8b8680" }}>
-                          {new Date(event.eventDate).toLocaleDateString()} • {event.location ?? "Location pending"}
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <Link
-                            href="/studio/guests"
-                            className="rounded-lg border px-2 py-1 text-xs font-medium"
-                            style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}
-                          >
-                            Open Check-in
-                          </Link>
-                          <Link
-                            href="/studio/events"
-                            className="rounded-lg border px-2 py-1 text-xs font-medium"
-                            style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
-                          >
-                            View Event
-                          </Link>
-                        </div>
-                      </div>
-                      <span className="rounded-full px-2 py-1 text-xs font-medium" style={{ background: "var(--primary-green-lighter)", color: "var(--primary-green)" }}>
-                        {event._count.guests} guests
-                      </span>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </article>
-      </section>
-
-      <section className="rounded-2xl border p-5" style={{ background: "var(--surface)", borderColor: "var(--border-subtle)" }}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold" style={{ color: "var(--primary-green)" }}>Attention Needed</h2>
-          <p className="text-sm" style={{ color: "#8b8680" }}>Operational alerts</p>
-        </div>
-
-        {attentionItems.length === 0 ? (
-          <p className="mt-4 rounded-xl border px-4 py-3 text-sm" style={{ background: "var(--primary-green-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-green)" }}>
-            No urgent actions right now. Studio workflow is healthy.
-          </p>
-        ) : (
-          <div className="mt-4 space-y-3">
-            {attentionItems.map((item) => (
-              <article key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
-                <p className="text-sm" style={{ color: "var(--foreground)" }}>{item.message}</p>
-                <Link
-                  href={item.actionHref}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-medium"
-                  style={{ background: "var(--primary-rose-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary-rose)" }}
-                >
-                  {item.actionLabel}
-                </Link>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {coreStats.map((stat) => (
-          <article key={stat.label} className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
-            <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>{stat.label}</p>
-            <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-rose)" }}>{formatNumber(stat.value)}</p>
-          </article>
-        ))}
-        <article className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
-          <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>Publishing Progress</p>
-          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-green)" }}>{publishedRatio}</p>
-        </article>
-        <article className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
-          <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>Studio Role</p>
-          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-green)" }}>{session?.user.role}</p>
-        </article>
-        <article className="rounded-xl border px-4 py-4" style={{ background: "var(--surface-muted)", borderColor: "var(--border-subtle)" }}>
-          <p className="text-xs uppercase tracking-wide" style={{ color: "#8b8680" }}>Studio Contact</p>
-          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary-rose)" }}>{session?.user.phone}</p>
-        </article>
       </section>
     </main>
   );

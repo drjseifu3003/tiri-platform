@@ -386,7 +386,6 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   Studio: 'Studio',
   User: 'User',
-  Template: 'Template',
   Event: 'Event',
   Guest: 'Guest',
   Media: 'Media'
@@ -405,7 +404,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "studio" | "user" | "template" | "event" | "guest" | "media"
+    modelProps: "studio" | "user" | "event" | "guest" | "media"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -554,80 +553,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
-        }
-      }
-    }
-    Template: {
-      payload: Prisma.$TemplatePayload<ExtArgs>
-      fields: Prisma.TemplateFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.TemplateFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.TemplateFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        findFirst: {
-          args: Prisma.TemplateFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.TemplateFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        findMany: {
-          args: Prisma.TemplateFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>[]
-        }
-        create: {
-          args: Prisma.TemplateCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        createMany: {
-          args: Prisma.TemplateCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.TemplateCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>[]
-        }
-        delete: {
-          args: Prisma.TemplateDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        update: {
-          args: Prisma.TemplateUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        deleteMany: {
-          args: Prisma.TemplateDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.TemplateUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.TemplateUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>[]
-        }
-        upsert: {
-          args: Prisma.TemplateUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TemplatePayload>
-        }
-        aggregate: {
-          args: Prisma.TemplateAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTemplate>
-        }
-        groupBy: {
-          args: Prisma.TemplateGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TemplateGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.TemplateCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TemplateCountAggregateOutputType> | number
         }
       }
     }
@@ -919,24 +844,9 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const TemplateScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  slug: 'slug',
-  previewImage: 'previewImage',
-  category: 'category',
-  isActive: 'isActive',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TemplateScalarFieldEnum = (typeof TemplateScalarFieldEnum)[keyof typeof TemplateScalarFieldEnum]
-
-
 export const EventScalarFieldEnum = {
   id: 'id',
   studioId: 'studioId',
-  templateId: 'templateId',
   title: 'title',
   brideName: 'brideName',
   groomName: 'groomName',
@@ -945,6 +855,7 @@ export const EventScalarFieldEnum = {
   coupleAccessToken: 'coupleAccessToken',
   eventDate: 'eventDate',
   location: 'location',
+  googleMapAddress: 'googleMapAddress',
   description: 'description',
   coverImage: 'coverImage',
   slug: 'slug',
@@ -978,6 +889,7 @@ export const MediaScalarFieldEnum = {
   eventId: 'eventId',
   type: 'type',
   url: 'url',
+  groupLabel: 'groupLabel',
   createdAt: 'createdAt'
 } as const
 
@@ -1053,20 +965,6 @@ export type EnumUserRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
  * Reference to a field of type 'UserRole[]'
  */
 export type ListEnumUserRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserRole[]'>
-    
-
-
-/**
- * Reference to a field of type 'TemplateCategory'
- */
-export type EnumTemplateCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TemplateCategory'>
-    
-
-
-/**
- * Reference to a field of type 'TemplateCategory[]'
- */
-export type ListEnumTemplateCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TemplateCategory[]'>
     
 
 
@@ -1215,7 +1113,6 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   studio?: Prisma.StudioOmit
   user?: Prisma.UserOmit
-  template?: Prisma.TemplateOmit
   event?: Prisma.EventOmit
   guest?: Prisma.GuestOmit
   media?: Prisma.MediaOmit

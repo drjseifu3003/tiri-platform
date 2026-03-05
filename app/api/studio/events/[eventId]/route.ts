@@ -8,7 +8,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const updateEventSchema = z.object({
-  templateId: z.string().uuid().optional(),
   title: z.string().min(2).optional(),
   brideName: z.string().nullable().optional(),
   groomName: z.string().nullable().optional(),
@@ -16,6 +15,7 @@ const updateEventSchema = z.object({
   groomPhone: z.string().trim().min(1).optional(),
   eventDate: z.coerce.date().optional(),
   location: z.string().nullable().optional(),
+  googleMapAddress: z.string().trim().min(1).optional(),
   description: z.string().nullable().optional(),
   coverImage: z.string().url().nullable().optional(),
   slug: z.string().min(2).optional(),
@@ -48,7 +48,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
       studioId: session.studioId,
     },
     include: {
-      template: true,
       guests: {
         orderBy: { createdAt: "desc" },
       },
@@ -76,17 +75,6 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   const parsed = updateEventSchema.safeParse(body);
   if (!parsed.success) {
     return badRequestResponse("Invalid event payload");
-  }
-
-  if (parsed.data.templateId) {
-    const template = await prisma.template.findUnique({
-      where: { id: parsed.data.templateId },
-      select: { id: true, isActive: true },
-    });
-
-    if (!template || !template.isActive) {
-      return badRequestResponse("Template not found or inactive");
-    }
   }
 
   const event = await prisma.event.update({

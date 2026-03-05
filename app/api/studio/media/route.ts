@@ -12,6 +12,7 @@ const createMediaSchema = z.object({
   eventId: z.string().uuid(),
   type: z.enum(MediaType),
   url: z.string().url(),
+  groupLabel: z.string().trim().min(1).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
       eventId: parsed.data.eventId,
       type: parsed.data.type,
       url: parsed.data.url,
+      groupLabel: parsed.data.groupLabel,
     },
   });
 

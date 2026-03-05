@@ -27,7 +27,6 @@ export type AggregateEvent = {
 export type EventMinAggregateOutputType = {
   id: string | null
   studioId: string | null
-  templateId: string | null
   title: string | null
   brideName: string | null
   groomName: string | null
@@ -36,6 +35,7 @@ export type EventMinAggregateOutputType = {
   coupleAccessToken: string | null
   eventDate: Date | null
   location: string | null
+  googleMapAddress: string | null
   description: string | null
   coverImage: string | null
   slug: string | null
@@ -48,7 +48,6 @@ export type EventMinAggregateOutputType = {
 export type EventMaxAggregateOutputType = {
   id: string | null
   studioId: string | null
-  templateId: string | null
   title: string | null
   brideName: string | null
   groomName: string | null
@@ -57,6 +56,7 @@ export type EventMaxAggregateOutputType = {
   coupleAccessToken: string | null
   eventDate: Date | null
   location: string | null
+  googleMapAddress: string | null
   description: string | null
   coverImage: string | null
   slug: string | null
@@ -69,7 +69,6 @@ export type EventMaxAggregateOutputType = {
 export type EventCountAggregateOutputType = {
   id: number
   studioId: number
-  templateId: number
   title: number
   brideName: number
   groomName: number
@@ -78,6 +77,7 @@ export type EventCountAggregateOutputType = {
   coupleAccessToken: number
   eventDate: number
   location: number
+  googleMapAddress: number
   description: number
   coverImage: number
   slug: number
@@ -92,7 +92,6 @@ export type EventCountAggregateOutputType = {
 export type EventMinAggregateInputType = {
   id?: true
   studioId?: true
-  templateId?: true
   title?: true
   brideName?: true
   groomName?: true
@@ -101,6 +100,7 @@ export type EventMinAggregateInputType = {
   coupleAccessToken?: true
   eventDate?: true
   location?: true
+  googleMapAddress?: true
   description?: true
   coverImage?: true
   slug?: true
@@ -113,7 +113,6 @@ export type EventMinAggregateInputType = {
 export type EventMaxAggregateInputType = {
   id?: true
   studioId?: true
-  templateId?: true
   title?: true
   brideName?: true
   groomName?: true
@@ -122,6 +121,7 @@ export type EventMaxAggregateInputType = {
   coupleAccessToken?: true
   eventDate?: true
   location?: true
+  googleMapAddress?: true
   description?: true
   coverImage?: true
   slug?: true
@@ -134,7 +134,6 @@ export type EventMaxAggregateInputType = {
 export type EventCountAggregateInputType = {
   id?: true
   studioId?: true
-  templateId?: true
   title?: true
   brideName?: true
   groomName?: true
@@ -143,6 +142,7 @@ export type EventCountAggregateInputType = {
   coupleAccessToken?: true
   eventDate?: true
   location?: true
+  googleMapAddress?: true
   description?: true
   coverImage?: true
   slug?: true
@@ -228,7 +228,6 @@ export type EventGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
 export type EventGroupByOutputType = {
   id: string
   studioId: string
-  templateId: string
   title: string
   brideName: string | null
   groomName: string | null
@@ -237,6 +236,7 @@ export type EventGroupByOutputType = {
   coupleAccessToken: string
   eventDate: Date
   location: string | null
+  googleMapAddress: string
   description: string | null
   coverImage: string | null
   slug: string
@@ -270,7 +270,6 @@ export type EventWhereInput = {
   NOT?: Prisma.EventWhereInput | Prisma.EventWhereInput[]
   id?: Prisma.StringFilter<"Event"> | string
   studioId?: Prisma.StringFilter<"Event"> | string
-  templateId?: Prisma.StringFilter<"Event"> | string
   title?: Prisma.StringFilter<"Event"> | string
   brideName?: Prisma.StringNullableFilter<"Event"> | string | null
   groomName?: Prisma.StringNullableFilter<"Event"> | string | null
@@ -279,6 +278,7 @@ export type EventWhereInput = {
   coupleAccessToken?: Prisma.StringFilter<"Event"> | string
   eventDate?: Prisma.DateTimeFilter<"Event"> | Date | string
   location?: Prisma.StringNullableFilter<"Event"> | string | null
+  googleMapAddress?: Prisma.StringFilter<"Event"> | string
   description?: Prisma.StringNullableFilter<"Event"> | string | null
   coverImage?: Prisma.StringNullableFilter<"Event"> | string | null
   slug?: Prisma.StringFilter<"Event"> | string
@@ -287,7 +287,6 @@ export type EventWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   studio?: Prisma.XOR<Prisma.StudioScalarRelationFilter, Prisma.StudioWhereInput>
-  template?: Prisma.XOR<Prisma.TemplateScalarRelationFilter, Prisma.TemplateWhereInput>
   guests?: Prisma.GuestListRelationFilter
   media?: Prisma.MediaListRelationFilter
 }
@@ -295,7 +294,6 @@ export type EventWhereInput = {
 export type EventOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   studioId?: Prisma.SortOrder
-  templateId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   brideName?: Prisma.SortOrderInput | Prisma.SortOrder
   groomName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -304,6 +302,7 @@ export type EventOrderByWithRelationInput = {
   coupleAccessToken?: Prisma.SortOrder
   eventDate?: Prisma.SortOrder
   location?: Prisma.SortOrderInput | Prisma.SortOrder
+  googleMapAddress?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   coverImage?: Prisma.SortOrderInput | Prisma.SortOrder
   slug?: Prisma.SortOrder
@@ -312,7 +311,6 @@ export type EventOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   studio?: Prisma.StudioOrderByWithRelationInput
-  template?: Prisma.TemplateOrderByWithRelationInput
   guests?: Prisma.GuestOrderByRelationAggregateInput
   media?: Prisma.MediaOrderByRelationAggregateInput
 }
@@ -326,7 +324,6 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.EventWhereInput[]
   NOT?: Prisma.EventWhereInput | Prisma.EventWhereInput[]
   studioId?: Prisma.StringFilter<"Event"> | string
-  templateId?: Prisma.StringFilter<"Event"> | string
   title?: Prisma.StringFilter<"Event"> | string
   brideName?: Prisma.StringNullableFilter<"Event"> | string | null
   groomName?: Prisma.StringNullableFilter<"Event"> | string | null
@@ -334,13 +331,13 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
   groomPhone?: Prisma.StringNullableFilter<"Event"> | string | null
   eventDate?: Prisma.DateTimeFilter<"Event"> | Date | string
   location?: Prisma.StringNullableFilter<"Event"> | string | null
+  googleMapAddress?: Prisma.StringFilter<"Event"> | string
   description?: Prisma.StringNullableFilter<"Event"> | string | null
   coverImage?: Prisma.StringNullableFilter<"Event"> | string | null
   isPublished?: Prisma.BoolFilter<"Event"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   studio?: Prisma.XOR<Prisma.StudioScalarRelationFilter, Prisma.StudioWhereInput>
-  template?: Prisma.XOR<Prisma.TemplateScalarRelationFilter, Prisma.TemplateWhereInput>
   guests?: Prisma.GuestListRelationFilter
   media?: Prisma.MediaListRelationFilter
 }, "id" | "coupleAccessToken" | "slug" | "subdomain">
@@ -348,7 +345,6 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
 export type EventOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   studioId?: Prisma.SortOrder
-  templateId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   brideName?: Prisma.SortOrderInput | Prisma.SortOrder
   groomName?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -357,6 +353,7 @@ export type EventOrderByWithAggregationInput = {
   coupleAccessToken?: Prisma.SortOrder
   eventDate?: Prisma.SortOrder
   location?: Prisma.SortOrderInput | Prisma.SortOrder
+  googleMapAddress?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   coverImage?: Prisma.SortOrderInput | Prisma.SortOrder
   slug?: Prisma.SortOrder
@@ -375,7 +372,6 @@ export type EventScalarWhereWithAggregatesInput = {
   NOT?: Prisma.EventScalarWhereWithAggregatesInput | Prisma.EventScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Event"> | string
   studioId?: Prisma.StringWithAggregatesFilter<"Event"> | string
-  templateId?: Prisma.StringWithAggregatesFilter<"Event"> | string
   title?: Prisma.StringWithAggregatesFilter<"Event"> | string
   brideName?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   groomName?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
@@ -384,6 +380,7 @@ export type EventScalarWhereWithAggregatesInput = {
   coupleAccessToken?: Prisma.StringWithAggregatesFilter<"Event"> | string
   eventDate?: Prisma.DateTimeWithAggregatesFilter<"Event"> | Date | string
   location?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
+  googleMapAddress?: Prisma.StringWithAggregatesFilter<"Event"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   coverImage?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   slug?: Prisma.StringWithAggregatesFilter<"Event"> | string
@@ -403,6 +400,7 @@ export type EventCreateInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -411,7 +409,6 @@ export type EventCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   studio: Prisma.StudioCreateNestedOneWithoutEventsInput
-  template: Prisma.TemplateCreateNestedOneWithoutEventsInput
   guests?: Prisma.GuestCreateNestedManyWithoutEventInput
   media?: Prisma.MediaCreateNestedManyWithoutEventInput
 }
@@ -419,7 +416,6 @@ export type EventCreateInput = {
 export type EventUncheckedCreateInput = {
   id?: string
   studioId: string
-  templateId: string
   title: string
   brideName?: string | null
   groomName?: string | null
@@ -428,6 +424,7 @@ export type EventUncheckedCreateInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -449,6 +446,7 @@ export type EventUpdateInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -457,7 +455,6 @@ export type EventUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
-  template?: Prisma.TemplateUpdateOneRequiredWithoutEventsNestedInput
   guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUpdateManyWithoutEventNestedInput
 }
@@ -465,7 +462,6 @@ export type EventUpdateInput = {
 export type EventUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   studioId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -474,6 +470,7 @@ export type EventUncheckedUpdateInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -488,7 +485,6 @@ export type EventUncheckedUpdateInput = {
 export type EventCreateManyInput = {
   id?: string
   studioId: string
-  templateId: string
   title: string
   brideName?: string | null
   groomName?: string | null
@@ -497,6 +493,7 @@ export type EventCreateManyInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -516,6 +513,7 @@ export type EventUpdateManyMutationInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -528,7 +526,6 @@ export type EventUpdateManyMutationInput = {
 export type EventUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   studioId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -537,6 +534,7 @@ export type EventUncheckedUpdateManyInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -559,7 +557,6 @@ export type EventOrderByRelationAggregateInput = {
 export type EventCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   studioId?: Prisma.SortOrder
-  templateId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   brideName?: Prisma.SortOrder
   groomName?: Prisma.SortOrder
@@ -568,6 +565,7 @@ export type EventCountOrderByAggregateInput = {
   coupleAccessToken?: Prisma.SortOrder
   eventDate?: Prisma.SortOrder
   location?: Prisma.SortOrder
+  googleMapAddress?: Prisma.SortOrder
   description?: Prisma.SortOrder
   coverImage?: Prisma.SortOrder
   slug?: Prisma.SortOrder
@@ -580,7 +578,6 @@ export type EventCountOrderByAggregateInput = {
 export type EventMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   studioId?: Prisma.SortOrder
-  templateId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   brideName?: Prisma.SortOrder
   groomName?: Prisma.SortOrder
@@ -589,6 +586,7 @@ export type EventMaxOrderByAggregateInput = {
   coupleAccessToken?: Prisma.SortOrder
   eventDate?: Prisma.SortOrder
   location?: Prisma.SortOrder
+  googleMapAddress?: Prisma.SortOrder
   description?: Prisma.SortOrder
   coverImage?: Prisma.SortOrder
   slug?: Prisma.SortOrder
@@ -601,7 +599,6 @@ export type EventMaxOrderByAggregateInput = {
 export type EventMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   studioId?: Prisma.SortOrder
-  templateId?: Prisma.SortOrder
   title?: Prisma.SortOrder
   brideName?: Prisma.SortOrder
   groomName?: Prisma.SortOrder
@@ -610,6 +607,7 @@ export type EventMinOrderByAggregateInput = {
   coupleAccessToken?: Prisma.SortOrder
   eventDate?: Prisma.SortOrder
   location?: Prisma.SortOrder
+  googleMapAddress?: Prisma.SortOrder
   description?: Prisma.SortOrder
   coverImage?: Prisma.SortOrder
   slug?: Prisma.SortOrder
@@ -666,46 +664,8 @@ export type EventUncheckedUpdateManyWithoutStudioNestedInput = {
   deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
 }
 
-export type EventCreateNestedManyWithoutTemplateInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutTemplateInput, Prisma.EventUncheckedCreateWithoutTemplateInput> | Prisma.EventCreateWithoutTemplateInput[] | Prisma.EventUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutTemplateInput | Prisma.EventCreateOrConnectWithoutTemplateInput[]
-  createMany?: Prisma.EventCreateManyTemplateInputEnvelope
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-}
-
-export type EventUncheckedCreateNestedManyWithoutTemplateInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutTemplateInput, Prisma.EventUncheckedCreateWithoutTemplateInput> | Prisma.EventCreateWithoutTemplateInput[] | Prisma.EventUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutTemplateInput | Prisma.EventCreateOrConnectWithoutTemplateInput[]
-  createMany?: Prisma.EventCreateManyTemplateInputEnvelope
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-}
-
-export type EventUpdateManyWithoutTemplateNestedInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutTemplateInput, Prisma.EventUncheckedCreateWithoutTemplateInput> | Prisma.EventCreateWithoutTemplateInput[] | Prisma.EventUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutTemplateInput | Prisma.EventCreateOrConnectWithoutTemplateInput[]
-  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutTemplateInput | Prisma.EventUpsertWithWhereUniqueWithoutTemplateInput[]
-  createMany?: Prisma.EventCreateManyTemplateInputEnvelope
-  set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  update?: Prisma.EventUpdateWithWhereUniqueWithoutTemplateInput | Prisma.EventUpdateWithWhereUniqueWithoutTemplateInput[]
-  updateMany?: Prisma.EventUpdateManyWithWhereWithoutTemplateInput | Prisma.EventUpdateManyWithWhereWithoutTemplateInput[]
-  deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
-}
-
-export type EventUncheckedUpdateManyWithoutTemplateNestedInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutTemplateInput, Prisma.EventUncheckedCreateWithoutTemplateInput> | Prisma.EventCreateWithoutTemplateInput[] | Prisma.EventUncheckedCreateWithoutTemplateInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutTemplateInput | Prisma.EventCreateOrConnectWithoutTemplateInput[]
-  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutTemplateInput | Prisma.EventUpsertWithWhereUniqueWithoutTemplateInput[]
-  createMany?: Prisma.EventCreateManyTemplateInputEnvelope
-  set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  update?: Prisma.EventUpdateWithWhereUniqueWithoutTemplateInput | Prisma.EventUpdateWithWhereUniqueWithoutTemplateInput[]
-  updateMany?: Prisma.EventUpdateManyWithWhereWithoutTemplateInput | Prisma.EventUpdateManyWithWhereWithoutTemplateInput[]
-  deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
 }
 
 export type EventCreateNestedOneWithoutGuestsInput = {
@@ -746,6 +706,7 @@ export type EventCreateWithoutStudioInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -753,14 +714,12 @@ export type EventCreateWithoutStudioInput = {
   isPublished?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  template: Prisma.TemplateCreateNestedOneWithoutEventsInput
   guests?: Prisma.GuestCreateNestedManyWithoutEventInput
   media?: Prisma.MediaCreateNestedManyWithoutEventInput
 }
 
 export type EventUncheckedCreateWithoutStudioInput = {
   id?: string
-  templateId: string
   title: string
   brideName?: string | null
   groomName?: string | null
@@ -769,6 +728,7 @@ export type EventUncheckedCreateWithoutStudioInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -812,7 +772,6 @@ export type EventScalarWhereInput = {
   NOT?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
   id?: Prisma.StringFilter<"Event"> | string
   studioId?: Prisma.StringFilter<"Event"> | string
-  templateId?: Prisma.StringFilter<"Event"> | string
   title?: Prisma.StringFilter<"Event"> | string
   brideName?: Prisma.StringNullableFilter<"Event"> | string | null
   groomName?: Prisma.StringNullableFilter<"Event"> | string | null
@@ -821,6 +780,7 @@ export type EventScalarWhereInput = {
   coupleAccessToken?: Prisma.StringFilter<"Event"> | string
   eventDate?: Prisma.DateTimeFilter<"Event"> | Date | string
   location?: Prisma.StringNullableFilter<"Event"> | string | null
+  googleMapAddress?: Prisma.StringFilter<"Event"> | string
   description?: Prisma.StringNullableFilter<"Event"> | string | null
   coverImage?: Prisma.StringNullableFilter<"Event"> | string | null
   slug?: Prisma.StringFilter<"Event"> | string
@@ -828,76 +788,6 @@ export type EventScalarWhereInput = {
   isPublished?: Prisma.BoolFilter<"Event"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Event"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Event"> | Date | string
-}
-
-export type EventCreateWithoutTemplateInput = {
-  id?: string
-  title: string
-  brideName?: string | null
-  groomName?: string | null
-  bridePhone?: string | null
-  groomPhone?: string | null
-  coupleAccessToken?: string
-  eventDate: Date | string
-  location?: string | null
-  description?: string | null
-  coverImage?: string | null
-  slug: string
-  subdomain?: string | null
-  isPublished?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  studio: Prisma.StudioCreateNestedOneWithoutEventsInput
-  guests?: Prisma.GuestCreateNestedManyWithoutEventInput
-  media?: Prisma.MediaCreateNestedManyWithoutEventInput
-}
-
-export type EventUncheckedCreateWithoutTemplateInput = {
-  id?: string
-  studioId: string
-  title: string
-  brideName?: string | null
-  groomName?: string | null
-  bridePhone?: string | null
-  groomPhone?: string | null
-  coupleAccessToken?: string
-  eventDate: Date | string
-  location?: string | null
-  description?: string | null
-  coverImage?: string | null
-  slug: string
-  subdomain?: string | null
-  isPublished?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  guests?: Prisma.GuestUncheckedCreateNestedManyWithoutEventInput
-  media?: Prisma.MediaUncheckedCreateNestedManyWithoutEventInput
-}
-
-export type EventCreateOrConnectWithoutTemplateInput = {
-  where: Prisma.EventWhereUniqueInput
-  create: Prisma.XOR<Prisma.EventCreateWithoutTemplateInput, Prisma.EventUncheckedCreateWithoutTemplateInput>
-}
-
-export type EventCreateManyTemplateInputEnvelope = {
-  data: Prisma.EventCreateManyTemplateInput | Prisma.EventCreateManyTemplateInput[]
-  skipDuplicates?: boolean
-}
-
-export type EventUpsertWithWhereUniqueWithoutTemplateInput = {
-  where: Prisma.EventWhereUniqueInput
-  update: Prisma.XOR<Prisma.EventUpdateWithoutTemplateInput, Prisma.EventUncheckedUpdateWithoutTemplateInput>
-  create: Prisma.XOR<Prisma.EventCreateWithoutTemplateInput, Prisma.EventUncheckedCreateWithoutTemplateInput>
-}
-
-export type EventUpdateWithWhereUniqueWithoutTemplateInput = {
-  where: Prisma.EventWhereUniqueInput
-  data: Prisma.XOR<Prisma.EventUpdateWithoutTemplateInput, Prisma.EventUncheckedUpdateWithoutTemplateInput>
-}
-
-export type EventUpdateManyWithWhereWithoutTemplateInput = {
-  where: Prisma.EventScalarWhereInput
-  data: Prisma.XOR<Prisma.EventUpdateManyMutationInput, Prisma.EventUncheckedUpdateManyWithoutTemplateInput>
 }
 
 export type EventCreateWithoutGuestsInput = {
@@ -910,6 +800,7 @@ export type EventCreateWithoutGuestsInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -918,14 +809,12 @@ export type EventCreateWithoutGuestsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   studio: Prisma.StudioCreateNestedOneWithoutEventsInput
-  template: Prisma.TemplateCreateNestedOneWithoutEventsInput
   media?: Prisma.MediaCreateNestedManyWithoutEventInput
 }
 
 export type EventUncheckedCreateWithoutGuestsInput = {
   id?: string
   studioId: string
-  templateId: string
   title: string
   brideName?: string | null
   groomName?: string | null
@@ -934,6 +823,7 @@ export type EventUncheckedCreateWithoutGuestsInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -970,6 +860,7 @@ export type EventUpdateWithoutGuestsInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -978,14 +869,12 @@ export type EventUpdateWithoutGuestsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
-  template?: Prisma.TemplateUpdateOneRequiredWithoutEventsNestedInput
   media?: Prisma.MediaUpdateManyWithoutEventNestedInput
 }
 
 export type EventUncheckedUpdateWithoutGuestsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   studioId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -994,6 +883,7 @@ export type EventUncheckedUpdateWithoutGuestsInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1014,6 +904,7 @@ export type EventCreateWithoutMediaInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -1022,14 +913,12 @@ export type EventCreateWithoutMediaInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   studio: Prisma.StudioCreateNestedOneWithoutEventsInput
-  template: Prisma.TemplateCreateNestedOneWithoutEventsInput
   guests?: Prisma.GuestCreateNestedManyWithoutEventInput
 }
 
 export type EventUncheckedCreateWithoutMediaInput = {
   id?: string
   studioId: string
-  templateId: string
   title: string
   brideName?: string | null
   groomName?: string | null
@@ -1038,6 +927,7 @@ export type EventUncheckedCreateWithoutMediaInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -1074,6 +964,7 @@ export type EventUpdateWithoutMediaInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1082,14 +973,12 @@ export type EventUpdateWithoutMediaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
-  template?: Prisma.TemplateUpdateOneRequiredWithoutEventsNestedInput
   guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
 }
 
 export type EventUncheckedUpdateWithoutMediaInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   studioId?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1098,6 +987,7 @@ export type EventUncheckedUpdateWithoutMediaInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1110,7 +1000,6 @@ export type EventUncheckedUpdateWithoutMediaInput = {
 
 export type EventCreateManyStudioInput = {
   id?: string
-  templateId: string
   title: string
   brideName?: string | null
   groomName?: string | null
@@ -1119,6 +1008,7 @@ export type EventCreateManyStudioInput = {
   coupleAccessToken?: string
   eventDate: Date | string
   location?: string | null
+  googleMapAddress: string
   description?: string | null
   coverImage?: string | null
   slug: string
@@ -1138,6 +1028,7 @@ export type EventUpdateWithoutStudioInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1145,14 +1036,12 @@ export type EventUpdateWithoutStudioInput = {
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  template?: Prisma.TemplateUpdateOneRequiredWithoutEventsNestedInput
   guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUpdateManyWithoutEventNestedInput
 }
 
 export type EventUncheckedUpdateWithoutStudioInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1161,6 +1050,7 @@ export type EventUncheckedUpdateWithoutStudioInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1174,7 +1064,6 @@ export type EventUncheckedUpdateWithoutStudioInput = {
 
 export type EventUncheckedUpdateManyWithoutStudioInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  templateId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1183,90 +1072,7 @@ export type EventUncheckedUpdateManyWithoutStudioInput = {
   coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
   eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  subdomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-}
-
-export type EventCreateManyTemplateInput = {
-  id?: string
-  studioId: string
-  title: string
-  brideName?: string | null
-  groomName?: string | null
-  bridePhone?: string | null
-  groomPhone?: string | null
-  coupleAccessToken?: string
-  eventDate: Date | string
-  location?: string | null
-  description?: string | null
-  coverImage?: string | null
-  slug: string
-  subdomain?: string | null
-  isPublished?: boolean
-  createdAt?: Date | string
-  updatedAt?: Date | string
-}
-
-export type EventUpdateWithoutTemplateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bridePhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  groomPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
-  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  subdomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
-  guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
-  media?: Prisma.MediaUpdateManyWithoutEventNestedInput
-}
-
-export type EventUncheckedUpdateWithoutTemplateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  studioId?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bridePhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  groomPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
-  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  slug?: Prisma.StringFieldUpdateOperationsInput | string
-  subdomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  guests?: Prisma.GuestUncheckedUpdateManyWithoutEventNestedInput
-  media?: Prisma.MediaUncheckedUpdateManyWithoutEventNestedInput
-}
-
-export type EventUncheckedUpdateManyWithoutTemplateInput = {
-  id?: Prisma.StringFieldUpdateOperationsInput | string
-  studioId?: Prisma.StringFieldUpdateOperationsInput | string
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  bridePhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  groomPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
-  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   slug?: Prisma.StringFieldUpdateOperationsInput | string
@@ -1319,7 +1125,6 @@ export type EventCountOutputTypeCountMediaArgs<ExtArgs extends runtime.Types.Ext
 export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   studioId?: boolean
-  templateId?: boolean
   title?: boolean
   brideName?: boolean
   groomName?: boolean
@@ -1328,6 +1133,7 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   coupleAccessToken?: boolean
   eventDate?: boolean
   location?: boolean
+  googleMapAddress?: boolean
   description?: boolean
   coverImage?: boolean
   slug?: boolean
@@ -1336,7 +1142,6 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   createdAt?: boolean
   updatedAt?: boolean
   studio?: boolean | Prisma.StudioDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
   guests?: boolean | Prisma.Event$guestsArgs<ExtArgs>
   media?: boolean | Prisma.Event$mediaArgs<ExtArgs>
   _count?: boolean | Prisma.EventCountOutputTypeDefaultArgs<ExtArgs>
@@ -1345,7 +1150,6 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type EventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   studioId?: boolean
-  templateId?: boolean
   title?: boolean
   brideName?: boolean
   groomName?: boolean
@@ -1354,6 +1158,7 @@ export type EventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   coupleAccessToken?: boolean
   eventDate?: boolean
   location?: boolean
+  googleMapAddress?: boolean
   description?: boolean
   coverImage?: boolean
   slug?: boolean
@@ -1362,13 +1167,11 @@ export type EventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdAt?: boolean
   updatedAt?: boolean
   studio?: boolean | Prisma.StudioDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["event"]>
 
 export type EventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   studioId?: boolean
-  templateId?: boolean
   title?: boolean
   brideName?: boolean
   groomName?: boolean
@@ -1377,6 +1180,7 @@ export type EventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   coupleAccessToken?: boolean
   eventDate?: boolean
   location?: boolean
+  googleMapAddress?: boolean
   description?: boolean
   coverImage?: boolean
   slug?: boolean
@@ -1385,13 +1189,11 @@ export type EventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   createdAt?: boolean
   updatedAt?: boolean
   studio?: boolean | Prisma.StudioDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["event"]>
 
 export type EventSelectScalar = {
   id?: boolean
   studioId?: boolean
-  templateId?: boolean
   title?: boolean
   brideName?: boolean
   groomName?: boolean
@@ -1400,6 +1202,7 @@ export type EventSelectScalar = {
   coupleAccessToken?: boolean
   eventDate?: boolean
   location?: boolean
+  googleMapAddress?: boolean
   description?: boolean
   coverImage?: boolean
   slug?: boolean
@@ -1409,35 +1212,30 @@ export type EventSelectScalar = {
   updatedAt?: boolean
 }
 
-export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "studioId" | "templateId" | "title" | "brideName" | "groomName" | "bridePhone" | "groomPhone" | "coupleAccessToken" | "eventDate" | "location" | "description" | "coverImage" | "slug" | "subdomain" | "isPublished" | "createdAt" | "updatedAt", ExtArgs["result"]["event"]>
+export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "studioId" | "title" | "brideName" | "groomName" | "bridePhone" | "groomPhone" | "coupleAccessToken" | "eventDate" | "location" | "googleMapAddress" | "description" | "coverImage" | "slug" | "subdomain" | "isPublished" | "createdAt" | "updatedAt", ExtArgs["result"]["event"]>
 export type EventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   studio?: boolean | Prisma.StudioDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
   guests?: boolean | Prisma.Event$guestsArgs<ExtArgs>
   media?: boolean | Prisma.Event$mediaArgs<ExtArgs>
   _count?: boolean | Prisma.EventCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EventIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   studio?: boolean | Prisma.StudioDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
 }
 export type EventIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   studio?: boolean | Prisma.StudioDefaultArgs<ExtArgs>
-  template?: boolean | Prisma.TemplateDefaultArgs<ExtArgs>
 }
 
 export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Event"
   objects: {
     studio: Prisma.$StudioPayload<ExtArgs>
-    template: Prisma.$TemplatePayload<ExtArgs>
     guests: Prisma.$GuestPayload<ExtArgs>[]
     media: Prisma.$MediaPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     studioId: string
-    templateId: string
     title: string
     brideName: string | null
     groomName: string | null
@@ -1446,6 +1244,7 @@ export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     coupleAccessToken: string
     eventDate: Date
     location: string | null
+    googleMapAddress: string
     description: string | null
     coverImage: string | null
     slug: string
@@ -1848,7 +1647,6 @@ readonly fields: EventFieldRefs;
 export interface Prisma__EventClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   studio<T extends Prisma.StudioDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.StudioDefaultArgs<ExtArgs>>): Prisma.Prisma__StudioClient<runtime.Types.Result.GetResult<Prisma.$StudioPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  template<T extends Prisma.TemplateDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.TemplateDefaultArgs<ExtArgs>>): Prisma.Prisma__TemplateClient<runtime.Types.Result.GetResult<Prisma.$TemplatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   guests<T extends Prisma.Event$guestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$guestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GuestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   media<T extends Prisma.Event$mediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1882,7 +1680,6 @@ export interface Prisma__EventClient<T, Null = never, ExtArgs extends runtime.Ty
 export interface EventFieldRefs {
   readonly id: Prisma.FieldRef<"Event", 'String'>
   readonly studioId: Prisma.FieldRef<"Event", 'String'>
-  readonly templateId: Prisma.FieldRef<"Event", 'String'>
   readonly title: Prisma.FieldRef<"Event", 'String'>
   readonly brideName: Prisma.FieldRef<"Event", 'String'>
   readonly groomName: Prisma.FieldRef<"Event", 'String'>
@@ -1891,6 +1688,7 @@ export interface EventFieldRefs {
   readonly coupleAccessToken: Prisma.FieldRef<"Event", 'String'>
   readonly eventDate: Prisma.FieldRef<"Event", 'DateTime'>
   readonly location: Prisma.FieldRef<"Event", 'String'>
+  readonly googleMapAddress: Prisma.FieldRef<"Event", 'String'>
   readonly description: Prisma.FieldRef<"Event", 'String'>
   readonly coverImage: Prisma.FieldRef<"Event", 'String'>
   readonly slug: Prisma.FieldRef<"Event", 'String'>

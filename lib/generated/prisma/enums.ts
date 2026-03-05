@@ -25,15 +25,6 @@ export const MediaType = {
 export type MediaType = (typeof MediaType)[keyof typeof MediaType]
 
 
-export const TemplateCategory = {
-  TRADITIONAL: 'TRADITIONAL',
-  MODERN: 'MODERN',
-  RELIGIOUS: 'RELIGIOUS'
-} as const
-
-export type TemplateCategory = (typeof TemplateCategory)[keyof typeof TemplateCategory]
-
-
 export const GuestCategory = {
   GENERAL: 'GENERAL',
   BRIDE_GUEST: 'BRIDE_GUEST',

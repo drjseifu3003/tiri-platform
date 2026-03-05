@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const createEventSchema = z.object({
-  templateId: z.string().uuid(),
   title: z.string().min(2),
   brideName: z.string().optional(),
   groomName: z.string().optional(),
@@ -12,6 +11,7 @@ const createEventSchema = z.object({
   groomPhone: z.string().trim().min(1),
   eventDate: z.coerce.date(),
   location: z.string().optional(),
+  googleMapAddress: z.string().trim().min(1),
   description: z.string().optional(),
   coverImage: z.string().url().optional(),
   slug: z.string().min(2),
@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
   const events = await prisma.event.findMany({
     where: { studioId: session.studioId },
     include: {
-      template: true,
       _count: {
         select: {
           guests: true,
@@ -50,19 +49,9 @@ export async function POST(request: NextRequest) {
     return badRequestResponse("Invalid event payload");
   }
 
-  const template = await prisma.template.findUnique({
-    where: { id: parsed.data.templateId },
-    select: { id: true, isActive: true },
-  });
-
-  if (!template || !template.isActive) {
-    return badRequestResponse("Template not found or inactive");
-  }
-
   const event = await prisma.event.create({
     data: {
       studioId: session.studioId,
-      templateId: parsed.data.templateId,
       title: parsed.data.title,
       brideName: parsed.data.brideName,
       groomName: parsed.data.groomName,
@@ -70,6 +59,7 @@ export async function POST(request: NextRequest) {
       groomPhone: parsed.data.groomPhone,
       eventDate: parsed.data.eventDate,
       location: parsed.data.location,
+      googleMapAddress: parsed.data.googleMapAddress,
       description: parsed.data.description,
       coverImage: parsed.data.coverImage,
       slug: parsed.data.slug,

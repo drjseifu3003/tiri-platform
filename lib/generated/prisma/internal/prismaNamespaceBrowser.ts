@@ -53,7 +53,6 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Studio: 'Studio',
   User: 'User',
-  Template: 'Template',
   Event: 'Event',
   Guest: 'Guest',
   Media: 'Media'
@@ -102,24 +101,9 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const TemplateScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  slug: 'slug',
-  previewImage: 'previewImage',
-  category: 'category',
-  isActive: 'isActive',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TemplateScalarFieldEnum = (typeof TemplateScalarFieldEnum)[keyof typeof TemplateScalarFieldEnum]
-
-
 export const EventScalarFieldEnum = {
   id: 'id',
   studioId: 'studioId',
-  templateId: 'templateId',
   title: 'title',
   brideName: 'brideName',
   groomName: 'groomName',
@@ -128,6 +112,7 @@ export const EventScalarFieldEnum = {
   coupleAccessToken: 'coupleAccessToken',
   eventDate: 'eventDate',
   location: 'location',
+  googleMapAddress: 'googleMapAddress',
   description: 'description',
   coverImage: 'coverImage',
   slug: 'slug',
@@ -161,6 +146,7 @@ export const MediaScalarFieldEnum = {
   eventId: 'eventId',
   type: 'type',
   url: 'url',
+  groupLabel: 'groupLabel',
   createdAt: 'createdAt'
 } as const
 

@@ -15,6 +15,7 @@ type RouteContext = {
 const updateMediaSchema = z.object({
   type: z.enum(MediaType).optional(),
   url: z.string().url().optional(),
+  groupLabel: z.string().trim().min(1).nullable().optional(),
 });
 
 async function findStudioMedia(studioId: string, mediaId: string) {

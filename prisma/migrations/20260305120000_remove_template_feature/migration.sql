@@ -1,0 +1,5 @@
+ALTER TABLE "Event" DROP CONSTRAINT IF EXISTS "Event_templateId_fkey";
+ALTER TABLE "Event" DROP COLUMN IF EXISTS "templateId";
+
+DROP TABLE IF EXISTS "Template";
+DROP TYPE IF EXISTS "TemplateCategory";

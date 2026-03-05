@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tiri Studio",
-  description: "Professional event operations platform for studios",
+  title: "Kebkab Events Studio",
+  description: "Kebkab event operations platform for studio teams",
 };
 
 export default function RootLayout({

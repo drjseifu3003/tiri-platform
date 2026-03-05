@@ -4,12 +4,11 @@ export const openApiDocument = {
     title: "Tiri API",
     version: "1.0.0",
     description:
-      "Studio-first event platform API for authentication, templates, events, guests, and media workflows.",
+      "Studio-first event platform API for authentication, events, guests, and media workflows.",
   },
   servers: [{ url: "/", description: "Current environment" }],
   tags: [
     { name: "Auth", description: "Studio authentication" },
-    { name: "Templates", description: "Invitation template management" },
     { name: "Events", description: "Event CRUD" },
     { name: "Guests", description: "Guest management and check-in" },
     { name: "Media", description: "Event media records" },
@@ -51,28 +50,11 @@ export const openApiDocument = {
           updatedAt: { type: "string", format: "date-time" },
         },
       },
-      Template: {
-        type: "object",
-        properties: {
-          id: { type: "string", format: "uuid" },
-          name: { type: "string" },
-          slug: { type: "string" },
-          previewImage: { type: "string", nullable: true },
-          category: {
-            type: "string",
-            enum: ["TRADITIONAL", "MODERN", "RELIGIOUS"],
-          },
-          isActive: { type: "boolean" },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
-        },
-      },
       Event: {
         type: "object",
         properties: {
           id: { type: "string", format: "uuid" },
           studioId: { type: "string", format: "uuid" },
-          templateId: { type: "string", format: "uuid" },
           title: { type: "string" },
           brideName: { type: "string", nullable: true },
           groomName: { type: "string", nullable: true },
@@ -135,25 +117,10 @@ export const openApiDocument = {
           },
         },
       },
-      CreateTemplateRequest: {
-        type: "object",
-        required: ["name", "slug", "category"],
-        properties: {
-          name: { type: "string" },
-          slug: { type: "string" },
-          category: {
-            type: "string",
-            enum: ["TRADITIONAL", "MODERN", "RELIGIOUS"],
-          },
-          previewImage: { type: "string", format: "uri" },
-          isActive: { type: "boolean" },
-        },
-      },
       CreateEventRequest: {
         type: "object",
-        required: ["templateId", "title", "eventDate", "slug"],
+        required: ["title", "eventDate", "slug"],
         properties: {
-          templateId: { type: "string", format: "uuid" },
           title: { type: "string" },
           brideName: { type: "string" },
           groomName: { type: "string" },
@@ -234,126 +201,6 @@ export const openApiDocument = {
         summary: "Clear studio session cookie",
         responses: {
           "200": { description: "Logged out" },
-        },
-      },
-    },
-    "/api/studio/templates": {
-      get: {
-        tags: ["Templates"],
-        summary: "List templates",
-        security: [{ StudioSessionCookie: [] }],
-        parameters: [
-          {
-            in: "query",
-            name: "includeInactive",
-            schema: { type: "boolean" },
-            required: false,
-          },
-        ],
-        responses: {
-          "200": {
-            description: "Template list",
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    templates: {
-                      type: "array",
-                      items: { $ref: "#/components/schemas/Template" },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          "401": { description: "Unauthorized" },
-        },
-      },
-      post: {
-        tags: ["Templates"],
-        summary: "Create template (ADMIN only)",
-        security: [{ StudioSessionCookie: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/CreateTemplateRequest" },
-            },
-          },
-        },
-        responses: {
-          "201": { description: "Created" },
-          "400": { description: "Invalid payload" },
-          "401": { description: "Unauthorized" },
-          "403": { description: "Forbidden" },
-        },
-      },
-    },
-    "/api/studio/templates/{templateId}": {
-      get: {
-        tags: ["Templates"],
-        summary: "Get template by id",
-        security: [{ StudioSessionCookie: [] }],
-        parameters: [
-          {
-            in: "path",
-            name: "templateId",
-            required: true,
-            schema: { type: "string", format: "uuid" },
-          },
-        ],
-        responses: {
-          "200": { description: "Template" },
-          "401": { description: "Unauthorized" },
-          "404": { description: "Not found" },
-        },
-      },
-      patch: {
-        tags: ["Templates"],
-        summary: "Update template (ADMIN only)",
-        security: [{ StudioSessionCookie: [] }],
-        parameters: [
-          {
-            in: "path",
-            name: "templateId",
-            required: true,
-            schema: { type: "string", format: "uuid" },
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/CreateTemplateRequest" },
-            },
-          },
-        },
-        responses: {
-          "200": { description: "Updated" },
-          "400": { description: "Invalid payload" },
-          "401": { description: "Unauthorized" },
-          "403": { description: "Forbidden" },
-          "404": { description: "Not found" },
-        },
-      },
-      delete: {
-        tags: ["Templates"],
-        summary: "Delete template (ADMIN only)",
-        security: [{ StudioSessionCookie: [] }],
-        parameters: [
-          {
-            in: "path",
-            name: "templateId",
-            required: true,
-            schema: { type: "string", format: "uuid" },
-          },
-        ],
-        responses: {
-          "200": { description: "Deleted" },
-          "401": { description: "Unauthorized" },
-          "403": { description: "Forbidden" },
-          "404": { description: "Not found" },
         },
       },
     },

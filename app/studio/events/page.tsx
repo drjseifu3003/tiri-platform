@@ -14,14 +14,12 @@ type EventListItem = {
   groomPhone: string | null;
   eventDate: string;
   location: string | null;
+  googleMapAddress: string;
   isPublished: boolean;
   _count: {
     guests: number;
     media: number;
   };
-  template: {
-    name: string;
-  } | null;
 };
 
 type GuestListItem = {
@@ -32,13 +30,6 @@ type GuestListItem = {
 
 type EventsResponse = { events: EventListItem[] };
 type GuestsResponse = { guests: GuestListItem[] };
-type TemplateListItem = {
-  id: string;
-  name: string;
-  category: "TRADITIONAL" | "MODERN" | "RELIGIOUS";
-  isActive: boolean;
-};
-type TemplatesResponse = { templates: TemplateListItem[] };
 
 type EventFilter =
   | "all"
@@ -100,13 +91,11 @@ export default function StudioEventsPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<EventFilter>("all");
-  const [templates, setTemplates] = useState<TemplateListItem[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    templateId: "",
     title: "",
     brideName: "",
     groomName: "",
@@ -114,6 +103,7 @@ export default function StudioEventsPage() {
     groomPhone: "",
     eventDate: "",
     location: "",
+    googleMapAddress: "",
     description: "",
     isPublished: false,
   });
@@ -123,19 +113,17 @@ export default function StudioEventsPage() {
     setError(null);
 
     try {
-      const [eventsRes, guestsRes, templatesRes] = await Promise.all([
+      const [eventsRes, guestsRes] = await Promise.all([
         fetch("/api/studio/events", { credentials: "include" }),
         fetch("/api/studio/guests?scope=studio", { credentials: "include" }),
-        fetch("/api/studio/templates", { credentials: "include" }),
       ]);
 
-      if (!eventsRes.ok || !guestsRes.ok || !templatesRes.ok) {
+      if (!eventsRes.ok || !guestsRes.ok) {
         throw new Error("Unable to load events");
       }
 
       const eventsJson = (await eventsRes.json()) as EventsResponse;
       const guestsJson = (await guestsRes.json()) as GuestsResponse;
-      const templatesJson = (await templatesRes.json()) as TemplatesResponse;
 
       const checkedInMap: Record<string, number> = {};
       for (const guest of guestsJson.guests ?? []) {
@@ -145,7 +133,6 @@ export default function StudioEventsPage() {
 
       setEvents(eventsJson.events ?? []);
       setCheckedInByEvent(checkedInMap);
-      setTemplates(templatesJson.templates ?? []);
     } catch {
       setError("Unable to load events");
     } finally {
@@ -172,11 +159,7 @@ export default function StudioEventsPage() {
     const title = formData.title.trim();
     const bridePhone = formData.bridePhone.trim();
     const groomPhone = formData.groomPhone.trim();
-
-    if (!formData.templateId) {
-      setCreateError("Please choose a template.");
-      return;
-    }
+    const googleMapAddress = formData.googleMapAddress.trim();
 
     if (title.length < 2) {
       setCreateError("Event title must be at least 2 characters.");
@@ -190,6 +173,11 @@ export default function StudioEventsPage() {
 
     if (!bridePhone || !groomPhone) {
       setCreateError("Bride and groom phone numbers are required.");
+      return;
+    }
+
+    if (!googleMapAddress) {
+      setCreateError("Google Map address is required.");
       return;
     }
 
@@ -207,7 +195,6 @@ export default function StudioEventsPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          templateId: formData.templateId,
           title,
           brideName: formData.brideName.trim() || undefined,
           groomName: formData.groomName.trim() || undefined,
@@ -215,6 +202,7 @@ export default function StudioEventsPage() {
           groomPhone,
           eventDate: new Date(formData.eventDate).toISOString(),
           location: formData.location.trim() || undefined,
+          googleMapAddress,
           description: formData.description.trim() || undefined,
           slug,
           isPublished: formData.isPublished,
@@ -227,7 +215,6 @@ export default function StudioEventsPage() {
       }
 
       setFormData({
-        templateId: "",
         title: "",
         brideName: "",
         groomName: "",
@@ -235,6 +222,7 @@ export default function StudioEventsPage() {
         groomPhone: "",
         eventDate: "",
         location: "",
+        googleMapAddress: "",
         description: "",
         isPublished: false,
       });
@@ -343,28 +331,11 @@ export default function StudioEventsPage() {
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
             <div className="mb-6">
               <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Create New Event</h3>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Add event details, assign a template, and publish when ready.</p>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Add event details and publish when ready.</p>
             </div>
 
           <form className="space-y-4" onSubmit={handleCreateEventSubmit}>
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Template *</span>
-                <select
-                  value={formData.templateId}
-                  onChange={(event) => setFormData((current) => ({ ...current, templateId: event.target.value }))}
-                  className="ui-select"
-                  required
-                >
-                  <option value="">Select template</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>
-                      {template.name} · {template.category}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Title *</span>
                 <input
@@ -436,6 +407,17 @@ export default function StudioEventsPage() {
                   onChange={(event) => setFormData((current) => ({ ...current, location: event.target.value }))}
                   placeholder="Venue and city"
                   className="ui-input"
+                />
+              </label>
+
+              <label className="block md:col-span-2">
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map Address *</span>
+                <input
+                  value={formData.googleMapAddress}
+                  onChange={(event) => setFormData((current) => ({ ...current, googleMapAddress: event.target.value }))}
+                  placeholder="https://maps.google.com/... or share address"
+                  className="ui-input"
+                  required
                 />
               </label>
             </div>
@@ -566,8 +548,7 @@ export default function StudioEventsPage() {
                       <td className="px-4 py-3">
                         <p className="font-medium text-zinc-800">{event.title}</p>
                         <p className="mt-1 text-xs text-zinc-500">
-                          {event.template?.name ?? "No template"}
-                          {event.location ? ` · ${event.location}` : ""}
+                          {event.location ?? "No location"}
                         </p>
                       </td>
                       <td className="px-4 py-3">
@@ -595,6 +576,9 @@ export default function StudioEventsPage() {
                       <td className="px-4 py-3 text-zinc-600">{event._count.media}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
+                          <Link href={`/studio/events/${event.id}`} className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
+                            Details
+                          </Link>
                           <Link href="/studio/guests" className="rounded-md border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs text-cyan-700">
                             Guests
                           </Link>

@@ -18,7 +18,6 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
     () => [
       { label: "Overview", href: "/studio/dashboard" },
       { label: "Events", href: "/studio/events" },
-      { label: "Templates", href: "/studio/templates" },
       { label: "Guests", href: "/studio/guests" },
       { label: "Media", href: "/studio/media" },
       { label: "Settings", href: "/studio/settings/account" },
@@ -31,7 +30,6 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       "/studio/dashboard": "Overview",
       "/studio/events": "Events",
       "/studio/guests": "Guests",
-      "/studio/templates": "Templates",
       "/studio/media": "Media",
       "/studio/settings/account": "Settings",
       "/studio/settings/notifications": "Settings",
@@ -63,8 +61,8 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
 
   if (status === "idle" || status === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-100 px-6">
-        <p className="text-sm text-zinc-600">Preparing your studio...</p>
+      <main className="flex min-h-screen items-center justify-center px-6" style={{ background: "var(--background)" }}>
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Preparing your studio...</p>
       </main>
     );
   }
@@ -81,7 +79,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   }
 
   function NavIcon({ label, active }: { label: string; active: boolean }) {
-    const iconClass = active ? "text-white" : "text-zinc-500";
+    const iconClass = active ? "text-white" : "text-[var(--text-secondary)]";
 
     if (label === "Overview") {
       return (
@@ -109,15 +107,6 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           <circle cx="9" cy="8" r="3" />
           <path d="M3 19a6 6 0 0 1 12 0" />
           <circle cx="17" cy="9" r="2" />
-        </svg>
-      );
-    }
-
-    if (label === "Templates") {
-      return (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
-          <path d="M4 6h16v12H4z" />
-          <path d="M4 10h16M9 6v12" />
         </svg>
       );
     }
@@ -150,33 +139,50 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <main className="h-screen w-full overflow-hidden bg-transparent">
+    <main
+      className="h-screen w-full overflow-hidden"
+      style={{
+        background:
+          "radial-gradient(circle at top right, rgba(122, 26, 83, 0.07), transparent 45%), radial-gradient(circle at bottom left, rgba(91, 168, 184, 0.06), transparent 45%), var(--background)",
+      }}
+    >
       <div className="grid h-full w-full lg:grid-cols-[240px_1fr]">
-        <aside className="sticky top-0 flex h-screen flex-col border-r px-3 py-4 backdrop-blur" style={{ borderColor: "var(--border-subtle)", background: "rgba(255, 255, 255, 0.9)" }}>
-          <div className="flex items-center gap-2 px-2 pb-3">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br text-white" style={{ background: "linear-gradient(to bottom right, var(--secondary), var(--primary))" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden>
-                <path d="M12 3v18M3 12h18" />
-              </svg>
+        <aside
+          className="sticky top-0 flex h-screen flex-col border-r px-3 py-4 backdrop-blur"
+          style={{
+            borderColor: "var(--border-subtle)",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, var(--surface-muted) 100%)",
+          }}
+        >
+          <div className="flex items-center gap-2 px-2 pb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold" style={{ background: "linear-gradient(to bottom right, var(--primary-light), var(--primary))", color: "var(--surface)" }}>
+              KE
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold" style={{ color: "var(--primary)" }}>{session?.studio?.name ?? "Studio"}</p>
+              <p className="truncate text-sm font-semibold tracking-tight" style={{ color: "var(--primary)" }}>{session?.studio?.name ?? "Kebkab Studio"}</p>
+              <p className="truncate text-[11px]" style={{ color: "var(--text-tertiary)" }}>Kebkab Control</p>
             </div>
           </div>
 
-          <nav className="mt-1 flex flex-col gap-1 px-1">
+          <nav className="mt-1 flex flex-col gap-1.5 px-1">
             {navigation.map((item) => {
               const active = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition ${active ? "font-semibold" : "hover:bg-[var(--surface-muted)]"}`}
+                  style={
                     active
-                      ? "text-white shadow-sm"
-                      : "transition hover:opacity-70"
-                  }`}
-                  style={active ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" } : { color: "var(--text-secondary)" }}
+                      ? {
+                          color: "var(--surface)",
+                          background: "var(--primary)",
+                        }
+                      : {
+                          color: "var(--text-secondary)",
+                          background: "transparent",
+                        }
+                  }
                 >
                   <NavIcon label={item.label} active={active} />
                   {item.label}
@@ -184,31 +190,20 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
               );
             })}
           </nav>
-
-          <div className="mt-auto border-t px-3 pt-4 text-xs" style={{ borderColor: "var(--border-subtle)", color: "var(--text-tertiary)" }}>Studio Operations</div>
         </aside>
 
         <section className="h-screen overflow-y-auto bg-transparent">
-          <header className="sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 backdrop-blur sm:px-6" style={{ borderColor: "var(--border-subtle)", background: "rgba(255, 255, 255, 0.9)" }}>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium text-white"
-                style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))" }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5" aria-hidden>
-                  <rect x="3" y="5" width="18" height="16" rx="2" />
-                  <path d="M16 3v4M8 3v4M3 10h18" />
-                </svg>
-                {currentTitle}
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center rounded-md px-3 py-1.5 text-xs font-medium"
-                style={{ background: "var(--secondary-lighter)", color: "var(--secondary)" }}
-              >
-                Studio Overview
-              </button>
+          <header
+            className="sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 backdrop-blur sm:px-6"
+            style={{
+              borderColor: "var(--border-subtle)",
+              background: "linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.9) 100%)",
+              boxShadow: "0 2px 12px rgba(42, 42, 42, 0.04)",
+            }}
+          >
+            <div>
+              <h1 className="text-sm font-semibold tracking-tight" style={{ color: "var(--primary)" }}>{currentTitle}</h1>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Kebkab Workspace</p>
             </div>
 
             <div className="flex items-center gap-2">
@@ -305,7 +300,9 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             </div>
           </header>
 
-          <div className="px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-5">{children}</div>
+          <div className="px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-5">
+            <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+          </div>
         </section>
       </div>
     </main>

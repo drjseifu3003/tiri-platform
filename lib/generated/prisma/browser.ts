@@ -28,11 +28,6 @@ export type Studio = Prisma.StudioModel
  */
 export type User = Prisma.UserModel
 /**
- * Model Template
- * 
- */
-export type Template = Prisma.TemplateModel
-/**
  * Model Event
  * 
  */
