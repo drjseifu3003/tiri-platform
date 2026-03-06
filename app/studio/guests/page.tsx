@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/session-context";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -295,10 +296,11 @@ export default function StudioGuestsPage() {
 
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-zinc-600">Phone</span>
-              <input
+              <PhoneInput
                 value={formData.phone}
-                onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))}
-                className="ui-input"
+                onChange={(value) => setFormData((current) => ({ ...current, phone: value ?? "" }))}
+                defaultCountry="ET"
+                className="w-full"
               />
             </label>
 

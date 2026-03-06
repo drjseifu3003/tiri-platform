@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/session-context";
+import { PhoneInput } from "@/components/ui/phone-input";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -369,22 +370,24 @@ export default function StudioEventsPage() {
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Phone *</span>
-                <input
+                <PhoneInput
                   value={formData.bridePhone}
-                  onChange={(event) => setFormData((current) => ({ ...current, bridePhone: event.target.value }))}
+                  onChange={(value) => setFormData((current) => ({ ...current, bridePhone: value ?? "" }))}
                   placeholder="+2519..."
-                  className="ui-input"
+                  defaultCountry="ET"
+                  className="w-full"
                   required
                 />
               </label>
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Phone *</span>
-                <input
+                <PhoneInput
                   value={formData.groomPhone}
-                  onChange={(event) => setFormData((current) => ({ ...current, groomPhone: event.target.value }))}
+                  onChange={(value) => setFormData((current) => ({ ...current, groomPhone: value ?? "" }))}
                   placeholder="+2519..."
-                  className="ui-input"
+                  defaultCountry="ET"
+                  className="w-full"
                   required
                 />
               </label>
