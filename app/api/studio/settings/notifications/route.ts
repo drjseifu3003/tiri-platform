@@ -1,6 +1,5 @@
 import { requireStudioSession } from "@/lib/api-auth";
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 
 const NOTIFICATION_COOKIE = "studio_notifications";
 
@@ -19,14 +18,6 @@ const defaultPreferences: NotificationPreferences = {
   mediaUploads: true,
   weeklySummary: false,
 };
-
-const notificationSchema = z.object({
-  rsvpUpdates: z.boolean(),
-  checkInAlerts: z.boolean(),
-  draftReminders: z.boolean(),
-  mediaUploads: z.boolean(),
-  weeklySummary: z.boolean(),
-});
 
 function readPreferences(rawValue: string | undefined) {
   if (!rawValue) return defaultPreferences;
@@ -58,22 +49,8 @@ export async function PATCH(request: NextRequest) {
   const session = requireStudioSession(request);
   if (session instanceof NextResponse) return session;
 
-  const body = await request.json().catch(() => null);
-  const parsed = notificationSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid notification payload" }, { status: 400 });
-  }
-
-  const response = NextResponse.json({ preferences: parsed.data });
-  response.cookies.set({
-    name: NOTIFICATION_COOKIE,
-    value: JSON.stringify(parsed.data),
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
-
-  return response;
+  return NextResponse.json(
+    { error: "Notification setting updates are temporarily disabled" },
+    { status: 501 }
+  );
 }

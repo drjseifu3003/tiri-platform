@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/ui/phone-input";
 import { useSession } from "@/lib/session-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -247,16 +248,14 @@ export default function StudioTeamSettingsPage() {
 
   return (
     <main className="ui-page">
-      <div className="ui-page-header">
-        <div>
-          <h2 className="ui-title">Team Settings</h2>
-          <p className="ui-subtitle">Manage studio team members and assign operational roles.</p>
-        </div>
-        <div className="flex gap-2 text-xs">
-          <Link href="/studio/settings/account" className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-zinc-700">Account</Link>
-          <Link href="/studio/settings/notifications" className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-zinc-700">Notifications</Link>
-          <Link href="/studio/settings/team" className="rounded-md bg-gradient-to-r from-cyan-400 to-violet-400 px-3 py-1.5 text-white">Team</Link>
-        </div>
+      <div>
+        <h2 className="ui-title">Settings</h2>
+        <p className="ui-subtitle">Manage your account, studio profile, and studio operations.</p>
+      </div>
+
+      <div className="mt-5 flex gap-2">
+        <Link href="/studio/settings/account" className="rounded-lg border px-3 py-2 text-sm font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>Account</Link>
+        <Link href="/studio/settings/team" className="rounded-lg px-3 py-2 text-sm font-medium" style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))", color: "white" }}>Team</Link>
       </div>
 
       {!isAdmin ? (
@@ -291,11 +290,12 @@ export default function StudioTeamSettingsPage() {
         </div>
 
         <form className="grid gap-3 md:grid-cols-3" onSubmit={handleCreateMember}>
-          <input
+          <PhoneInput
             value={formData.phone}
-            onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))}
+            onChange={(value) => setFormData((current) => ({ ...current, phone: value ?? "" }))}
             placeholder="Phone"
-            className="ui-input"
+            defaultCountry="ET"
+            className="w-full"
             required
             disabled={!isAdmin}
           />

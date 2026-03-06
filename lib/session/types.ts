@@ -10,6 +10,7 @@ export type SessionUser = {
 export type SessionStudio = {
   id: string;
   name: string;
+  logoUrl?: string | null;
 };
 
 export type SessionData = {

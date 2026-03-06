@@ -1,5 +1,6 @@
 "use client";
 
+import { PhoneInput } from "@/components/ui/phone-input";
 import { useSession } from "@/lib/session-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,10 +23,11 @@ type AccountSettingsResponse = {
 };
 
 export default function StudioAccountSettingsPage() {
-  const { status } = useSession();
+  const { status, refresh } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [role, setRole] = useState<"ADMIN" | "STAFF">("STAFF");
@@ -134,11 +136,43 @@ export default function StudioAccountSettingsPage() {
         currentPassword: "",
         newPassword: "",
       }));
+      await refresh();
       setSuccess("Account settings updated successfully.");
     } catch {
       setError("Unable to save account settings");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleLogoUpload(file: File) {
+    setUploadingLogo(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+
+      const response = await fetch("/api/studio/settings/account/logo", {
+        method: "POST",
+        credentials: "include",
+        body,
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setError(payload?.error ?? "Unable to upload logo");
+        return;
+      }
+
+      const payload = (await response.json()) as { url: string };
+      setFormData((current) => ({ ...current, studioLogoUrl: payload.url }));
+      setSuccess("Logo uploaded. Save settings to apply it.");
+    } catch {
+      setError("Unable to upload logo");
+    } finally {
+      setUploadingLogo(false);
     }
   }
 
@@ -151,7 +185,6 @@ export default function StudioAccountSettingsPage() {
 
       <div className="mt-5 flex gap-2">
         <Link href="/studio/settings/account" className="rounded-lg px-3 py-2 text-sm font-medium" style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))", color: "white" }}>Account</Link>
-        <Link href="/studio/settings/notifications" className="rounded-lg border px-3 py-2 text-sm font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>Notifications</Link>
         <Link href="/studio/settings/team" className="rounded-lg border px-3 py-2 text-sm font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>Team</Link>
       </div>
 
@@ -166,10 +199,11 @@ export default function StudioAccountSettingsPage() {
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Login Phone *</span>
-                <input
+                <PhoneInput
                   value={formData.phone}
-                  onChange={(event) => setFormData((current) => ({ ...current, phone: event.target.value }))}
-                  className="ui-input"
+                  onChange={(value) => setFormData((current) => ({ ...current, phone: value ?? "" }))}
+                  defaultCountry="ET"
+                  className="w-full"
                   required
                 />
               </label>
@@ -230,23 +264,37 @@ export default function StudioAccountSettingsPage() {
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Phone</span>
-                <input
+                <PhoneInput
                   value={formData.studioPhone}
-                  onChange={(event) => setFormData((current) => ({ ...current, studioPhone: event.target.value }))}
+                  onChange={(value) => setFormData((current) => ({ ...current, studioPhone: value ?? "" }))}
                   disabled={role !== "ADMIN"}
-                  className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
+                  defaultCountry="ET"
+                  className="w-full"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Logo URL</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Logo</span>
                 <input
-                  type="url"
-                  value={formData.studioLogoUrl}
-                  onChange={(event) => setFormData((current) => ({ ...current, studioLogoUrl: event.target.value }))}
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void handleLogoUpload(file);
+                    }
+                  }}
                   disabled={role !== "ADMIN"}
                   className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
                 />
+                {formData.studioLogoUrl ? (
+                  <p className="mt-1 truncate text-xs" style={{ color: "var(--text-tertiary)" }}>
+                    Uploaded URL: {formData.studioLogoUrl}
+                  </p>
+                ) : null}
+                {uploadingLogo ? (
+                  <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>Uploading logo...</p>
+                ) : null}
               </label>
 
               <label className="block md:col-span-2">

@@ -155,12 +155,19 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           }}
         >
           <div className="flex items-center gap-2 px-2 pb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold" style={{ background: "linear-gradient(to bottom right, var(--primary-light), var(--primary))", color: "var(--surface)" }}>
-              KE
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg text-xs font-semibold">
+              {session?.studio?.logoUrl ? (
+                <img
+                  src={session.studio.logoUrl}
+                  alt={`${session?.studio?.name ?? "Studio"} logo`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                (session?.studio?.name ?? "S").slice(0, 1).toUpperCase()
+              )}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight" style={{ color: "var(--primary)" }}>{session?.studio?.name ?? "Kebkab Studio"}</p>
-              <p className="truncate text-[11px]" style={{ color: "var(--text-tertiary)" }}>Kebkab Control</p>
+              <p className="truncate text-sm font-semibold tracking-tight" style={{ color: "var(--primary)" }}>{session?.studio?.name ?? "Studio"}</p>
             </div>
           </div>
 
@@ -203,7 +210,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           >
             <div>
               <h1 className="text-sm font-semibold tracking-tight" style={{ color: "var(--primary)" }}>{currentTitle}</h1>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Kebkab Workspace</p>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>{session?.studio?.name ?? "Studio"}</p>
             </div>
 
             <div className="flex items-center gap-2">

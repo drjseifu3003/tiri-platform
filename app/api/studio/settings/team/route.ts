@@ -12,6 +12,10 @@ const createTeamMemberSchema = z.object({
   teamRole: z.enum(teamRoleValues),
 });
 
+function normalizePhone(value: string) {
+  return value.trim();
+}
+
 type TeamMember = {
   id: string;
   phone: string;
@@ -48,8 +52,10 @@ export async function POST(request: NextRequest) {
     return badRequestResponse("Invalid team member payload");
   }
 
+  const normalizedPhone = normalizePhone(parsed.data.phone);
+
   const existing = await prisma.user.findUnique({
-    where: { phone: parsed.data.phone },
+    where: { phone: normalizedPhone },
     select: { id: true },
   });
 
@@ -62,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   await prisma.$executeRaw`
     INSERT INTO "User" ("id", "phone", "password", "role", "studioId", "teamRole", "createdAt", "updatedAt")
-    VALUES (${userId}, ${parsed.data.phone}, ${passwordHash}, 'STAFF', ${session.studioId}, ${parsed.data.teamRole}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    VALUES (${userId}, ${normalizedPhone}, ${passwordHash}, 'STAFF', ${session.studioId}, ${parsed.data.teamRole}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
   `;
 
   const members = await prisma.$queryRaw<TeamMember[]>`
