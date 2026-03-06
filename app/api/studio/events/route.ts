@@ -19,24 +19,106 @@ const createEventSchema = z.object({
   isPublished: z.boolean().optional(),
 });
 
+const listEventsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().trim().optional(),
+  filter: z.enum(["all", "published", "draft", "completed"]).default("all"),
+});
+
 export async function GET(request: NextRequest) {
   const session = requireStudioSession(request);
   if (session instanceof NextResponse) return session;
 
-  const events = await prisma.event.findMany({
-    where: { studioId: session.studioId },
-    include: {
-      _count: {
-        select: {
-          guests: true,
-          media: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
+  const parsedQuery = listEventsQuerySchema.safeParse({
+    page: request.nextUrl.searchParams.get("page") ?? "1",
+    pageSize: request.nextUrl.searchParams.get("pageSize") ?? "10",
+    search: request.nextUrl.searchParams.get("search") ?? undefined,
+    filter: request.nextUrl.searchParams.get("filter") ?? "all",
   });
 
-  return NextResponse.json({ events });
+  if (!parsedQuery.success) {
+    return badRequestResponse("Invalid events query params");
+  }
+
+  const { page, pageSize, search, filter } = parsedQuery.data;
+  const skip = (page - 1) * pageSize;
+  const now = new Date();
+
+  const where = {
+    studioId: session.studioId,
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { brideName: { contains: search, mode: "insensitive" as const } },
+            { groomName: { contains: search, mode: "insensitive" as const } },
+            { bridePhone: { contains: search, mode: "insensitive" as const } },
+            { groomPhone: { contains: search, mode: "insensitive" as const } },
+            { location: { contains: search, mode: "insensitive" as const } },
+            { googleMapAddress: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+    ...(filter === "completed"
+      ? { eventDate: { lt: now } }
+      : filter === "published"
+        ? { eventDate: { gte: now }, isPublished: true }
+        : filter === "draft"
+          ? { eventDate: { gte: now }, isPublished: false }
+          : {}),
+  };
+
+  const [total, events] = await prisma.$transaction([
+    prisma.event.count({ where }),
+    prisma.event.findMany({
+      where,
+      include: {
+        _count: {
+          select: {
+            guests: true,
+            media: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: pageSize,
+    }),
+  ]);
+
+  const eventIds = events.map((event) => event.id);
+  const checkedInGroups = eventIds.length
+    ? await prisma.guest.groupBy({
+        by: ["eventId"],
+        where: {
+          eventId: { in: eventIds },
+          checkedIn: true,
+        },
+        _count: {
+          _all: true,
+        },
+      })
+    : [];
+
+  const checkedInByEvent = Object.fromEntries(
+    checkedInGroups.map((item) => [item.eventId, item._count._all])
+  );
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  return NextResponse.json({
+    events,
+    checkedInByEvent,
+    pagination: {
+      page,
+      pageSize,
+      total,
+      totalPages,
+      hasPrev: page > 1,
+      hasNext: page < totalPages,
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {

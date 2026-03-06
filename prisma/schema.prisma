@@ -33,6 +33,12 @@ enum GuestCategory {
   GROOM_GUEST
 }
 
+enum InvitationChannel {
+  WHATSAPP
+  TELEGRAM
+  SMS
+}
+
 //////////////////////////////////////////////////////
 // STUDIO (Multi-Tenant Root)
 //////////////////////////////////////////////////////
@@ -102,6 +108,7 @@ model Event {
 
   guests          Guest[]
   media           Media[]
+  guestInvitations GuestInvitation[]
 
   @@index([studioId])
 }
@@ -123,7 +130,25 @@ model Guest {
   createdAt       DateTime  @default(now())
 
   event           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  invitations     GuestInvitation[]
 
+  @@index([eventId])
+}
+
+model GuestInvitation {
+  id        BigInt            @id @default(autoincrement())
+  guestId   String
+  eventId   String
+  channel   InvitationChannel
+  status    String            @default("SENT")
+  sentAt    DateTime          @default(now())
+  message   String?
+  createdAt DateTime          @default(now())
+
+  guest     Guest             @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  event     Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([guestId, sentAt])
   @@index([eventId])
 }
 

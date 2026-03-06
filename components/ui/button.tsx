@@ -11,7 +11,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 const variantStyles: Record<ButtonVariant, string> = {
   default: "ui-button-primary",
   outline:
-    "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50",
+    "border bg-[var(--surface)] text-[var(--text-primary)] hover:bg-[var(--surface-muted)]",
 };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -21,7 +21,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex h-10 items-center justify-center rounded-md px-4 text-sm font-medium transition",
+          "inline-flex h-10 cursor-pointer items-center justify-center rounded-md px-4 text-sm font-medium transition",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           variantStyles[variant],
           className

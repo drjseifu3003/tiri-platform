@@ -7,6 +7,23 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+type InvitationChannel = "WHATSAPP" | "TELEGRAM" | "SMS";
+
+type LatestInvitationRow = {
+  channel: InvitationChannel;
+  sentAt: Date;
+};
+
+function isInvitationTableMissingError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    ((error as { code?: string }).code === "42P01" ||
+      (error as { code?: string }).code === "42703")
+  );
+}
+
 const updateEventSchema = z.object({
   title: z.string().min(2).optional(),
   brideName: z.string().nullable().optional(),
@@ -59,7 +76,58 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   if (!event) return notFoundResponse("Event not found");
 
-  return NextResponse.json({ event });
+  let latestInviteByGuest: Record<
+    string,
+    { invitationChannel: InvitationChannel; invitationSentAt: string }
+  > = {};
+
+  try {
+    const latestRows = await Promise.all(
+      event.guests.map((guest) =>
+        prisma.$queryRaw<LatestInvitationRow[]>`
+          SELECT channel AS "channel", "sentAt" AS "sentAt"
+          FROM "GuestInvitation"
+          WHERE "guestId" = ${guest.id}
+          ORDER BY "sentAt" DESC
+          LIMIT 1
+        `
+      )
+    );
+
+    latestInviteByGuest = Object.fromEntries(
+      latestRows
+        .map((rows, index) => {
+          const latest = rows[0];
+          if (!latest) return null;
+
+          return [
+            event.guests[index].id,
+            {
+              invitationChannel: latest.channel,
+              invitationSentAt: latest.sentAt.toISOString(),
+            },
+          ];
+        })
+        .filter((row): row is [string, { invitationChannel: InvitationChannel; invitationSentAt: string }] => !!row)
+    );
+  } catch (error) {
+    if (!isInvitationTableMissingError(error)) throw error;
+  }
+
+  const enrichedEvent = {
+    ...event,
+    guests: event.guests.map((guest) => {
+      const latestInvite = latestInviteByGuest[guest.id];
+      return {
+        ...guest,
+        invitationStatus: latestInvite ? "SENT" : "NOT_SENT",
+        invitationChannel: latestInvite?.invitationChannel ?? null,
+        invitationSentAt: latestInvite?.invitationSentAt ?? null,
+      };
+    }),
+  };
+
+  return NextResponse.json({ event: enrichedEvent });
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {

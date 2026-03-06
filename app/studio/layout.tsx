@@ -308,7 +308,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           </header>
 
           <div className="px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-5">
-            <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+            <div className="w-full">{children}</div>
           </div>
         </section>
       </div>

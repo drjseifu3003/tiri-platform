@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "@/lib/session-context";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -13,6 +14,9 @@ type GuestItem = {
   category: "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST";
   checkedIn: boolean;
   checkedInAt: string | null;
+  invitationStatus: "SENT" | "NOT_SENT";
+  invitationChannel: "WHATSAPP" | "TELEGRAM" | "SMS" | null;
+  invitationSentAt: string | null;
 };
 
 type MediaItem = {
@@ -45,6 +49,24 @@ type EventTab = "overview" | "guests" | "media" | "gifts";
 
 type GuestCategory = "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST";
 type MediaType = "IMAGE" | "VIDEO";
+type InviteChannel = "WHATSAPP" | "TELEGRAM" | "SMS";
+type SocialPlatform = "INSTAGRAM" | "FACEBOOK" | "TIKTOK";
+
+type InviteResponse = {
+  results: Array<{
+    guestId: string;
+    guestName: string;
+    channel: InviteChannel;
+    shareUrl: string | null;
+    status: "sent" | "skipped";
+    reason: string | null;
+  }>;
+  summary: {
+    requested: number;
+    sent: number;
+    skipped: number;
+  };
+};
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -69,6 +91,84 @@ function buildInvitationCode(prefix: string, index = 0) {
   return `${prefix}-${stamp}-${random}${seq}`.slice(0, 40);
 }
 
+function labelForInviteChannel(channel: InviteChannel | null) {
+  if (channel === "WHATSAPP") return "WhatsApp";
+  if (channel === "TELEGRAM") return "Telegram";
+  if (channel === "SMS") return "SMS";
+  return "-";
+}
+
+function channelPillClasses(channel: InviteChannel | null) {
+  if (channel === "WHATSAPP") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (channel === "TELEGRAM") return "border-sky-200 bg-sky-50 text-sky-700";
+  if (channel === "SMS") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-zinc-200 bg-zinc-100 text-zinc-600";
+}
+
+function toDatetimeLocalValue(value: string) {
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60 * 1000);
+  return local.toISOString().slice(0, 16);
+}
+
+function labelForSocialPlatform(platform: SocialPlatform) {
+  if (platform === "INSTAGRAM") return "Instagram";
+  if (platform === "FACEBOOK") return "Facebook";
+  return "TikTok";
+}
+
+function socialPlatformIcon(platform: SocialPlatform, className = "h-4 w-4") {
+  if (platform === "INSTAGRAM") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.1" className={`${className} shrink-0`} aria-hidden>
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17.5" cy="6.5" r="1" fill="var(--primary)" stroke="none" />
+      </svg>
+    );
+  }
+
+  if (platform === "FACEBOOK") {
+    return (
+      <svg viewBox="0 0 24 24" fill="var(--primary)" className={`${className} shrink-0`} aria-hidden>
+        <path d="M13.2 21v-8h2.7l.4-3.1h-3.1V8c0-.9.3-1.5 1.6-1.5h1.7V3.7c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H7.1V13h2.7v8h3.4z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" fill="var(--primary)" className={`${className} shrink-0`} aria-hidden>
+      <path d="M16.9 6.6c-1.2-.8-2-2.1-2.2-3.6h-2.9v12.4c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.2 0 .4 0 .6.1V10.6c-.2 0-.4-.1-.6-.1-2.7 0-4.9 2.2-4.9 4.9s2.2 4.9 4.9 4.9 4.9-2.2 4.9-4.9V9.1c1 .8 2.3 1.2 3.6 1.2V7.4c-.5 0-1-.2-1.4-.8z" />
+    </svg>
+  );
+}
+
+function socialMediaRequirement(platform: SocialPlatform, kind: "IMAGE" | "VIDEO" | null) {
+  if (platform === "INSTAGRAM") {
+    return kind === "VIDEO"
+      ? "Instagram video: 9:16 recommended, max 60s for feed, keep under 100 MB for quick upload."
+      : "Instagram image: 1080x1350 (4:5) recommended, JPG/PNG, keep under 10 MB.";
+  }
+
+  if (platform === "FACEBOOK") {
+    return kind === "VIDEO"
+      ? "Facebook video: 1080x1080 or 1080x1350 recommended, MP4/MOV, keep under 200 MB for reliable upload."
+      : "Facebook image: 1200x630 minimum for strong preview, JPG/PNG, keep under 10 MB.";
+  }
+
+  return kind === "VIDEO"
+    ? "TikTok video: 9:16 vertical, MP4/MOV/WEBM, keep under 287 MB and ideally 10-60 seconds."
+    : "TikTok photo mode: 1080x1920 recommended, JPG/PNG, keep under 10 MB.";
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
 export default function EventDetailPage() {
   const { status } = useSession();
   const router = useRouter();
@@ -90,6 +190,37 @@ export default function EventDetailPage() {
   const [guestFormError, setGuestFormError] = useState<string | null>(null);
   const [guestFormSuccess, setGuestFormSuccess] = useState<string | null>(null);
   const [guestSubmitting, setGuestSubmitting] = useState(false);
+  const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
+  const [bulkInviteChannel, setBulkInviteChannel] = useState<InviteChannel>("WHATSAPP");
+  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    brideName: "",
+    groomName: "",
+    bridePhone: "",
+    groomPhone: "",
+    eventDate: "",
+    location: "",
+    googleMapAddress: "",
+    description: "",
+    isPublished: false,
+  });
+
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [sharePlatform, setSharePlatform] = useState<SocialPlatform>("INSTAGRAM");
+  const [shareText, setShareText] = useState("");
+  const [shareUploadFile, setShareUploadFile] = useState<File | null>(null);
+  const [shareUploadKind, setShareUploadKind] = useState<"IMAGE" | "VIDEO" | null>(null);
+  const [shareUploadPreview, setShareUploadPreview] = useState<string | null>(null);
+  const [shareUploadError, setShareUploadError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const [mediaForm, setMediaForm] = useState({
     type: "IMAGE" as MediaType,
@@ -162,6 +293,229 @@ export default function EventDetailPage() {
 
     return Object.entries(groups).sort(([left], [right]) => left.localeCompare(right));
   }, [event?.media]);
+
+  const selectedCount = selectedGuestIds.length;
+  const allGuestsSelected = !!event && event.guests.length > 0 && selectedCount === event.guests.length;
+
+  useEffect(() => {
+    return () => {
+      if (shareUploadPreview) {
+        URL.revokeObjectURL(shareUploadPreview);
+      }
+    };
+  }, [shareUploadPreview]);
+
+  function toggleGuestSelection(guestId: string, checked: boolean) {
+    setSelectedGuestIds((current) => {
+      if (checked) {
+        if (current.includes(guestId)) return current;
+        return [...current, guestId];
+      }
+
+      return current.filter((id) => id !== guestId);
+    });
+  }
+
+  function toggleSelectAllGuests(checked: boolean) {
+    if (!event) return;
+    setSelectedGuestIds(checked ? event.guests.map((guest) => guest.id) : []);
+  }
+
+  async function sendInvites(guestIds: string[], channel: InviteChannel, openFirst = false) {
+    if (!event || guestIds.length === 0) return;
+
+    setInviteSubmitting(true);
+    setInviteError(null);
+    setInviteSuccess(null);
+
+    try {
+      const response = await fetch(`/api/studio/events/${event.id}/invites`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guestIds, channel }),
+      });
+
+      if (!response.ok) {
+        setInviteError("Unable to send invitations. Please try again.");
+        return;
+      }
+
+      const payload = (await response.json()) as InviteResponse;
+      const sentItems = payload.results.filter((item) => item.status === "sent" && item.shareUrl);
+
+      if (openFirst && sentItems[0]?.shareUrl) {
+        window.open(sentItems[0].shareUrl, "_blank", "noopener,noreferrer");
+      }
+
+      setInviteSuccess(
+        `Invites processed: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped via ${labelForInviteChannel(
+          channel
+        )}.`
+      );
+
+      await loadEvent(false);
+    } catch {
+      setInviteError("Unable to send invitations right now.");
+    } finally {
+      setInviteSubmitting(false);
+    }
+  }
+
+  function openEditModal() {
+    if (!event) return;
+
+    setEditError(null);
+    setEditSuccess(null);
+    setEditForm({
+      title: event.title,
+      brideName: event.brideName ?? "",
+      groomName: event.groomName ?? "",
+      bridePhone: event.bridePhone ?? "",
+      groomPhone: event.groomPhone ?? "",
+      eventDate: toDatetimeLocalValue(event.eventDate),
+      location: event.location ?? "",
+      googleMapAddress: event.googleMapAddress,
+      description: event.description ?? "",
+      isPublished: event.isPublished,
+    });
+    setIsEditOpen(true);
+  }
+
+  async function handleEventEditSubmit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    if (!event) return;
+
+    setEditError(null);
+    setEditSuccess(null);
+
+    if (editForm.title.trim().length < 2) {
+      setEditError("Event title must be at least 2 characters.");
+      return;
+    }
+
+    if (!editForm.eventDate) {
+      setEditError("Event date is required.");
+      return;
+    }
+
+    if (!editForm.googleMapAddress.trim()) {
+      setEditError("Google Map address is required.");
+      return;
+    }
+
+    setEditSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/studio/events/${event.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editForm.title.trim(),
+          brideName: editForm.brideName.trim() || null,
+          groomName: editForm.groomName.trim() || null,
+          bridePhone: editForm.bridePhone.trim() || undefined,
+          groomPhone: editForm.groomPhone.trim() || undefined,
+          eventDate: new Date(editForm.eventDate).toISOString(),
+          location: editForm.location.trim() || null,
+          googleMapAddress: editForm.googleMapAddress.trim(),
+          description: editForm.description.trim() || null,
+          isPublished: editForm.isPublished,
+        }),
+      });
+
+      if (!response.ok) {
+        setEditError("Unable to update event details.");
+        return;
+      }
+
+      setEditSuccess("Event updated successfully.");
+      setIsEditOpen(false);
+      await loadEvent(false);
+    } catch {
+      setEditError("Unable to update event details right now.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  function openShareModal(platform: SocialPlatform) {
+    if (!event) return;
+
+    setSharePlatform(platform);
+    setShareText(
+      event.description?.trim() ||
+        `${event.title}${event.location ? ` - ${event.location}` : ""} (${formatDateTime(event.eventDate)})`
+    );
+    setShareUploadFile(null);
+    setShareUploadKind(null);
+    setShareUploadError(null);
+    if (shareUploadPreview) {
+      URL.revokeObjectURL(shareUploadPreview);
+    }
+    setShareUploadPreview(null);
+    setShareCopied(false);
+    setIsShareOpen(true);
+  }
+
+  function handleShareUploadChange(changeEvent: React.ChangeEvent<HTMLInputElement>) {
+    const file = changeEvent.target.files?.[0];
+    if (!file) return;
+
+    setShareUploadError(null);
+
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+
+    if (!isImage && !isVideo) {
+      setShareUploadError("Only image or video files are allowed.");
+      return;
+    }
+
+    const maxBytes = isImage ? 10 * 1024 * 1024 : 200 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      setShareUploadError(`File too large. ${isImage ? "Image" : "Video"} must be under ${isImage ? "10 MB" : "200 MB"}.`);
+      return;
+    }
+
+    if (shareUploadPreview) {
+      URL.revokeObjectURL(shareUploadPreview);
+    }
+
+    setShareUploadFile(file);
+    setShareUploadKind(isImage ? "IMAGE" : "VIDEO");
+    setShareUploadPreview(URL.createObjectURL(file));
+  }
+
+  function handleOpenSocialShare() {
+    const url =
+      sharePlatform === "INSTAGRAM"
+        ? "https://www.instagram.com/"
+        : sharePlatform === "FACEBOOK"
+          ? "https://www.facebook.com/"
+          : "https://www.tiktok.com/upload";
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function copySharePayload() {
+    const payload = [
+      shareText.trim(),
+      shareUploadFile ? `Media file: ${shareUploadFile.name}` : "",
+      shareUploadKind ? `Media type: ${shareUploadKind}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    if (!payload) return;
+
+    try {
+      await navigator.clipboard.writeText(payload);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 1800);
+    } catch {
+      setShareCopied(false);
+    }
+  }
 
   async function handleSingleGuestSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -393,7 +747,17 @@ export default function EventDetailPage() {
           {tab === "overview" ? (
             <section className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="ui-panel">
-                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Wedding Overview</h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Wedding Overview</h3>
+                  <button
+                    type="button"
+                    onClick={openEditModal}
+                    className="rounded-md border px-3 py-1.5 text-xs font-medium"
+                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
+                  >
+                    Edit Event
+                  </button>
+                </div>
                 <div className="mt-3 space-y-2 text-sm" style={{ color: "var(--text-secondary)" }}>
                   <p><span className="font-medium" style={{ color: "var(--text-primary)" }}>Couple:</span> {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Pending names"}</p>
                   <p><span className="font-medium" style={{ color: "var(--text-primary)" }}>Bride Phone:</span> {event.bridePhone || "—"}</p>
@@ -418,6 +782,18 @@ export default function EventDetailPage() {
                 {event.description ? (
                   <p className="mt-3 text-sm" style={{ color: "var(--text-secondary)" }}>{event.description}</p>
                 ) : null}
+
+                <div className="mt-4 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Share Event</p>
+                  <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                    Share custom post content with uploaded image/video (no links).
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button type="button" onClick={() => openShareModal("INSTAGRAM")} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}>{socialPlatformIcon("INSTAGRAM")}Instagram</button>
+                    <button type="button" onClick={() => openShareModal("FACEBOOK")} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}>{socialPlatformIcon("FACEBOOK")}Facebook</button>
+                    <button type="button" onClick={() => openShareModal("TIKTOK")} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}>{socialPlatformIcon("TIKTOK")}TikTok</button>
+                  </div>
+                </div>
               </div>
             </section>
           ) : null}
@@ -480,30 +856,126 @@ export default function EventDetailPage() {
 
               {guestFormError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{guestFormError}</p> : null}
               {guestFormSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{guestFormSuccess}</p> : null}
+              {inviteError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{inviteError}</p> : null}
+              {inviteSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{inviteSuccess}</p> : null}
+
+              <div className="ui-panel flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
+                    <input
+                      type="checkbox"
+                      checked={allGuestsSelected}
+                      onChange={(changeEvent) => toggleSelectAllGuests(changeEvent.target.checked)}
+                      className="h-4 w-4 rounded border"
+                      style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
+                    />
+                    Select all guests
+                  </label>
+                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{selectedCount} selected</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <select
+                    value={bulkInviteChannel}
+                    onChange={(changeEvent) => setBulkInviteChannel(changeEvent.target.value as InviteChannel)}
+                    className="ui-select h-9 w-40"
+                  >
+                    <option value="WHATSAPP">WhatsApp</option>
+                    <option value="TELEGRAM">Telegram</option>
+                    <option value="SMS">SMS</option>
+                  </select>
+                  <button
+                    type="button"
+                    disabled={selectedCount === 0 || inviteSubmitting}
+                    onClick={() => {
+                      void sendInvites(selectedGuestIds, bulkInviteChannel);
+                    }}
+                    className="ui-button-primary h-9"
+                  >
+                    {inviteSubmitting ? "Sending..." : `Send to selected (${selectedCount})`}
+                  </button>
+                </div>
+              </div>
 
               <div className="ui-table">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
                     <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
                       <tr>
+                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Select</th>
                         <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Name</th>
                         <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Category</th>
                         <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Phone</th>
                         <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Email</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Status</th>
+                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Invite Status</th>
+                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Sent Via</th>
+                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Sent At</th>
+                        <th className="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Invite</th>
                       </tr>
                     </thead>
                     <tbody>
                       {event.guests.map((guest) => (
                         <tr key={guest.id} className="border-t" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedGuestIds.includes(guest.id)}
+                              onChange={(changeEvent) => toggleGuestSelection(guest.id, changeEvent.target.checked)}
+                              className="h-4 w-4 rounded border"
+                              style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
+                            />
+                          </td>
                           <td className="px-4 py-3 text-zinc-700">{guest.name}</td>
                           <td className="px-4 py-3 text-zinc-600">{labelForCategory(guest.category)}</td>
                           <td className="px-4 py-3 text-zinc-600">{guest.phone || "—"}</td>
                           <td className="px-4 py-3 text-zinc-600">{guest.email || "—"}</td>
                           <td className="px-4 py-3">
-                            <span className={`rounded-full border px-2 py-1 text-xs font-medium ${guest.checkedIn ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-zinc-100 text-zinc-700"}`}>
-                              {guest.checkedIn ? "Checked in" : "Pending"}
+                            <span className={`rounded-full border px-2 py-1 text-xs font-medium ${guest.invitationStatus === "SENT" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-zinc-100 text-zinc-700"}`}>
+                              {guest.invitationStatus === "SENT" ? "Invite sent" : "Not sent"}
                             </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-full border px-2 py-1 text-xs font-medium ${channelPillClasses(guest.invitationChannel)}`}>
+                              {labelForInviteChannel(guest.invitationChannel)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-zinc-600">{guest.invitationSentAt ? formatDateTime(guest.invitationSentAt) : "-"}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                disabled={inviteSubmitting}
+                                onClick={() => {
+                                  void sendInvites([guest.id], "WHATSAPP", true);
+                                }}
+                                className="rounded-md border px-2 py-1 text-xs font-medium"
+                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
+                              >
+                                WhatsApp
+                              </button>
+                              <button
+                                type="button"
+                                disabled={inviteSubmitting}
+                                onClick={() => {
+                                  void sendInvites([guest.id], "TELEGRAM", true);
+                                }}
+                                className="rounded-md border px-2 py-1 text-xs font-medium"
+                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
+                              >
+                                Telegram
+                              </button>
+                              <button
+                                type="button"
+                                disabled={inviteSubmitting}
+                                onClick={() => {
+                                  void sendInvites([guest.id], "SMS", true);
+                                }}
+                                className="rounded-md border px-2 py-1 text-xs font-medium"
+                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
+                              >
+                                SMS
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -595,6 +1067,178 @@ export default function EventDetailPage() {
                 No gifts recorded for this wedding yet.
               </p>
             </section>
+          ) : null}
+
+          {isEditOpen ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Edit Event Detail</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditOpen(false)}
+                    className="h-8 w-8 cursor-pointer border-[var(--border-subtle)] bg-[var(--surface)] px-0 text-[var(--primary)] hover:bg-[var(--surface-muted)]"
+                    aria-label="Close edit dialog"
+                  >
+                    <span aria-hidden className="text-lg leading-none" style={{ color: "var(--primary)" }}>
+                      ×
+                    </span>
+                  </Button>
+                </div>
+
+                <form className="space-y-3" onSubmit={handleEventEditSubmit}>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event title</span>
+                      <input value={editForm.title} onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))} className="ui-input" required />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event date</span>
+                      <input type="datetime-local" value={editForm.eventDate} onChange={(event) => setEditForm((current) => ({ ...current, eventDate: event.target.value }))} className="ui-input" required />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride name</span>
+                      <input value={editForm.brideName} onChange={(event) => setEditForm((current) => ({ ...current, brideName: event.target.value }))} className="ui-input" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom name</span>
+                      <input value={editForm.groomName} onChange={(event) => setEditForm((current) => ({ ...current, groomName: event.target.value }))} className="ui-input" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride phone</span>
+                      <input value={editForm.bridePhone} onChange={(event) => setEditForm((current) => ({ ...current, bridePhone: event.target.value }))} className="ui-input" />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom phone</span>
+                      <input value={editForm.groomPhone} onChange={(event) => setEditForm((current) => ({ ...current, groomPhone: event.target.value }))} className="ui-input" />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Location</span>
+                      <input value={editForm.location} onChange={(event) => setEditForm((current) => ({ ...current, location: event.target.value }))} className="ui-input" />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map address</span>
+                      <input value={editForm.googleMapAddress} onChange={(event) => setEditForm((current) => ({ ...current, googleMapAddress: event.target.value }))} className="ui-input" required />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Description</span>
+                      <textarea value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} className="ui-textarea" />
+                    </label>
+                  </div>
+
+                  <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
+                    <input type="checkbox" checked={editForm.isPublished} onChange={(event) => setEditForm((current) => ({ ...current, isPublished: event.target.checked }))} className="h-4 w-4 rounded border" style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }} />
+                    Published
+                  </label>
+
+                  {editError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{editError}</p> : null}
+                  {editSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{editSuccess}</p> : null}
+
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => setIsEditOpen(false)} className="ui-button-secondary">Cancel</button>
+                    <button type="submit" disabled={editSubmitting} className="ui-button-primary">{editSubmitting ? "Saving..." : "Save changes"}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          ) : null}
+
+          {isShareOpen ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+              <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border bg-white shadow-xl" style={{ borderColor: "var(--border-subtle)" }}>
+                <div className="border-b px-5 py-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "var(--primary-lighter)", color: "var(--primary)" }}>
+                        {socialPlatformIcon(sharePlatform, "h-4 w-4")}
+                      </span>
+                      <div>
+                        <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Share to {labelForSocialPlatform(sharePlatform)}</h3>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Create a polished post package: caption plus uploaded image or video.</p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsShareOpen(false)}
+                      className="h-8 w-8 cursor-pointer border-[var(--border-subtle)] bg-[var(--surface)] px-0 text-[var(--primary)] hover:bg-[var(--surface-muted)]"
+                      aria-label="Close share dialog"
+                    >
+                      <span aria-hidden className="text-lg leading-none" style={{ color: "var(--primary)" }}>
+                        ×
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4 p-5">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {(["INSTAGRAM", "FACEBOOK", "TIKTOK"] as SocialPlatform[]).map((platform) => {
+                      const active = sharePlatform === platform;
+                      return (
+                        <button
+                          key={platform}
+                          type="button"
+                          onClick={() => setSharePlatform(platform)}
+                          className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition"
+                          style={
+                            active
+                              ? { borderColor: "var(--primary)", color: "var(--primary)", background: "var(--primary-lighter)" }
+                              : { borderColor: "var(--border-subtle)", color: "var(--text-secondary)", background: "var(--surface)" }
+                          }
+                        >
+                          {socialPlatformIcon(platform, "h-4 w-4")}
+                          <span>{labelForSocialPlatform(platform)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Recommended Spec</p>
+                    <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{socialMediaRequirement(sharePlatform, shareUploadKind)}</p>
+                  </div>
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Post caption</span>
+                    <textarea value={shareText} onChange={(event) => setShareText(event.target.value)} className="ui-textarea" placeholder="Write your post caption" />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Upload media</span>
+                    <input type="file" accept="image/*,video/*" onChange={handleShareUploadChange} className="ui-input" />
+                  </label>
+
+                  {shareUploadError ? (
+                    <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>
+                      {shareUploadError}
+                    </p>
+                  ) : null}
+
+                  {shareUploadFile ? (
+                    <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{shareUploadFile.name}</p>
+                        <span className="rounded-full border px-2 py-0.5 text-xs" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>{formatBytes(shareUploadFile.size)}</span>
+                      </div>
+                      {shareUploadPreview && shareUploadKind === "IMAGE" ? (
+                        <img src={shareUploadPreview} alt="Share preview" className="mt-2 max-h-52 w-full rounded-md border object-contain" style={{ borderColor: "var(--border-subtle)" }} />
+                      ) : null}
+                      {shareUploadPreview && shareUploadKind === "VIDEO" ? (
+                        <video src={shareUploadPreview} controls className="mt-2 max-h-52 w-full rounded-md border" style={{ borderColor: "var(--border-subtle)" }} />
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+                    <button type="button" onClick={() => setIsShareOpen(false)} className="ui-button-secondary">Cancel</button>
+                    <button type="button" onClick={copySharePayload} className="ui-button-secondary">{shareCopied ? "Copied" : "Copy content"}</button>
+                    <button type="button" onClick={handleOpenSocialShare} className="ui-button-primary inline-flex items-center gap-1.5">{socialPlatformIcon(sharePlatform, "h-4 w-4")}Open {labelForSocialPlatform(sharePlatform)}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : null}
         </>
       )}
