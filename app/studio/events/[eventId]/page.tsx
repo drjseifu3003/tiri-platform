@@ -8,6 +8,7 @@ import { EventStatusBadge } from "@/components/event/EventStatusBadge";
 import { EventShareSection } from "@/components/event/EventShareSection";
 import { AddGuestDialog } from "@/components/event/AddGuestDialog";
 import { MediaUploadDialog } from "@/components/event/MediaUploadDialog";
+import { AvatarUploadDialog } from "@/components/event/AvatarUploadDialog";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -44,6 +45,7 @@ type EventDetail = {
   location: string | null;
   googleMapAddress: string;
   description: string | null;
+  coverImage?: string | null;
   status?: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
   isPublished: boolean;
   guests: GuestItem[];
@@ -274,6 +276,9 @@ export default function EventDetailPage() {
 
   const [isMediaUploadDialogOpen, setIsMediaUploadDialogOpen] = useState(false);
   const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
+
+  const [isAvatarUploadDialogOpen, setIsAvatarUploadDialogOpen] = useState(false);
+  const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
 
   const [mediaForm, setMediaForm] = useState({
     type: "IMAGE" as MediaType,
@@ -698,6 +703,36 @@ export default function EventDetailPage() {
     }
   }
 
+  async function handleAvatarUpload(file: File) {
+    if (!event) return;
+
+    setAvatarUploadError(null);
+    setStatusUpdating(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`/api/studio/events/${event.id}/avatar`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        setAvatarUploadError("Unable to upload avatar.");
+        return;
+      }
+
+      setIsAvatarUploadDialogOpen(false);
+      await loadEvent(false);
+    } catch {
+      setAvatarUploadError("Unable to upload avatar right now.");
+    } finally {
+      setStatusUpdating(false);
+    }
+  }
+
   async function handleSingleGuestSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     if (!event) return;
@@ -868,9 +903,11 @@ export default function EventDetailPage() {
           eventTitle={event.title}
           status={resolveEventStatus(event) as "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED"}
           eventDate={event.eventDate}
+          avatarUrl={event.coverImage || undefined}
           onEdit={openEditModal}
           onStatusChange={handleQuickStatusChange}
           onShare={() => setIsShareOpen(true)}
+          onAvatarClick={() => setIsAvatarUploadDialogOpen(true)}
         />
       ) : null}
 
@@ -1323,6 +1360,16 @@ export default function EventDetailPage() {
             onSubmit={handleMediaUploadDialog}
             isLoading={mediaSubmitting}
             error={mediaUploadError || undefined}
+          />
+
+          <AvatarUploadDialog
+            isOpen={isAvatarUploadDialogOpen}
+            onClose={() => setIsAvatarUploadDialogOpen(false)}
+            onSubmit={handleAvatarUpload}
+            isLoading={statusUpdating}
+            currentAvatarUrl={event?.coverImage || undefined}
+            eventTitle={event?.title || "Event"}
+            error={avatarUploadError || undefined}
           />
         </>
       )}
