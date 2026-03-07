@@ -796,18 +796,18 @@ export default function EventDetailPage() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Event date</p>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Event Date</p>
               <p className="mt-1 text-sm font-semibold" style={{ color: "var(--primary)" }}>{formatDateTime(event.eventDate)}</p>
             </div>
             <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Guests checked in</p>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Total Guests</p>
               <p className="mt-1 text-sm font-semibold" style={{ color: "var(--primary)" }}>
-                {checkedInCount} / {event.guests.length}
+                {event.guests.length} guest{event.guests.length !== 1 ? "s" : ""}
               </p>
             </div>
             <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Media files</p>
-              <p className="mt-1 text-sm font-semibold" style={{ color: "var(--primary)" }}>{event.media.length}</p>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Media Files</p>
+              <p className="mt-1 text-sm font-semibold" style={{ color: "var(--primary)" }}>{event.media.length} file{event.media.length !== 1 ? "s" : ""}</p>
             </div>
           </div>
 
@@ -826,16 +826,14 @@ export default function EventDetailPage() {
                 <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Wedding Overview</h3>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Status</p>
-                    <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${eventStatusPillClasses(resolveEventStatus(event))}`}>
-                      {eventStatusLabel(resolveEventStatus(event))}
-                    </span>
-                  </div>
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
                     <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Couple</p>
                     <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                       {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Pending names"}
                     </p>
+                  </div>
+                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Total Guests</p>
+                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.guests.length} guest{event.guests.length !== 1 ? "s" : ""}</p>
                   </div>
                   <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
                     <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Bride Phone</p>
@@ -853,34 +851,26 @@ export default function EventDetailPage() {
               </div>
 
               <div className="ui-panel">
-                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Google Map Address</h3>
+                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Event Location</h3>
                 <p className="mt-3 break-all text-sm" style={{ color: "var(--text-secondary)" }}>{event.googleMapAddress || "Not provided"}</p>
                 {event.googleMapAddress ? (
                   <a
                     href={event.googleMapAddress}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-3 inline-flex rounded-md px-3 py-1.5 text-xs font-medium text-white"
+                    className="mt-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
                     style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))" }}
                   >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                     Open in Google Maps
                   </a>
                 ) : null}
                 {event.description ? (
-                  <p className="mt-3 text-sm" style={{ color: "var(--text-secondary)" }}>{event.description}</p>
+                  <p className="mt-4 text-sm" style={{ color: "var(--text-secondary)" }}>{event.description}</p>
                 ) : null}
-
-                <div className="mt-4 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Share Event</p>
-                  <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Share custom post content with uploaded image/video (no links).
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button type="button" onClick={() => openShareModal("INSTAGRAM")} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}>{socialPlatformIcon("INSTAGRAM")}Instagram</button>
-                    <button type="button" onClick={() => openShareModal("FACEBOOK")} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}>{socialPlatformIcon("FACEBOOK")}Facebook</button>
-                    <button type="button" onClick={() => openShareModal("TIKTOK")} className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}>{socialPlatformIcon("TIKTOK")}TikTok</button>
-                  </div>
-                </div>
               </div>
             </section>
           ) : null}

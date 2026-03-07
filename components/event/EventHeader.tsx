@@ -48,24 +48,19 @@ export function EventHeader({
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div>
-            <EventStatusDropdown
-              currentStatus={status}
-              eventTitle={eventTitle}
-              eventDate={eventDate}
-              onStatusChange={onStatusChange}
-            />
-          </div>
-
-          <div className="flex gap-2 ml-auto">
-            <Button variant="outline" onClick={onShare}>
-              Share Event
-            </Button>
-            <Button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700">
-              Edit Event
-            </Button>
-          </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
+          <EventStatusDropdown
+            currentStatus={status}
+            eventTitle={eventTitle}
+            eventDate={eventDate}
+            onStatusChange={onStatusChange}
+          />
+          <Button variant="outline" onClick={onShare}>
+            Share Event
+          </Button>
+          <Button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700">
+            Edit Event
+          </Button>
         </div>
       </div>
     </div>

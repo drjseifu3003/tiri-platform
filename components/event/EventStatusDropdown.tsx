@@ -68,12 +68,14 @@ export function EventStatusDropdown({
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 rounded-lg border px-3 py-2.5 transition hover:bg-slate-50 hover:border-slate-400"
+          className="flex items-center gap-3 rounded-lg border px-4 py-2.5 transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm active:bg-slate-100"
           style={{ borderColor: "var(--border-subtle)" }}
+          aria-expanded={isOpen}
+          aria-label="Change event status"
         >
           <EventStatusBadge status={currentStatus} eventDate={eventDate} />
           <svg
-            className={`h-4 w-4 transition text-slate-500 ${isOpen ? "rotate-180" : ""}`}
+            className={`h-4 w-4 transition-transform duration-200 text-slate-500 ${isOpen ? "rotate-180" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -85,22 +87,25 @@ export function EventStatusDropdown({
         {/* Dropdown Menu */}
         {isOpen && (
           <div
-            className="absolute right-0 top-full z-40 mt-2 w-56 rounded-lg border bg-white shadow-xl"
+            className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border bg-white shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
             style={{ borderColor: "var(--border-subtle)" }}
           >
-            <div className="py-1.5">
+            <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Change Status</p>
+            </div>
+            <div className="py-2">
               {availableTransitions.length > 0 ? (
                 availableTransitions.map((status) => (
                   <button
                     key={status}
                     onClick={() => handleStatusSelect(status)}
-                    className="flex w-full items-center gap-3 rounded-none px-4 py-2.5 text-left text-sm transition hover:bg-slate-50 border-l-2 border-l-transparent hover:border-l-blue-500"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-all duration-150 hover:bg-blue-50 border-l-3 border-l-transparent hover:border-l-blue-500 active:bg-blue-100"
                   >
                     <span className="font-medium text-slate-900">{getStatusLabel(status)}</span>
                   </button>
                 ))
               ) : (
-                <div className="px-4 py-3 text-center text-sm text-slate-500">No status changes available</div>
+                <div className="px-4 py-4 text-center text-sm text-slate-500">No status changes available</div>
               )}
             </div>
           </div>
