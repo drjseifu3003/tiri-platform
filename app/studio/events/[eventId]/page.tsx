@@ -2,6 +2,10 @@
 
 import { useSession } from "@/lib/session-context";
 import { Button } from "@/components/ui/button";
+import { EventHeader } from "@/components/event/EventHeader";
+import { EventTabs } from "@/components/event/EventTabs";
+import { EventStatusBadge } from "@/components/event/EventStatusBadge";
+import { EventShareSection } from "@/components/event/EventShareSection";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -252,7 +256,6 @@ export default function EventDetailPage() {
     location: "",
     googleMapAddress: "",
     description: "",
-    status: "DRAFT" as "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED",
   });
 
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -434,7 +437,6 @@ export default function EventDetailPage() {
       location: event.location ?? "",
       googleMapAddress: event.googleMapAddress,
       description: event.description ?? "",
-      status: resolveEventStatus(event),
     });
     setIsEditOpen(true);
   }
@@ -484,7 +486,6 @@ export default function EventDetailPage() {
           location: editForm.location.trim() || null,
           googleMapAddress: editForm.googleMapAddress.trim() || undefined,
           description: editForm.description.trim() || null,
-          status: editForm.status,
         }),
       });
 
@@ -503,7 +504,7 @@ export default function EventDetailPage() {
     }
   }
 
-  async function handleQuickStatusChange(nextStatus: "SCHEDULED" | "LIVE" | "COMPLETED") {
+  async function handleQuickStatusChange(nextStatus: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED") {
     if (!event) return;
 
     setStatusActionError(null);
@@ -771,53 +772,17 @@ export default function EventDetailPage() {
 
   return (
     <main className="ui-page">
-      <div className="ui-page-header rounded-2xl border p-4 sm:p-5" style={{ borderColor: "var(--border-subtle)", background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%)" }}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <Link href="/studio/events" className="text-xs font-medium" style={{ color: "var(--secondary)" }}>
-              {"<- Back to Events"}
-            </Link>
-            <h2 className="ui-title mt-1">{event?.title ?? "Wedding Details"}</h2>
-            <p className="ui-subtitle">A modern overview for schedule, guests, media, and sharing.</p>
-          </div>
-
-          <button
-            type="button"
-            onClick={openEditModal}
-            disabled={!event || loading}
-            className="ui-button-primary h-10"
-          >
-            Edit Event
-          </button>
-        </div>
-
-        {!loading && event ? (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${eventStatusPillClasses(resolveEventStatus(event))}`}>
-              {eventStatusLabel(resolveEventStatus(event))}
-            </span>
-            <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>Quick status:</span>
-            {[
-              { value: "SCHEDULED", label: "Scheduled" },
-              { value: "LIVE", label: "Live" },
-              { value: "COMPLETED", label: "Complete" },
-            ].map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => {
-                  void handleQuickStatusChange(item.value as "SCHEDULED" | "LIVE" | "COMPLETED");
-                }}
-                disabled={statusUpdating || resolveEventStatus(event) === item.value}
-                className="rounded-lg border px-2.5 py-1.5 text-xs font-medium"
-                style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-primary)" }}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      {!loading && event ? (
+        <EventHeader
+          title={event.title}
+          eventTitle={event.title}
+          status={resolveEventStatus(event) as "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED"}
+          eventDate={event.eventDate}
+          onEdit={openEditModal}
+          onStatusChange={handleQuickStatusChange}
+          onShare={() => setIsShareOpen(true)}
+        />
+      ) : null}
 
       {loading ? (
         <p className="mt-5 text-sm text-zinc-600">Loading wedding details...</p>
@@ -846,32 +811,13 @@ export default function EventDetailPage() {
             </div>
           </div>
 
-          <div className="mt-5 inline-flex flex-wrap gap-2 rounded-xl border p-1.5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-            {[
-              ["overview", "Overview"],
-              ["guests", "Guests"],
-              ["media", "Media"],
-              ["gifts", "Gifts"],
-            ].map(([value, label]) => {
-              const active = tab === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setTab(value as EventTab)}
-                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                    active ? "text-white shadow-sm" : "text-zinc-600 hover:opacity-80"
-                  }`}
-                  style={
-                    active
-                      ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" }
-                      : { background: "transparent" }
-                  }
-                >
-                  {label}
-                </button>
-              );
-            })}
+          <div className="mt-5">
+            <EventTabs
+              activeTab={tab}
+              onTabChange={setTab}
+              guestCount={event.guests.length}
+              mediaCount={event.media.length}
+            />
           </div>
 
           {tab === "overview" ? (
@@ -1291,17 +1237,6 @@ export default function EventDetailPage() {
                       </p>
                     </div>
 
-                    <label className="block md:col-span-2">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Status</span>
-                      <select value={editForm.status} onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value as typeof current.status }))} className="ui-input">
-                        <option value="DRAFT">Draft</option>
-                        <option value="SCHEDULED">Scheduled</option>
-                        <option value="LIVE">Live</option>
-                        <option value="COMPLETED">Completed</option>
-                        <option value="CANCELLED">Cancelled</option>
-                        <option value="ARCHIVED">Archived</option>
-                      </select>
-                    </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Location</span>
                       <input value={editForm.location} onChange={(event) => setEditForm((current) => ({ ...current, location: event.target.value }))} className="ui-input" />
@@ -1328,102 +1263,14 @@ export default function EventDetailPage() {
             </div>
           ) : null}
 
-          {isShareOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-              <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border bg-white shadow-xl" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="border-b px-5 py-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "var(--primary-lighter)", color: "var(--primary)" }}>
-                        {socialPlatformIcon(sharePlatform, "h-4 w-4")}
-                      </span>
-                      <div>
-                        <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Share to {labelForSocialPlatform(sharePlatform)}</h3>
-                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Create a polished post package: caption plus uploaded image or video.</p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsShareOpen(false)}
-                      className="h-8 w-8 cursor-pointer border-[var(--border-subtle)] bg-[var(--surface)] px-0 text-[var(--primary)] hover:bg-[var(--surface-muted)]"
-                      aria-label="Close share dialog"
-                    >
-                      <span aria-hidden className="text-lg leading-none" style={{ color: "var(--primary)" }}>
-                        ×
-                      </span>
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-4 p-5">
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    {(["INSTAGRAM", "FACEBOOK", "TIKTOK"] as SocialPlatform[]).map((platform) => {
-                      const active = sharePlatform === platform;
-                      return (
-                        <button
-                          key={platform}
-                          type="button"
-                          onClick={() => setSharePlatform(platform)}
-                          className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition"
-                          style={
-                            active
-                              ? { borderColor: "var(--primary)", color: "var(--primary)", background: "var(--primary-lighter)" }
-                              : { borderColor: "var(--border-subtle)", color: "var(--text-secondary)", background: "var(--surface)" }
-                          }
-                        >
-                          {socialPlatformIcon(platform, "h-4 w-4")}
-                          <span>{labelForSocialPlatform(platform)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Recommended Spec</p>
-                    <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{socialMediaRequirement(sharePlatform, shareUploadKind)}</p>
-                  </div>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Post caption</span>
-                    <textarea value={shareText} onChange={(event) => setShareText(event.target.value)} className="ui-textarea" placeholder="Write your post caption" />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Upload media</span>
-                    <input type="file" accept="image/*,video/*" onChange={handleShareUploadChange} className="ui-input" />
-                  </label>
-
-                  {shareUploadError ? (
-                    <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>
-                      {shareUploadError}
-                    </p>
-                  ) : null}
-
-                  {shareUploadFile ? (
-                    <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{shareUploadFile.name}</p>
-                        <span className="rounded-full border px-2 py-0.5 text-xs" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>{formatBytes(shareUploadFile.size)}</span>
-                      </div>
-                      {shareUploadPreview && shareUploadKind === "IMAGE" ? (
-                        <img src={shareUploadPreview} alt="Share preview" className="mt-2 max-h-52 w-full rounded-md border object-contain" style={{ borderColor: "var(--border-subtle)" }} />
-                      ) : null}
-                      {shareUploadPreview && shareUploadKind === "VIDEO" ? (
-                        <video src={shareUploadPreview} controls className="mt-2 max-h-52 w-full rounded-md border" style={{ borderColor: "var(--border-subtle)" }} />
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  <div className="flex flex-wrap justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
-                    <button type="button" onClick={() => setIsShareOpen(false)} className="ui-button-secondary">Cancel</button>
-                    <button type="button" onClick={copySharePayload} className="ui-button-secondary">{shareCopied ? "Copied" : "Copy content"}</button>
-                    <button type="button" onClick={handleOpenSocialShare} className="ui-button-primary inline-flex items-center gap-1.5">{socialPlatformIcon(sharePlatform, "h-4 w-4")}Open {labelForSocialPlatform(sharePlatform)}</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <EventShareSection
+            isOpen={isShareOpen}
+            onClose={() => setIsShareOpen(false)}
+            eventTitle={event.title}
+            eventDate={event.eventDate}
+            eventLocation={event.location || undefined}
+            initialText={shareText}
+          />
         </>
       )}
     </main>
