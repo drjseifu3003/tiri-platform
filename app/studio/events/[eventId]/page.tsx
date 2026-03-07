@@ -1030,7 +1030,7 @@ export default function EventDetailPage() {
                     </div>
                   )}
                 </div>
-
+              </div>
               <div className="ui-table">
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-left text-sm">
