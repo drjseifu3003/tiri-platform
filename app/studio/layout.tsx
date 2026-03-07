@@ -173,7 +173,11 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
 
           <nav className="mt-1 flex flex-col gap-1.5 px-1">
             {navigation.map((item) => {
-              const active = pathname === item.href;
+              let active = pathname === item.href;
+              // Special case for Events: highlight if viewing events or event details
+              if (item.label === "Events") {
+                active = pathname.startsWith("/studio/events");
+              }
               return (
                 <Link
                   key={item.href}
