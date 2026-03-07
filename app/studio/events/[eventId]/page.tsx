@@ -216,6 +216,17 @@ function formatBytes(bytes: number) {
   return `${(kb / 1024).toFixed(1)} MB`;
 }
 
+function mediaFileName(url: string) {
+  try {
+    const parsed = new URL(url);
+    const fileName = parsed.pathname.split("/").filter(Boolean).pop();
+    return fileName || "media-file";
+  } catch {
+    const fileName = url.split("/").filter(Boolean).pop();
+    return fileName || "media-file";
+  }
+}
+
 export default function EventDetailPage() {
   const { status } = useSession();
   const router = useRouter();
@@ -238,10 +249,12 @@ export default function EventDetailPage() {
   const [guestFormSuccess, setGuestFormSuccess] = useState<string | null>(null);
   const [guestSubmitting, setGuestSubmitting] = useState(false);
   const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
-  const [bulkInviteChannel, setBulkInviteChannel] = useState<InviteChannel>("WHATSAPP");
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [isInviteChannelDialogOpen, setIsInviteChannelDialogOpen] = useState(false);
+  const [pendingInviteGuestIds, setPendingInviteGuestIds] = useState<string[]>([]);
+  const [pendingInviteOpenFirst, setPendingInviteOpenFirst] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
@@ -285,9 +298,13 @@ export default function EventDetailPage() {
     url: "",
     groupLabel: "",
   });
+  
   const [mediaFormError, setMediaFormError] = useState<string | null>(null);
   const [mediaFormSuccess, setMediaFormSuccess] = useState<string | null>(null);
   const [mediaSubmitting, setMediaSubmitting] = useState(false);
+  const [selectedMediaFolder, setSelectedMediaFolder] = useState<string | null>(null);
+  const [mediaViewMode, setMediaViewMode] = useState<"grid" | "list">("list");
+  const [previewMediaItem, setPreviewMediaItem] = useState<(MediaItem & { name: string; folder: string }) | null>(null);
 
   const loadEvent = useCallback(async (showSpinner = true) => {
     if (!params?.eventId) return;
@@ -341,16 +358,71 @@ export default function EventDetailPage() {
     return event?.guests.filter((guest) => guest.checkedIn).length ?? 0;
   }, [event]);
 
-  const mediaByGroup = useMemo(() => {
+  const mediaFolders = useMemo(() => {
     const groups: Record<string, MediaItem[]> = {};
 
     for (const item of event?.media ?? []) {
-      const key = item.groupLabel?.trim() || "Ungrouped";
-      groups[key] = [...(groups[key] ?? []), item];
+      const folder = item.groupLabel?.trim();
+      if (!folder) continue;
+      groups[folder] = [...(groups[folder] ?? []), item];
     }
 
-    return Object.entries(groups).sort(([left], [right]) => left.localeCompare(right));
+    return Object.entries(groups)
+      .map(([name, items]) => ({
+        name,
+        fileCount: items.length,
+        lastModified: items
+          .map((item) => item.createdAt)
+          .sort((left, right) => right.localeCompare(left))[0],
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name));
   }, [event?.media]);
+
+  const mediaUngroupedFiles = useMemo(() => {
+    return (event?.media ?? [])
+      .filter((item) => !item.groupLabel?.trim())
+      .map((item) => ({
+        ...item,
+        name: mediaFileName(item.url),
+        folder: "My Drive",
+      }))
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }, [event?.media]);
+
+  const mediaFilesInSelectedFolder = useMemo(() => {
+    if (!selectedMediaFolder) return [];
+
+    return (event?.media ?? [])
+      .filter((item) => item.groupLabel?.trim() === selectedMediaFolder)
+      .map((item) => ({ ...item, name: mediaFileName(item.url), folder: selectedMediaFolder }))
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+  }, [event?.media, selectedMediaFolder]);
+
+  const mediaBrowserItems = useMemo(() => {
+    const folderItems = selectedMediaFolder
+      ? []
+      : mediaFolders.map((folder) => ({
+        kind: "folder" as const,
+        id: `folder:${folder.name}`,
+        name: folder.name,
+        fileCount: folder.fileCount,
+        lastModified: folder.lastModified,
+      }));
+
+    const fileItems = (selectedMediaFolder ? mediaFilesInSelectedFolder : mediaUngroupedFiles).map((file) => ({
+      kind: "file" as const,
+      id: file.id,
+      file,
+    }));
+
+    return [...folderItems, ...fileItems];
+  }, [mediaFilesInSelectedFolder, mediaFolders, mediaUngroupedFiles, selectedMediaFolder]);
+
+  useEffect(() => {
+    if (!selectedMediaFolder) return;
+    if (mediaFolders.some((folder) => folder.name === selectedMediaFolder)) return;
+    setSelectedMediaFolder(null);
+  }, [mediaFolders, selectedMediaFolder]);
 
   const selectedCount = selectedGuestIds.length;
   const allGuestsSelected = !!event && event.guests.length > 0 && selectedCount === event.guests.length;
@@ -430,6 +502,24 @@ export default function EventDetailPage() {
     } finally {
       setInviteSubmitting(false);
     }
+  }
+
+  function openInviteChannelDialog(guestIds: string[], openFirst = false) {
+    if (guestIds.length === 0) return;
+    setPendingInviteGuestIds(guestIds);
+    setPendingInviteOpenFirst(openFirst);
+    setIsInviteChannelDialogOpen(true);
+  }
+
+  async function confirmInviteChannel(channel: InviteChannel) {
+    const guestIds = pendingInviteGuestIds;
+    const openFirst = pendingInviteOpenFirst;
+
+    setIsInviteChannelDialogOpen(false);
+    setPendingInviteGuestIds([]);
+    setPendingInviteOpenFirst(false);
+
+    await sendInvites(guestIds, channel, openFirst);
   }
 
   function openEditModal() {
@@ -621,8 +711,8 @@ export default function EventDetailPage() {
     }
   }
 
-  async function handleAddGuestDialog(guestData: { name: string; phone: string; email: string; category: GuestCategory }) {
-    if (!event) return;
+  async function handleAddGuestDialog(guestData: { name: string; phone: string; email: string; category: GuestCategory }): Promise<boolean> {
+    if (!event) return false;
 
     setAddGuestError(null);
 
@@ -632,7 +722,7 @@ export default function EventDetailPage() {
 
     if (name.length < 2) {
       setAddGuestError("Guest name must be at least 2 characters.");
-      return;
+      return false;
     }
 
     setGuestSubmitting(true);
@@ -653,23 +743,50 @@ export default function EventDetailPage() {
       });
 
       if (!response.ok) {
-        setAddGuestError("Unable to add guest.");
-        return;
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setAddGuestError(payload?.error || "Unable to add guest.");
+        return false;
+      }
+
+      const payload = (await response.json().catch(() => null)) as { guest?: GuestItem } | null;
+      const createdGuest = payload?.guest;
+
+      if (createdGuest) {
+        setEvent((current) => {
+          if (!current) return current;
+
+          return {
+            ...current,
+            guests: [
+              {
+                ...createdGuest,
+                invitationStatus: "NOT_SENT",
+                invitationChannel: null,
+                invitationSentAt: null,
+              },
+              ...current.guests,
+            ],
+          };
+        });
       }
 
       setIsAddGuestDialogOpen(false);
-      await loadEvent(false);
+      if (!createdGuest) {
+        await loadEvent(false);
+      }
       setGuestFormSuccess("Guest added successfully.");
       setTimeout(() => setGuestFormSuccess(null), 3000);
+      return true;
     } catch {
       setAddGuestError("Unable to add guest right now.");
+      return false;
     } finally {
       setGuestSubmitting(false);
     }
   }
 
-  async function handleMediaUploadDialog(data: { type: MediaType; groupLabel: string; file: File }) {
-    if (!event) return;
+  async function handleMediaUploadDialog(data: { type: MediaType; groupLabel: string; file: File }): Promise<boolean> {
+    if (!event) return false;
 
     setMediaUploadError(null);
     setMediaSubmitting(true);
@@ -689,15 +806,17 @@ export default function EventDetailPage() {
 
       if (!response.ok) {
         setMediaUploadError("Unable to upload media.");
-        return;
+        return false;
       }
 
       setIsMediaUploadDialogOpen(false);
       await loadEvent(false);
       setMediaFormSuccess("Media uploaded successfully.");
       setTimeout(() => setMediaFormSuccess(null), 3000);
+      return true;
     } catch {
       setMediaUploadError("Unable to upload media right now.");
+      return false;
     } finally {
       setMediaSubmitting(false);
     }
@@ -1042,30 +1161,17 @@ export default function EventDetailPage() {
                     <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{selectedCount} selected</span>
                   </div>
 
-                  {selectedCount > 0 && (
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={bulkInviteChannel}
-                        onChange={(changeEvent) => setBulkInviteChannel(changeEvent.target.value as InviteChannel)}
-                        className="ui-select h-9 text-sm"
-                      >
-                        <option value="WHATSAPP">WhatsApp</option>
-                        <option value="TELEGRAM">Telegram</option>
-                        <option value="SMS">SMS</option>
-                      </select>
-                      <button
-                        type="button"
-                        disabled={selectedCount === 0 || inviteSubmitting}
-                        onClick={() => {
-                          void sendInvites(selectedGuestIds, bulkInviteChannel);
-                        }}
-                        className="px-3 py-1.5 rounded text-sm font-medium transition"
-                        style={{ background: "var(--primary)", color: "white" }}
-                      >
-                        {inviteSubmitting ? "Sending..." : `Send (${selectedCount})`}
-                      </button>
-                    </div>
-                  )}
+                  {selectedCount > 0 ? (
+                    <button
+                      type="button"
+                      disabled={selectedCount === 0 || inviteSubmitting}
+                      onClick={() => openInviteChannelDialog(selectedGuestIds)}
+                      className="px-3 py-1.5 rounded text-sm font-medium transition"
+                      style={{ background: "var(--primary)", color: "white" }}
+                    >
+                      {inviteSubmitting ? "Sending..." : `Send Invite (${selectedCount})`}
+                    </button>
+                  ) : null}
                 </div>
               </div>
               <div className="ui-table">
@@ -1112,39 +1218,15 @@ export default function EventDetailPage() {
                           </td>
                           <td className="px-4 py-3 text-zinc-600">{guest.invitationSentAt ? formatDateTime(guest.invitationSentAt) : "-"}</td>
                           <td className="px-4 py-3">
-                            <div className="flex justify-end gap-1">
+                            <div className="flex justify-end">
                               <button
                                 type="button"
                                 disabled={inviteSubmitting}
-                                onClick={() => {
-                                  void sendInvites([guest.id], "WHATSAPP", true);
-                                }}
-                                className="rounded-md border px-2 py-1 text-xs font-medium"
+                                onClick={() => openInviteChannelDialog([guest.id], true)}
+                                className="rounded-md border px-2.5 py-1 text-xs font-medium"
                                 style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
                               >
-                                WhatsApp
-                              </button>
-                              <button
-                                type="button"
-                                disabled={inviteSubmitting}
-                                onClick={() => {
-                                  void sendInvites([guest.id], "TELEGRAM", true);
-                                }}
-                                className="rounded-md border px-2 py-1 text-xs font-medium"
-                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
-                              >
-                                Telegram
-                              </button>
-                              <button
-                                type="button"
-                                disabled={inviteSubmitting}
-                                onClick={() => {
-                                  void sendInvites([guest.id], "SMS", true);
-                                }}
-                                className="rounded-md border px-2 py-1 text-xs font-medium"
-                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
-                              >
-                                SMS
+                                Invite
                               </button>
                             </div>
                           </td>
@@ -1180,43 +1262,197 @@ export default function EventDetailPage() {
               {mediaFormError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{mediaFormError}</p> : null}
               {mediaFormSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{mediaFormSuccess}</p> : null}
 
-              {mediaByGroup.length === 0 ? (
+              {mediaBrowserItems.length === 0 ? (
                 <p className="rounded-lg border px-4 py-5 text-sm text-zinc-600" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                  No media uploaded yet.
+                  No folders or files uploaded yet.
                 </p>
               ) : (
-                mediaByGroup.map(([group, items]) => (
-                  <div key={group} className="ui-table">
-                    <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                      <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>{group}</p>
-                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{items.length} item(s)</p>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Path:</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMediaFolder(null)}
+                        className="rounded px-2 py-1 text-xs"
+                        style={{ background: selectedMediaFolder ? "var(--surface)" : "var(--primary)", color: selectedMediaFolder ? "var(--text-primary)" : "white" }}
+                      >
+                        My Drive
+                      </button>
+                      {selectedMediaFolder ? <span className="text-xs" style={{ color: "var(--text-secondary)" }}>/ {selectedMediaFolder}</span> : null}
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-left text-sm">
-                        <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                          <tr>
-                            <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Type</th>
-                            <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Uploaded</th>
-                            <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">File</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {items.map((item) => (
-                            <tr key={item.id} className="border-t" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                              <td className="px-4 py-3 text-zinc-700">{item.type}</td>
-                              <td className="px-4 py-3 text-zinc-600">{formatDateTime(item.createdAt)}</td>
-                              <td className="px-4 py-3 text-zinc-600 break-all">
-                                <a href={item.url} target="_blank" rel="noreferrer" className="underline" style={{ color: "var(--secondary)" }}>
-                                  Open media
-                                </a>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+
+                    <div className="flex items-center gap-2">
+                      {selectedMediaFolder ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMediaFolder(null)}
+                          className="rounded-md border px-2.5 py-1 text-xs font-medium"
+                          style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
+                        >
+                          Back to folders
+                        </button>
+                      ) : null}
+                      <div className="inline-flex rounded-md border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                        <button
+                          type="button"
+                          onClick={() => setMediaViewMode("list")}
+                          className="px-2.5 py-1 text-xs font-medium"
+                          style={{ color: mediaViewMode === "list" ? "white" : "var(--text-primary)", background: mediaViewMode === "list" ? "var(--primary)" : "transparent" }}
+                        >
+                          List
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMediaViewMode("grid")}
+                          className="px-2.5 py-1 text-xs font-medium"
+                          style={{ color: mediaViewMode === "grid" ? "white" : "var(--text-primary)", background: mediaViewMode === "grid" ? "var(--primary)" : "transparent" }}
+                        >
+                          Grid
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))
+
+                  {mediaViewMode === "list" ? (
+                    <div className="ui-table overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-left text-sm">
+                          <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
+                            <tr>
+                              <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Name</th>
+                              <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Type</th>
+                              <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Modified</th>
+                              <th className="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {mediaBrowserItems.map((item) => (
+                              <tr key={item.id} className="border-t" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                                <td className="px-4 py-3">
+                                  {item.kind === "folder" ? (
+                                    <button type="button" onClick={() => setSelectedMediaFolder(item.name)} className="flex items-center gap-2 text-left text-zinc-700 hover:underline">
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" style={{ color: "var(--primary)" }} aria-hidden>
+                                        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                                      </svg>
+                                      <span>{item.name}</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewMediaItem(item.file)}
+                                      className="flex items-center gap-2 text-left text-zinc-700 hover:underline"
+                                    >
+                                      {item.file.type === "VIDEO" ? (
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" style={{ color: "var(--text-secondary)" }} aria-hidden>
+                                          <rect x="3" y="5" width="14" height="14" rx="2" />
+                                          <path d="m17 10 4-2v8l-4-2z" />
+                                        </svg>
+                                      ) : (
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" style={{ color: "var(--text-secondary)" }} aria-hidden>
+                                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                                          <circle cx="9" cy="10" r="1.5" />
+                                          <path d="m7 17 4-4 3 3 3-4 3 5" />
+                                        </svg>
+                                      )}
+                                      <span className="break-all">{item.file.name}</span>
+                                    </button>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-zinc-600">{item.kind === "folder" ? `Folder (${item.fileCount})` : item.file.type === "IMAGE" ? "Photo" : "Video"}</td>
+                                <td className="px-4 py-3 text-zinc-600">{item.kind === "folder" ? (item.lastModified ? formatDateTime(item.lastModified) : "-") : formatDateTime(item.file.createdAt)}</td>
+                                <td className="px-4 py-3 text-right">
+                                  {item.kind === "folder" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedMediaFolder(item.name)}
+                                      className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                    >
+                                      Open
+                                    </button>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewMediaItem(item.file)}
+                                        className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                        style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                      >
+                                        Preview
+                                      </button>
+                                      <a
+                                        href={item.file.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                        style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                      >
+                                        Open
+                                      </a>
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {mediaBrowserItems.map((item) => (
+                        <div key={item.id} className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                          {item.kind === "folder" ? (
+                            <button type="button" onClick={() => setSelectedMediaFolder(item.name)} className="w-full text-left">
+                              <div className="flex items-center gap-2">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" style={{ color: "var(--primary)" }} aria-hidden>
+                                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+                                </svg>
+                                <p className="truncate text-sm font-medium text-zinc-700">{item.name}</p>
+                              </div>
+                              <p className="mt-3 text-xs text-zinc-500">{item.fileCount} file{item.fileCount !== 1 ? "s" : ""}</p>
+                              <p className="mt-1 text-xs text-zinc-500">{item.lastModified ? formatDateTime(item.lastModified) : "-"}</p>
+                            </button>
+                          ) : (
+                            <div>
+                              <button type="button" onClick={() => setPreviewMediaItem(item.file)} className="block w-full">
+                                <div className="flex h-32 w-full items-center justify-center overflow-hidden rounded-md border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                                  {item.file.type === "IMAGE" ? (
+                                    <img src={item.file.url} alt={item.file.name} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <video src={item.file.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                                  )}
+                                </div>
+                              </button>
+                              <p className="mt-2 truncate text-sm font-medium text-zinc-700">{item.file.name}</p>
+                              <p className="mt-1 text-xs text-zinc-500">{formatDateTime(item.file.createdAt)}</p>
+                              <div className="mt-2 flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewMediaItem(item.file)}
+                                  className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                >
+                                  Preview
+                                </button>
+                                <a
+                                  href={item.file.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                >
+                                  Open
+                                </a>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </section>
           ) : null}
@@ -1371,6 +1607,105 @@ export default function EventDetailPage() {
             eventTitle={event?.title || "Event"}
             error={avatarUploadError || undefined}
           />
+
+          {previewMediaItem ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="w-full max-w-4xl rounded-2xl border bg-white p-4" style={{ borderColor: "var(--border-subtle)" }}>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold" style={{ color: "var(--primary)" }}>{previewMediaItem.name}</p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>{previewMediaItem.folder}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={previewMediaItem.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                    >
+                      Open in new tab
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMediaItem(null)}
+                      className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex max-h-[72vh] items-center justify-center overflow-hidden rounded-lg border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                  {previewMediaItem.type === "IMAGE" ? (
+                    <img src={previewMediaItem.url} alt={previewMediaItem.name} className="max-h-[72vh] w-auto max-w-full object-contain" />
+                  ) : (
+                    <video src={previewMediaItem.url} controls className="max-h-[72vh] w-full bg-black object-contain" />
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isInviteChannelDialogOpen ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+              <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+                <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Choose Invite Method</h3>
+                <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  Send invitation for {pendingInviteGuestIds.length} guest{pendingInviteGuestIds.length !== 1 ? "s" : ""} using:
+                </p>
+
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void confirmInviteChannel("WHATSAPP");
+                    }}
+                    className="rounded-md border px-3 py-2 text-sm font-medium"
+                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
+                  >
+                    WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void confirmInviteChannel("TELEGRAM");
+                    }}
+                    className="rounded-md border px-3 py-2 text-sm font-medium"
+                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
+                  >
+                    Telegram
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void confirmInviteChannel("SMS");
+                    }}
+                    className="rounded-md border px-3 py-2 text-sm font-medium"
+                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
+                  >
+                    SMS
+                  </button>
+                </div>
+
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsInviteChannelDialogOpen(false);
+                      setPendingInviteGuestIds([]);
+                      setPendingInviteOpenFirst(false);
+                    }}
+                    className="rounded-md border px-3 py-2 text-sm"
+                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-primary)" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
     </main>

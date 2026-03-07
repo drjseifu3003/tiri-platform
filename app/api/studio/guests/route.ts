@@ -13,13 +13,40 @@ function isMissingColumnError(error: unknown) {
 }
 
 const createGuestSchema = z.object({
-  eventId: z.string().uuid(),
+  eventId: z
+    .string()
+    .trim()
+    .regex(
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+      "eventId must be a valid UUID string"
+    ),
   name: z.string().min(2),
   phone: z.string().optional(),
   email: z.string().email().optional(),
   category: z.nativeEnum(GuestCategory).optional(),
-  invitationCode: z.string().min(3),
+  invitationCode: z.string().min(3).optional(),
 });
+
+function isUniqueInvitationCodeError(error: unknown) {
+  if (typeof error !== "object" || error === null || !("code" in error)) return false;
+  const typed = error as { code?: string; meta?: { target?: string[] | string } };
+  if (typed.code !== "P2002") return false;
+
+  const target = typed.meta?.target;
+  if (Array.isArray(target)) return target.includes("invitationCode");
+  return typeof target === "string" ? target.includes("invitationCode") : false;
+}
+
+function normalizeOptional(value?: string) {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
+function buildInvitationCode(prefix = "GST") {
+  const stamp = Date.now().toString(36);
+  const random = Math.random().toString(36).slice(2, 8);
+  return `${prefix}-${stamp}-${random}`.toUpperCase();
+}
 
 export async function GET(request: NextRequest) {
   const session = requireStudioSession(request);
@@ -132,7 +159,10 @@ export async function POST(request: NextRequest) {
   const parsed = createGuestSchema.safeParse(body);
 
   if (!parsed.success) {
-    return badRequestResponse("Invalid guest payload");
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.join(".") || "payload";
+    const message = issue?.message || "Invalid guest payload";
+    return badRequestResponse(`${path}: ${message}`);
   }
 
   const event = await prisma.event.findFirst({
@@ -142,32 +172,58 @@ export async function POST(request: NextRequest) {
 
   if (!event) return notFoundResponse("Event not found");
 
-  try {
-    const guest = await prisma.guest.create({
-      data: {
-        eventId: parsed.data.eventId,
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        email: parsed.data.email,
-        category: parsed.data.category ?? GuestCategory.GENERAL,
-        invitationCode: parsed.data.invitationCode,
-      },
-    });
+  const normalizedName = parsed.data.name.trim();
+  const normalizedPhone = normalizeOptional(parsed.data.phone);
+  const normalizedEmail = normalizeOptional(parsed.data.email);
+  let nextInvitationCode = normalizeOptional(parsed.data.invitationCode)?.toUpperCase() ?? buildInvitationCode();
 
-    return NextResponse.json({ guest }, { status: 201 });
-  } catch (error) {
-    if (!isMissingColumnError(error)) throw error;
-
-    const guest = await prisma.guest.create({
-      data: {
-        eventId: parsed.data.eventId,
-        name: parsed.data.name,
-        phone: parsed.data.phone,
-        email: parsed.data.email,
-        invitationCode: parsed.data.invitationCode,
-      },
-    });
-
-    return NextResponse.json({ guest: { ...guest, category: GuestCategory.GENERAL } }, { status: 201 });
+  if (normalizedName.length < 2) {
+    return badRequestResponse("Guest name must be at least 2 characters");
   }
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const guest = await prisma.guest.create({
+        data: {
+          eventId: parsed.data.eventId,
+          name: normalizedName,
+          phone: normalizedPhone,
+          email: normalizedEmail,
+          category: parsed.data.category ?? GuestCategory.GENERAL,
+          invitationCode: nextInvitationCode,
+        },
+      });
+
+      return NextResponse.json({ guest }, { status: 201 });
+    } catch (error) {
+      if (isUniqueInvitationCodeError(error)) {
+        nextInvitationCode = buildInvitationCode();
+        continue;
+      }
+
+      if (!isMissingColumnError(error)) throw error;
+
+      try {
+        const guest = await prisma.guest.create({
+          data: {
+            eventId: parsed.data.eventId,
+            name: normalizedName,
+            phone: normalizedPhone,
+            email: normalizedEmail,
+            invitationCode: nextInvitationCode,
+          },
+        });
+
+        return NextResponse.json({ guest: { ...guest, category: GuestCategory.GENERAL } }, { status: 201 });
+      } catch (fallbackError) {
+        if (isUniqueInvitationCodeError(fallbackError)) {
+          nextInvitationCode = buildInvitationCode();
+          continue;
+        }
+        throw fallbackError;
+      }
+    }
+  }
+
+  return badRequestResponse("Unable to generate a unique invitation code. Please try again.");
 }

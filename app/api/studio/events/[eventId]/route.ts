@@ -38,6 +38,25 @@ function isInvitationTableMissingError(error: unknown) {
   );
 }
 
+function isMissingColumnError(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2022";
+}
+
+function isUnknownPrismaArgumentError(error: unknown, argument: string) {
+  if (!(error instanceof Error)) return false;
+  return error.message.includes(`Unknown argument \`${argument}\``);
+}
+
+function isWorkflowFieldMismatchError(error: unknown) {
+  return (
+    isUnknownPrismaArgumentError(error, "status") ||
+    isUnknownPrismaArgumentError(error, "startedAt") ||
+    isUnknownPrismaArgumentError(error, "completedAt") ||
+    isUnknownPrismaArgumentError(error, "cancelledAt") ||
+    isUnknownPrismaArgumentError(error, "archivedAt")
+  );
+}
+
 const updateEventSchema = z.object({
   title: z.string().min(2).optional(),
   brideName: z.string().nullable().optional(),
@@ -60,12 +79,53 @@ type RouteContext = {
 };
 
 async function findStudioEvent(studioId: string, eventId: string) {
-  return prisma.event.findFirst({
-    where: {
-      id: eventId,
-      studioId,
-    },
-  });
+  try {
+    const event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        studioId,
+      },
+      select: {
+        id: true,
+        studioId: true,
+        eventDate: true,
+        isPublished: true,
+        googleMapAddress: true,
+        startedAt: true,
+        completedAt: true,
+        cancelledAt: true,
+        archivedAt: true,
+      },
+    });
+
+    return event;
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+
+    const legacyEvent = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        studioId,
+      },
+      select: {
+        id: true,
+        studioId: true,
+        eventDate: true,
+        isPublished: true,
+        googleMapAddress: true,
+      },
+    });
+
+    return legacyEvent
+      ? {
+          ...legacyEvent,
+          startedAt: null,
+          completedAt: null,
+          cancelledAt: null,
+          archivedAt: null,
+        }
+      : null;
+  }
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -74,20 +134,140 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const { eventId } = await context.params;
 
-  const event = await prisma.event.findFirst({
-    where: {
-      id: eventId,
-      studioId: session.studioId,
-    },
-    include: {
-      guests: {
-        orderBy: { createdAt: "desc" },
+  let event:
+    | {
+        id: string;
+        title: string;
+        brideName: string | null;
+        groomName: string | null;
+        bridePhone: string | null;
+        groomPhone: string | null;
+        eventDate: Date;
+        location: string | null;
+        googleMapAddress: string;
+        description: string | null;
+        coverImage: string | null;
+        isPublished: boolean;
+        status?: EventStatus;
+        guests: Array<{
+          id: string;
+          name: string;
+          phone: string | null;
+          email: string | null;
+          category: "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST";
+          checkedIn: boolean;
+          checkedInAt: Date | null;
+          createdAt: Date;
+        }>;
+        media: Array<{
+          id: string;
+          type: "IMAGE" | "VIDEO";
+          url: string;
+          groupLabel: string | null;
+          createdAt: Date;
+        }>;
+      }
+    | null = null;
+
+  try {
+    event = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        studioId: session.studioId,
       },
-      media: {
-        orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        brideName: true,
+        groomName: true,
+        bridePhone: true,
+        groomPhone: true,
+        eventDate: true,
+        location: true,
+        googleMapAddress: true,
+        description: true,
+        coverImage: true,
+        isPublished: true,
+        status: true,
+        guests: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            category: true,
+            checkedIn: true,
+            checkedInAt: true,
+            createdAt: true,
+          },
+        },
+        media: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            type: true,
+            url: true,
+            groupLabel: true,
+            createdAt: true,
+          },
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    if (!isMissingColumnError(error)) throw error;
+
+    const legacyEvent = await prisma.event.findFirst({
+      where: {
+        id: eventId,
+        studioId: session.studioId,
+      },
+      select: {
+        id: true,
+        title: true,
+        brideName: true,
+        groomName: true,
+        bridePhone: true,
+        groomPhone: true,
+        eventDate: true,
+        location: true,
+        googleMapAddress: true,
+        description: true,
+        coverImage: true,
+        isPublished: true,
+        guests: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            checkedIn: true,
+            checkedInAt: true,
+            createdAt: true,
+          },
+        },
+        media: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            type: true,
+            url: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    event = legacyEvent
+      ? {
+          ...legacyEvent,
+          status: undefined,
+          guests: legacyEvent.guests.map((guest) => ({ ...guest, category: "GENERAL" as const })),
+          media: legacyEvent.media.map((item) => ({ ...item, groupLabel: null })),
+        }
+      : null;
+  }
 
   if (!event) return notFoundResponse("Event not found");
 
@@ -160,16 +340,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return badRequestResponse("Invalid event payload");
   }
 
-  const nextEventDate = parsed.data.eventDate ?? existingEvent.eventDate;
+  const { status: requestedStatus, ...patchableData } = parsed.data;
+
+  const nextEventDate = patchableData.eventDate ?? existingEvent.eventDate;
   const resolvedStatus = statusFromLegacy({
     eventDate: nextEventDate,
-    isPublished: parsed.data.isPublished,
-    status: parsed.data.status,
+    isPublished: patchableData.isPublished,
+    status: requestedStatus,
   });
 
-  const data = {
-    ...parsed.data,
-    googleMapAddress: parsed.data.googleMapAddress ?? existingEvent.googleMapAddress,
+  const dataWithWorkflow = {
+    ...patchableData,
+    googleMapAddress: patchableData.googleMapAddress ?? existingEvent.googleMapAddress,
     status: resolvedStatus,
     isPublished: toPublishedFlag(resolvedStatus),
     startedAt: resolvedStatus === "LIVE" ? existingEvent.startedAt ?? new Date() : existingEvent.startedAt,
@@ -178,12 +360,32 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     archivedAt: resolvedStatus === "ARCHIVED" ? existingEvent.archivedAt ?? new Date() : existingEvent.archivedAt,
   };
 
-  const event = await prisma.event.update({
-    where: { id: eventId },
-    data,
-  });
+  const legacyData = {
+    ...patchableData,
+    googleMapAddress: patchableData.googleMapAddress ?? existingEvent.googleMapAddress,
+    isPublished: toPublishedFlag(resolvedStatus),
+  };
 
-  return NextResponse.json({ event });
+  try {
+    const event = await prisma.event.update({
+      where: { id: eventId },
+      data: dataWithWorkflow,
+    });
+
+    return NextResponse.json({ event });
+  } catch (error) {
+    if (!isWorkflowFieldMismatchError(error) && !isMissingColumnError(error)) {
+      throw error;
+    }
+
+    // Backward compatibility: client may be generated from an older schema without workflow fields.
+    const event = await prisma.event.update({
+      where: { id: eventId },
+      data: legacyData,
+    });
+
+    return NextResponse.json({ event, workflowFieldsSkipped: true });
+  }
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {

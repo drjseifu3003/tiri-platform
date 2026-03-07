@@ -8,7 +8,7 @@ type MediaType = "IMAGE" | "VIDEO";
 interface MediaUploadDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { type: MediaType; groupLabel: string; file: File }) => Promise<void>;
+  onSubmit: (data: { type: MediaType; groupLabel: string; file: File }) => Promise<boolean>;
   isLoading: boolean;
   error?: string;
 }
@@ -24,13 +24,15 @@ export function MediaUploadDialog({ isOpen, onClose, onSubmit, isLoading, error 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!formData.file) return;
-    await onSubmit({
+    const isSuccess = await onSubmit({
       type: formData.type,
       groupLabel: formData.groupLabel || "Uncategorized",
       file: formData.file,
     });
-    setFormData({ type: "IMAGE", groupLabel: "", file: null });
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (isSuccess) {
+      setFormData({ type: "IMAGE", groupLabel: "", file: null });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   if (!isOpen) return null;

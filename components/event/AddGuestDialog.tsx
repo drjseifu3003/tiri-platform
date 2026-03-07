@@ -8,7 +8,7 @@ type GuestCategory = "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST";
 interface AddGuestDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (guestData: { name: string; phone: string; email: string; category: GuestCategory }) => Promise<void>;
+  onSubmit: (guestData: { name: string; phone: string; email: string; category: GuestCategory }) => Promise<boolean>;
   isLoading: boolean;
   error?: string;
 }
@@ -23,8 +23,10 @@ export function AddGuestDialog({ isOpen, onClose, onSubmit, isLoading, error }: 
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    await onSubmit(formData);
-    setFormData({ name: "", phone: "", email: "", category: "GENERAL" });
+    const isSuccess = await onSubmit(formData);
+    if (isSuccess) {
+      setFormData({ name: "", phone: "", email: "", category: "GENERAL" });
+    }
   }
 
   if (!isOpen) return null;

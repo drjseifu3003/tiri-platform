@@ -13,11 +13,14 @@ function mimeTypeForExtension(fileName: string) {
   if (ext === ".webp") return "image/webp";
   if (ext === ".gif") return "image/gif";
   if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".mp4") return "video/mp4";
+  if (ext === ".mov") return "video/quicktime";
+  if (ext === ".webm") return "video/webm";
   return "application/octet-stream";
 }
 
 function isSafeFileName(fileName: string) {
-  return /^[a-zA-Z0-9-]+\.(jpg|jpeg|png|webp|gif|svg)$/.test(fileName);
+  return /^[a-zA-Z0-9-]+\.(jpg|jpeg|png|webp|gif|svg|mp4|mov|webm)$/.test(fileName);
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
