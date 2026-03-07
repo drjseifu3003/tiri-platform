@@ -6,6 +6,8 @@ import { EventHeader } from "@/components/event/EventHeader";
 import { EventTabs } from "@/components/event/EventTabs";
 import { EventStatusBadge } from "@/components/event/EventStatusBadge";
 import { EventShareSection } from "@/components/event/EventShareSection";
+import { AddGuestDialog } from "@/components/event/AddGuestDialog";
+import { MediaUploadDialog } from "@/components/event/MediaUploadDialog";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -266,6 +268,12 @@ export default function EventDetailPage() {
   const [shareUploadPreview, setShareUploadPreview] = useState<string | null>(null);
   const [shareUploadError, setShareUploadError] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+
+  const [isAddGuestDialogOpen, setIsAddGuestDialogOpen] = useState(false);
+  const [addGuestError, setAddGuestError] = useState<string | null>(null);
+
+  const [isMediaUploadDialogOpen, setIsMediaUploadDialogOpen] = useState(false);
+  const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
 
   const [mediaForm, setMediaForm] = useState({
     type: "IMAGE" as MediaType,
@@ -608,6 +616,88 @@ export default function EventDetailPage() {
     }
   }
 
+  async function handleAddGuestDialog(guestData: { name: string; phone: string; email: string; category: GuestCategory }) {
+    if (!event) return;
+
+    setAddGuestError(null);
+
+    const name = guestData.name.trim();
+    const phone = guestData.phone.trim();
+    const email = guestData.email.trim();
+
+    if (name.length < 2) {
+      setAddGuestError("Guest name must be at least 2 characters.");
+      return;
+    }
+
+    setGuestSubmitting(true);
+
+    try {
+      const response = await fetch("/api/studio/guests", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId: event.id,
+          name,
+          phone: phone || undefined,
+          email: email || undefined,
+          category: guestData.category,
+          invitationCode: buildInvitationCode("gst"),
+        }),
+      });
+
+      if (!response.ok) {
+        setAddGuestError("Unable to add guest.");
+        return;
+      }
+
+      setIsAddGuestDialogOpen(false);
+      await loadEvent(false);
+      setGuestFormSuccess("Guest added successfully.");
+      setTimeout(() => setGuestFormSuccess(null), 3000);
+    } catch {
+      setAddGuestError("Unable to add guest right now.");
+    } finally {
+      setGuestSubmitting(false);
+    }
+  }
+
+  async function handleMediaUploadDialog(data: { type: MediaType; groupLabel: string; file: File }) {
+    if (!event) return;
+
+    setMediaUploadError(null);
+    setMediaSubmitting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("eventId", event.id);
+      formData.append("type", data.type);
+      formData.append("groupLabel", data.groupLabel);
+      formData.append("file", data.file);
+
+      const response = await fetch("/api/studio/media", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        setMediaUploadError("Unable to upload media.");
+        return;
+      }
+
+      setIsMediaUploadDialogOpen(false);
+      await loadEvent(false);
+      setMediaFormSuccess("Media uploaded successfully.");
+      setTimeout(() => setMediaFormSuccess(null), 3000);
+    } catch {
+      setMediaUploadError("Unable to upload media right now.");
+    } finally {
+      setMediaSubmitting(false);
+    }
+  }
+
   async function handleSingleGuestSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     if (!event) return;
@@ -877,58 +967,21 @@ export default function EventDetailPage() {
 
           {tab === "guests" ? (
             <section className="mt-5 space-y-4">
-              <div className="grid gap-4 lg:grid-cols-2">
-                <form className="ui-panel space-y-3" onSubmit={handleSingleGuestSubmit}>
-                  <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Add Single Guest</h3>
-                  <input
-                    value={singleGuest.name}
-                    onChange={(changeEvent) => setSingleGuest((current) => ({ ...current, name: changeEvent.target.value }))}
-                    placeholder="Guest full name"
-                    className="ui-input"
-                    required
-                  />
-                  <input
-                    value={singleGuest.phone}
-                    onChange={(changeEvent) => setSingleGuest((current) => ({ ...current, phone: changeEvent.target.value }))}
-                    placeholder="Phone number"
-                    className="ui-input"
-                  />
-                  <input
-                    type="email"
-                    value={singleGuest.email}
-                    onChange={(changeEvent) => setSingleGuest((current) => ({ ...current, email: changeEvent.target.value }))}
-                    placeholder="Email"
-                    className="ui-input"
-                  />
-                  <select
-                    value={singleGuest.category}
-                    onChange={(changeEvent) => setSingleGuest((current) => ({ ...current, category: changeEvent.target.value as GuestCategory }))}
-                    className="ui-select"
-                  >
-                    <option value="GENERAL">General</option>
-                    <option value="BRIDE_GUEST">Bride Guest</option>
-                    <option value="GROOM_GUEST">Groom Guest</option>
-                  </select>
-                  <button type="submit" disabled={guestSubmitting} className="ui-button-primary">
-                    {guestSubmitting ? "Adding..." : "Add Guest"}
-                  </button>
-                </form>
-
-                <form className="ui-panel space-y-3" onSubmit={handleBulkGuestSubmit}>
-                  <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Bulk Add Guests</h3>
-                  <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                    One guest per line: Name, Phone, Email
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Guest List</h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {event?.guests.length || 0} guest{event?.guests.length !== 1 ? "s" : ""} invited
                   </p>
-                  <textarea
-                    value={bulkGuestText}
-                    onChange={(changeEvent) => setBulkGuestText(changeEvent.target.value)}
-                    className="ui-textarea"
-                    placeholder={"Abebe Kebede,+251900000000,abebe@example.com\nMimi Alemu,+251911111111,mimi@example.com"}
-                  />
-                  <button type="submit" disabled={guestSubmitting} className="ui-button-primary">
-                    {guestSubmitting ? "Importing..." : "Import Guests"}
-                  </button>
-                </form>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddGuestDialogOpen(true)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ background: "var(--primary)", color: "white" }}
+                >
+                  Add Guest
+                </button>
               </div>
 
               {guestFormError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{guestFormError}</p> : null}
@@ -936,43 +989,47 @@ export default function EventDetailPage() {
               {inviteError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{inviteError}</p> : null}
               {inviteSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{inviteSuccess}</p> : null}
 
-              <div className="ui-panel flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
-                    <input
-                      type="checkbox"
-                      checked={allGuestsSelected}
-                      onChange={(changeEvent) => toggleSelectAllGuests(changeEvent.target.checked)}
-                      className="h-4 w-4 rounded border"
-                      style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
-                    />
-                    Select all guests
-                  </label>
-                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{selectedCount} selected</span>
-                </div>
+              <div className="rounded-lg border" style={{ borderColor: "var(--border-subtle)" }}>
+                <div className="px-4 py-3 border-b flex items-center justify-between gap-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                  <div className="flex items-center gap-3">
+                    <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
+                      <input
+                        type="checkbox"
+                        checked={allGuestsSelected}
+                        onChange={(changeEvent) => toggleSelectAllGuests(changeEvent.target.checked)}
+                        className="h-4 w-4 rounded border"
+                        style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
+                      />
+                      Select all
+                    </label>
+                    <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{selectedCount} selected</span>
+                  </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={bulkInviteChannel}
-                    onChange={(changeEvent) => setBulkInviteChannel(changeEvent.target.value as InviteChannel)}
-                    className="ui-select h-9 w-40"
-                  >
-                    <option value="WHATSAPP">WhatsApp</option>
-                    <option value="TELEGRAM">Telegram</option>
-                    <option value="SMS">SMS</option>
-                  </select>
-                  <button
-                    type="button"
-                    disabled={selectedCount === 0 || inviteSubmitting}
-                    onClick={() => {
-                      void sendInvites(selectedGuestIds, bulkInviteChannel);
-                    }}
-                    className="ui-button-primary h-9"
-                  >
-                    {inviteSubmitting ? "Sending..." : `Send to selected (${selectedCount})`}
-                  </button>
+                  {selectedCount > 0 && (
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={bulkInviteChannel}
+                        onChange={(changeEvent) => setBulkInviteChannel(changeEvent.target.value as InviteChannel)}
+                        className="ui-select h-9 text-sm"
+                      >
+                        <option value="WHATSAPP">WhatsApp</option>
+                        <option value="TELEGRAM">Telegram</option>
+                        <option value="SMS">SMS</option>
+                      </select>
+                      <button
+                        type="button"
+                        disabled={selectedCount === 0 || inviteSubmitting}
+                        onClick={() => {
+                          void sendInvites(selectedGuestIds, bulkInviteChannel);
+                        }}
+                        className="px-3 py-1.5 rounded text-sm font-medium transition"
+                        style={{ background: "var(--primary)", color: "white" }}
+                      >
+                        {inviteSubmitting ? "Sending..." : `Send (${selectedCount})`}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
 
               <div className="ui-table">
                 <div className="overflow-x-auto">
@@ -1066,32 +1123,22 @@ export default function EventDetailPage() {
 
           {tab === "media" ? (
             <section className="mt-5 space-y-4">
-              <form className="ui-panel grid gap-3 md:grid-cols-4" onSubmit={handleMediaUploadSubmit}>
-                <select
-                  value={mediaForm.type}
-                  onChange={(changeEvent) => setMediaForm((current) => ({ ...current, type: changeEvent.target.value as MediaType }))}
-                  className="ui-select"
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Media Gallery</h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {event?.media.length || 0} file{event?.media.length !== 1 ? "s" : ""} uploaded
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsMediaUploadDialogOpen(true)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ background: "var(--primary)", color: "white" }}
                 >
-                  <option value="IMAGE">Image</option>
-                  <option value="VIDEO">Video</option>
-                </select>
-                <input
-                  value={mediaForm.groupLabel}
-                  onChange={(changeEvent) => setMediaForm((current) => ({ ...current, groupLabel: changeEvent.target.value }))}
-                  placeholder="Group (Photoshoot, Wedding, Reception)"
-                  className="ui-input"
-                />
-                <input
-                  value={mediaForm.url}
-                  onChange={(changeEvent) => setMediaForm((current) => ({ ...current, url: changeEvent.target.value }))}
-                  placeholder="https://..."
-                  className="ui-input md:col-span-2"
-                  required
-                />
-                <button type="submit" disabled={mediaSubmitting} className="ui-button-primary md:col-span-4 md:w-fit">
-                  {mediaSubmitting ? "Uploading..." : "Upload Media"}
+                  Upload Media
                 </button>
-              </form>
+              </div>
 
               {mediaFormError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{mediaFormError}</p> : null}
               {mediaFormSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{mediaFormSuccess}</p> : null}
@@ -1260,6 +1307,22 @@ export default function EventDetailPage() {
             eventDate={event.eventDate}
             eventLocation={event.location || undefined}
             initialText={shareText}
+          />
+
+          <AddGuestDialog
+            isOpen={isAddGuestDialogOpen}
+            onClose={() => setIsAddGuestDialogOpen(false)}
+            onSubmit={handleAddGuestDialog}
+            isLoading={guestSubmitting}
+            error={addGuestError || undefined}
+          />
+
+          <MediaUploadDialog
+            isOpen={isMediaUploadDialogOpen}
+            onClose={() => setIsMediaUploadDialogOpen(false)}
+            onSubmit={handleMediaUploadDialog}
+            isLoading={mediaSubmitting}
+            error={mediaUploadError || undefined}
           />
         </>
       )}

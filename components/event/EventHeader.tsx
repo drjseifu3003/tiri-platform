@@ -25,22 +25,16 @@ export function EventHeader({
   onShare,
 }: EventHeaderProps) {
   return (
-    <div
-      className="rounded-2xl border p-5 sm:p-6 transition-all"
-      style={{
-        borderColor: "var(--border-subtle)",
-        background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%)",
-      }}
-    >
-      <div className="flex flex-col gap-5">
+    <div className="rounded-2xl border p-5 sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         {/* Title and breadcrumb */}
         <div className="flex flex-col gap-2">
-          <nav className="text-xs tracking-wide text-slate-500 uppercase">
-            <a href="/studio/events" className="hover:text-slate-700 transition">
+          <nav className="text-xs tracking-wide" style={{ color: "var(--text-tertiary)" }}>
+            <a href="/studio/events" className="hover:opacity-80 transition" style={{ color: "var(--text-secondary)" }}>
               Events
             </a>
             <span className="mx-2">/</span>
-            <span className="text-slate-700">{title}</span>
+            <span style={{ color: "var(--text-primary)" }}>{title}</span>
           </nav>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--text-primary)" }}>
             {title}
@@ -48,17 +42,17 @@ export function EventHeader({
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
+        <div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center">
           <EventStatusDropdown
             currentStatus={status}
             eventTitle={eventTitle}
             eventDate={eventDate}
             onStatusChange={onStatusChange}
           />
-          <Button variant="outline" onClick={onShare}>
+          <Button variant="outline" onClick={onShare} className="flex-1 sm:flex-none">
             Share Event
           </Button>
-          <Button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={onEdit} className="flex-1 sm:flex-none" style={{ background: "var(--primary)", color: "white" }}>
             Edit Event
           </Button>
         </div>
