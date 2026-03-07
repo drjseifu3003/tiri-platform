@@ -14,12 +14,23 @@ type EventListItem = {
   groomPhone?: string | null;
   eventDate: string;
   location: string | null;
+  status?: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
   isPublished: boolean;
   _count: {
     guests: number;
     media: number;
   };
 };
+
+function resolveEventStatus(event: Pick<EventListItem, "eventDate" | "isPublished" | "status">) {
+  if (event.status) return event.status;
+
+  const now = new Date();
+  const date = new Date(event.eventDate);
+  if (date < now) return "COMPLETED" as const;
+  if (event.isPublished) return "SCHEDULED" as const;
+  return "DRAFT" as const;
+}
 
 type EventsResponse = {
   events: EventListItem[];
@@ -144,8 +155,8 @@ export default function DashboardPage() {
   }, [events, guests]);
 
   const checkedInCount = useMemo(() => guests.filter((guest) => guest.checkedIn).length, [guests]);
-  const publishedCount = useMemo(() => events.filter((event) => event.isPublished).length, [events]);
-  const draftCount = useMemo(() => events.length - publishedCount, [events.length, publishedCount]);
+  const scheduledCount = useMemo(() => events.filter((event) => resolveEventStatus(event) === "SCHEDULED").length, [events]);
+  const liveCount = useMemo(() => events.filter((event) => resolveEventStatus(event) === "LIVE").length, [events]);
 
   const eventsToday = useMemo(() => {
     const now = new Date();
@@ -182,10 +193,10 @@ export default function DashboardPage() {
           });
         }
 
-        if (!event.isPublished) {
+        if (resolveEventStatus(event) === "DRAFT") {
           items.push({
             id: `${event.id}-not-published`,
-            message: `${event.title}: invitation is not published.`,
+            message: `${event.title}: event is still in draft status.`,
             actionHref: "/studio/events",
             actionLabel: "Review event",
           });
@@ -222,12 +233,6 @@ export default function DashboardPage() {
   const nextWedding = upcomingWeddings[0];
   const lastWedding = recentWeddings[0];
 
-  const publishedRatio = useMemo(() => {
-    if (events.length === 0) return "0%";
-    const published = events.filter((event) => event.isPublished).length;
-    return `${Math.round((published / events.length) * 100)}%`;
-  }, [events]);
-
   if (status === "loading" || status === "idle" || status === "unauthenticated") {
     return (
       <main className="flex min-h-full items-center justify-center">
@@ -259,12 +264,12 @@ export default function DashboardPage() {
               <p className="text-lg font-semibold" style={{ color: "var(--primary-green)" }}>Event Pipeline</p>
               <div className="mt-5 grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm" style={{ color: "#8b8680" }}>Published</p>
-                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-green)" }}>{formatNumber(publishedCount)}</p>
+                  <p className="text-sm" style={{ color: "#8b8680" }}>Scheduled</p>
+                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-green)" }}>{formatNumber(scheduledCount)}</p>
                 </div>
                 <div className="border-l pl-4" style={{ borderColor: "rgba(61, 55, 50, 0.1)" }}>
-                  <p className="text-sm" style={{ color: "#8b8680" }}>Draft</p>
-                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-rose)" }}>{formatNumber(draftCount)}</p>
+                  <p className="text-sm" style={{ color: "#8b8680" }}>Live</p>
+                  <p className="mt-1 text-4xl font-semibold" style={{ color: "var(--primary-rose)" }}>{formatNumber(liveCount)}</p>
                 </div>
               </div>
             </article>

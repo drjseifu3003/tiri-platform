@@ -3,6 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+const eventStatusValues = ["DRAFT", "SCHEDULED", "LIVE", "COMPLETED", "CANCELLED", "ARCHIVED"] as const;
+const eventStatusSchema = z.enum(eventStatusValues);
+type EventStatus = (typeof eventStatusValues)[number];
+
+function statusFromLegacy(input: { eventDate: Date; isPublished?: boolean; status?: EventStatus }) {
+  if (input.status) return input.status;
+  if (input.eventDate < new Date()) return "COMPLETED" as const;
+  return input.isPublished ? "SCHEDULED" : "DRAFT";
+}
+
+function toPublishedFlag(status: EventStatus) {
+  return status === "SCHEDULED" || status === "LIVE" || status === "COMPLETED";
+}
+
 const createEventSchema = z.object({
   title: z.string().min(2),
   brideName: z.string().optional(),
@@ -11,19 +25,20 @@ const createEventSchema = z.object({
   groomPhone: z.string().trim().min(1),
   eventDate: z.coerce.date(),
   location: z.string().optional(),
-  googleMapAddress: z.string().trim().min(1),
+  googleMapAddress: z.string().trim().optional(),
   description: z.string().optional(),
   coverImage: z.string().url().optional(),
   slug: z.string().min(2),
   subdomain: z.string().min(2).optional(),
   isPublished: z.boolean().optional(),
+  status: eventStatusSchema.optional(),
 });
 
 const listEventsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().trim().optional(),
-  filter: z.enum(["all", "published", "draft", "completed"]).default("all"),
+  filter: z.enum(["all", "draft", "scheduled", "live", "completed", "cancelled", "archived", "published"]).default("all"),
 });
 
 export async function GET(request: NextRequest) {
@@ -60,13 +75,21 @@ export async function GET(request: NextRequest) {
           ],
         }
       : {}),
-    ...(filter === "completed"
-      ? { eventDate: { lt: now } }
-      : filter === "published"
-        ? { eventDate: { gte: now }, isPublished: true }
-        : filter === "draft"
-          ? { eventDate: { gte: now }, isPublished: false }
-          : {}),
+    ...(filter === "draft"
+      ? { status: "DRAFT" as const }
+      : filter === "scheduled"
+        ? { status: "SCHEDULED" as const }
+        : filter === "live"
+          ? { status: "LIVE" as const }
+          : filter === "completed"
+            ? { status: "COMPLETED" as const }
+            : filter === "cancelled"
+              ? { status: "CANCELLED" as const }
+              : filter === "archived"
+                ? { status: "ARCHIVED" as const }
+                : filter === "published"
+                  ? { status: { in: ["SCHEDULED", "LIVE"] as const } }
+                  : {}),
   };
 
   const [total, events] = await prisma.$transaction([
@@ -131,6 +154,12 @@ export async function POST(request: NextRequest) {
     return badRequestResponse("Invalid event payload");
   }
 
+  const initialStatus = statusFromLegacy({
+    eventDate: parsed.data.eventDate,
+    isPublished: parsed.data.isPublished,
+    status: parsed.data.status,
+  });
+
   const event = await prisma.event.create({
     data: {
       studioId: session.studioId,
@@ -141,12 +170,13 @@ export async function POST(request: NextRequest) {
       groomPhone: parsed.data.groomPhone,
       eventDate: parsed.data.eventDate,
       location: parsed.data.location,
-      googleMapAddress: parsed.data.googleMapAddress,
+      googleMapAddress: parsed.data.googleMapAddress ?? "",
       description: parsed.data.description,
       coverImage: parsed.data.coverImage,
       slug: parsed.data.slug,
       subdomain: parsed.data.subdomain,
-      isPublished: parsed.data.isPublished ?? false,
+      status: initialStatus,
+      isPublished: toPublishedFlag(initialStatus),
     },
   });
 

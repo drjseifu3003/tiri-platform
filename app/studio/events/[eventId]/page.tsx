@@ -38,6 +38,7 @@ type EventDetail = {
   location: string | null;
   googleMapAddress: string;
   description: string | null;
+  status?: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
   isPublished: boolean;
   guests: GuestItem[];
   media: MediaItem[];
@@ -78,6 +79,23 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toTimeInputValue(date: Date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function isValidDate(value: Date) {
+  return !Number.isNaN(value.getTime());
+}
+
 function labelForCategory(value: GuestItem["category"]) {
   if (value === "BRIDE_GUEST") return "Bride Guest";
   if (value === "GROOM_GUEST") return "Groom Guest";
@@ -105,11 +123,32 @@ function channelPillClasses(channel: InviteChannel | null) {
   return "border-zinc-200 bg-zinc-100 text-zinc-600";
 }
 
-function toDatetimeLocalValue(value: string) {
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60 * 1000);
-  return local.toISOString().slice(0, 16);
+function resolveEventStatus(event: Pick<EventDetail, "eventDate" | "isPublished" | "status">) {
+  if (event.status) return event.status;
+
+  const now = new Date();
+  const eventDate = new Date(event.eventDate);
+  if (eventDate < now) return "COMPLETED" as const;
+  if (event.isPublished) return "SCHEDULED" as const;
+  return "DRAFT" as const;
+}
+
+function eventStatusLabel(status: ReturnType<typeof resolveEventStatus>) {
+  if (status === "SCHEDULED") return "Scheduled";
+  if (status === "LIVE") return "Live";
+  if (status === "COMPLETED") return "Completed";
+  if (status === "CANCELLED") return "Cancelled";
+  if (status === "ARCHIVED") return "Archived";
+  return "Draft";
+}
+
+function eventStatusPillClasses(status: ReturnType<typeof resolveEventStatus>) {
+  if (status === "LIVE") return "border-rose-300 bg-rose-50 text-rose-800";
+  if (status === "SCHEDULED") return "border-sky-300 bg-sky-50 text-sky-800";
+  if (status === "COMPLETED") return "border-slate-300 bg-slate-100 text-slate-700";
+  if (status === "CANCELLED") return "border-red-300 bg-red-50 text-red-700";
+  if (status === "ARCHIVED") return "border-zinc-300 bg-zinc-100 text-zinc-700";
+  return "border-amber-300 bg-amber-50 text-amber-800";
 }
 
 function labelForSocialPlatform(platform: SocialPlatform) {
@@ -200,6 +239,8 @@ export default function EventDetailPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const [statusActionError, setStatusActionError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     title: "",
     brideName: "",
@@ -207,10 +248,11 @@ export default function EventDetailPage() {
     bridePhone: "",
     groomPhone: "",
     eventDate: "",
+    eventTime: "18:00",
     location: "",
     googleMapAddress: "",
     description: "",
-    isPublished: false,
+    status: "DRAFT" as "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED",
   });
 
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -296,6 +338,18 @@ export default function EventDetailPage() {
 
   const selectedCount = selectedGuestIds.length;
   const allGuestsSelected = !!event && event.guests.length > 0 && selectedCount === event.guests.length;
+  const minEventDate = toDateInputValue(new Date());
+  const editDateTime = editForm.eventDate && editForm.eventTime ? new Date(`${editForm.eventDate}T${editForm.eventTime}`) : null;
+  const editSchedulePreview = editDateTime && isValidDate(editDateTime)
+    ? new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(editDateTime)
+    : null;
 
   useEffect(() => {
     return () => {
@@ -365,6 +419,8 @@ export default function EventDetailPage() {
   function openEditModal() {
     if (!event) return;
 
+    const parsedDate = new Date(event.eventDate);
+
     setEditError(null);
     setEditSuccess(null);
     setEditForm({
@@ -373,11 +429,12 @@ export default function EventDetailPage() {
       groomName: event.groomName ?? "",
       bridePhone: event.bridePhone ?? "",
       groomPhone: event.groomPhone ?? "",
-      eventDate: toDatetimeLocalValue(event.eventDate),
+      eventDate: toDateInputValue(parsedDate),
+      eventTime: toTimeInputValue(parsedDate),
       location: event.location ?? "",
       googleMapAddress: event.googleMapAddress,
       description: event.description ?? "",
-      isPublished: event.isPublished,
+      status: resolveEventStatus(event),
     });
     setIsEditOpen(true);
   }
@@ -399,8 +456,14 @@ export default function EventDetailPage() {
       return;
     }
 
-    if (!editForm.googleMapAddress.trim()) {
-      setEditError("Google Map address is required.");
+    if (!editForm.eventTime) {
+      setEditError("Event time is required.");
+      return;
+    }
+
+    const parsedEventDate = new Date(`${editForm.eventDate}T${editForm.eventTime}`);
+    if (!isValidDate(parsedEventDate)) {
+      setEditError("Please provide a valid event schedule.");
       return;
     }
 
@@ -417,11 +480,11 @@ export default function EventDetailPage() {
           groomName: editForm.groomName.trim() || null,
           bridePhone: editForm.bridePhone.trim() || undefined,
           groomPhone: editForm.groomPhone.trim() || undefined,
-          eventDate: new Date(editForm.eventDate).toISOString(),
+          eventDate: parsedEventDate.toISOString(),
           location: editForm.location.trim() || null,
-          googleMapAddress: editForm.googleMapAddress.trim(),
+          googleMapAddress: editForm.googleMapAddress.trim() || undefined,
           description: editForm.description.trim() || null,
-          isPublished: editForm.isPublished,
+          status: editForm.status,
         }),
       });
 
@@ -437,6 +500,33 @@ export default function EventDetailPage() {
       setEditError("Unable to update event details right now.");
     } finally {
       setEditSubmitting(false);
+    }
+  }
+
+  async function handleQuickStatusChange(nextStatus: "SCHEDULED" | "LIVE" | "COMPLETED") {
+    if (!event) return;
+
+    setStatusActionError(null);
+    setStatusUpdating(true);
+
+    try {
+      const response = await fetch(`/api/studio/events/${event.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+
+      if (!response.ok) {
+        setStatusActionError("Unable to update event status.");
+        return;
+      }
+
+      await loadEvent(false);
+    } catch {
+      setStatusActionError("Unable to update event status right now.");
+    } finally {
+      setStatusUpdating(false);
     }
   }
 
@@ -681,14 +771,52 @@ export default function EventDetailPage() {
 
   return (
     <main className="ui-page">
-      <div className="ui-page-header">
-        <div>
-          <Link href="/studio/events" className="text-xs font-medium" style={{ color: "var(--secondary)" }}>
-            ← Back to Events
-          </Link>
-          <h2 className="ui-title mt-1">{event?.title ?? "Wedding Details"}</h2>
-          <p className="ui-subtitle">Overview, guests, media, and gifts for this wedding.</p>
+      <div className="ui-page-header rounded-2xl border p-4 sm:p-5" style={{ borderColor: "var(--border-subtle)", background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%)" }}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <Link href="/studio/events" className="text-xs font-medium" style={{ color: "var(--secondary)" }}>
+              {"<- Back to Events"}
+            </Link>
+            <h2 className="ui-title mt-1">{event?.title ?? "Wedding Details"}</h2>
+            <p className="ui-subtitle">A modern overview for schedule, guests, media, and sharing.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={openEditModal}
+            disabled={!event || loading}
+            className="ui-button-primary h-10"
+          >
+            Edit Event
+          </button>
         </div>
+
+        {!loading && event ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${eventStatusPillClasses(resolveEventStatus(event))}`}>
+              {eventStatusLabel(resolveEventStatus(event))}
+            </span>
+            <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>Quick status:</span>
+            {[
+              { value: "SCHEDULED", label: "Scheduled" },
+              { value: "LIVE", label: "Live" },
+              { value: "COMPLETED", label: "Complete" },
+            ].map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => {
+                  void handleQuickStatusChange(item.value as "SCHEDULED" | "LIVE" | "COMPLETED");
+                }}
+                disabled={statusUpdating || resolveEventStatus(event) === item.value}
+                className="rounded-lg border px-2.5 py-1.5 text-xs font-medium"
+                style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-primary)" }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {loading ? (
@@ -699,6 +827,8 @@ export default function EventDetailPage() {
         <p className="mt-5 text-sm text-zinc-600">Wedding not found.</p>
       ) : (
         <>
+          {statusActionError ? <p className="mt-3 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{statusActionError}</p> : null}
+
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
               <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Event date</p>
@@ -716,7 +846,7 @@ export default function EventDetailPage() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-5 inline-flex flex-wrap gap-2 rounded-xl border p-1.5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
             {[
               ["overview", "Overview"],
               ["guests", "Guests"],
@@ -729,13 +859,13 @@ export default function EventDetailPage() {
                   key={value}
                   type="button"
                   onClick={() => setTab(value as EventTab)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                    active ? "text-white" : "border text-zinc-600 hover:opacity-75"
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                    active ? "text-white shadow-sm" : "text-zinc-600 hover:opacity-80"
                   }`}
                   style={
                     active
                       ? { background: "linear-gradient(to right, var(--primary), var(--primary-light))" }
-                      : { borderColor: "var(--border-subtle)", background: "var(--surface)" }
+                      : { background: "transparent" }
                   }
                 >
                   {label}
@@ -747,38 +877,49 @@ export default function EventDetailPage() {
           {tab === "overview" ? (
             <section className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="ui-panel">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Wedding Overview</h3>
-                  <button
-                    type="button"
-                    onClick={openEditModal}
-                    className="rounded-md border px-3 py-1.5 text-xs font-medium"
-                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
-                  >
-                    Edit Event
-                  </button>
-                </div>
-                <div className="mt-3 space-y-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                  <p><span className="font-medium" style={{ color: "var(--text-primary)" }}>Couple:</span> {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Pending names"}</p>
-                  <p><span className="font-medium" style={{ color: "var(--text-primary)" }}>Bride Phone:</span> {event.bridePhone || "—"}</p>
-                  <p><span className="font-medium" style={{ color: "var(--text-primary)" }}>Groom Phone:</span> {event.groomPhone || "—"}</p>
-                  <p><span className="font-medium" style={{ color: "var(--text-primary)" }}>Location:</span> {event.location || "No location"}</p>
-                  <p><span className="font-medium" style={{ color: "var(--text-primary)" }}>Published:</span> {event.isPublished ? "Yes" : "No"}</p>
+                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Wedding Overview</h3>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Status</p>
+                    <span className={`mt-1 inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${eventStatusPillClasses(resolveEventStatus(event))}`}>
+                      {eventStatusLabel(resolveEventStatus(event))}
+                    </span>
+                  </div>
+                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Couple</p>
+                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                      {[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Pending names"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Bride Phone</p>
+                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.bridePhone || "-"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Groom Phone</p>
+                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.groomPhone || "-"}</p>
+                  </div>
+                  <div className="rounded-lg border p-3 sm:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Location</p>
+                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.location || "No location provided"}</p>
+                  </div>
                 </div>
               </div>
 
               <div className="ui-panel">
                 <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Google Map Address</h3>
-                <p className="mt-3 break-all text-sm" style={{ color: "var(--text-secondary)" }}>{event.googleMapAddress}</p>
-                <a
-                  href={event.googleMapAddress}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex rounded-md px-3 py-1.5 text-xs font-medium text-white"
-                  style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))" }}
-                >
-                  Open in Google Maps
-                </a>
+                <p className="mt-3 break-all text-sm" style={{ color: "var(--text-secondary)" }}>{event.googleMapAddress || "Not provided"}</p>
+                {event.googleMapAddress ? (
+                  <a
+                    href={event.googleMapAddress}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex rounded-md px-3 py-1.5 text-xs font-medium text-white"
+                    style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))" }}
+                  >
+                    Open in Google Maps
+                  </a>
+                ) : null}
                 {event.description ? (
                   <p className="mt-3 text-sm" style={{ color: "var(--text-secondary)" }}>{event.description}</p>
                 ) : null}
@@ -1072,8 +1213,11 @@ export default function EventDetailPage() {
           {isEditOpen ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
               <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="mb-4 flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Edit Event Detail</h3>
+                <div className="mb-6 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Edit Event</h3>
+                    <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Update details, schedule, and event status.</p>
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -1087,39 +1231,84 @@ export default function EventDetailPage() {
                   </Button>
                 </div>
 
-                <form className="space-y-3" onSubmit={handleEventEditSubmit}>
+                <form className="space-y-4" onSubmit={handleEventEditSubmit}>
                   <div className="grid gap-3 md:grid-cols-2">
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event title</span>
+                    <label className="block md:col-span-2 md:row-span-2">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Title *</span>
                       <input value={editForm.title} onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))} className="ui-input" required />
                     </label>
+
                     <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event date</span>
-                      <input type="datetime-local" value={editForm.eventDate} onChange={(event) => setEditForm((current) => ({ ...current, eventDate: event.target.value }))} className="ui-input" required />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride name</span>
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Name</span>
                       <input value={editForm.brideName} onChange={(event) => setEditForm((current) => ({ ...current, brideName: event.target.value }))} className="ui-input" />
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom name</span>
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Name</span>
                       <input value={editForm.groomName} onChange={(event) => setEditForm((current) => ({ ...current, groomName: event.target.value }))} className="ui-input" />
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride phone</span>
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Phone</span>
                       <input value={editForm.bridePhone} onChange={(event) => setEditForm((current) => ({ ...current, bridePhone: event.target.value }))} className="ui-input" />
                     </label>
                     <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom phone</span>
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Phone</span>
                       <input value={editForm.groomPhone} onChange={(event) => setEditForm((current) => ({ ...current, groomPhone: event.target.value }))} className="ui-input" />
                     </label>
+
+                    <div className="rounded-xl border p-3 md:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <span className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Schedule *</span>
+                        <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>Local time</span>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Date</span>
+                          <input
+                            type="date"
+                            value={editForm.eventDate}
+                            min={minEventDate}
+                            onChange={(event) => setEditForm((current) => ({ ...current, eventDate: event.target.value }))}
+                            className="ui-input"
+                            required
+                          />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Time</span>
+                          <input
+                            type="time"
+                            value={editForm.eventTime}
+                            onChange={(event) => setEditForm((current) => ({ ...current, eventTime: event.target.value }))}
+                            className="ui-input"
+                            required
+                          />
+                        </label>
+                      </div>
+
+                      <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                        {editSchedulePreview ? `Scheduled for ${editSchedulePreview}` : "Pick a valid date and time."}
+                      </p>
+                    </div>
+
                     <label className="block md:col-span-2">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Status</span>
+                      <select value={editForm.status} onChange={(event) => setEditForm((current) => ({ ...current, status: event.target.value as typeof current.status }))} className="ui-input">
+                        <option value="DRAFT">Draft</option>
+                        <option value="SCHEDULED">Scheduled</option>
+                        <option value="LIVE">Live</option>
+                        <option value="COMPLETED">Completed</option>
+                        <option value="CANCELLED">Cancelled</option>
+                        <option value="ARCHIVED">Archived</option>
+                      </select>
+                    </label>
+                    <label className="block">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Location</span>
                       <input value={editForm.location} onChange={(event) => setEditForm((current) => ({ ...current, location: event.target.value }))} className="ui-input" />
                     </label>
-                    <label className="block md:col-span-2">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map address</span>
-                      <input value={editForm.googleMapAddress} onChange={(event) => setEditForm((current) => ({ ...current, googleMapAddress: event.target.value }))} className="ui-input" required />
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map Address</span>
+                      <input value={editForm.googleMapAddress} onChange={(event) => setEditForm((current) => ({ ...current, googleMapAddress: event.target.value }))} className="ui-input" />
                     </label>
                     <label className="block md:col-span-2">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Description</span>
@@ -1127,15 +1316,10 @@ export default function EventDetailPage() {
                     </label>
                   </div>
 
-                  <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
-                    <input type="checkbox" checked={editForm.isPublished} onChange={(event) => setEditForm((current) => ({ ...current, isPublished: event.target.checked }))} className="h-4 w-4 rounded border" style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }} />
-                    Published
-                  </label>
-
                   {editError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{editError}</p> : null}
                   {editSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{editSuccess}</p> : null}
 
-                  <div className="flex justify-end gap-2">
+                  <div className="mt-6 flex flex-wrap justify-end gap-3">
                     <button type="button" onClick={() => setIsEditOpen(false)} className="ui-button-secondary">Cancel</button>
                     <button type="submit" disabled={editSubmitting} className="ui-button-primary">{editSubmitting ? "Saving..." : "Save changes"}</button>
                   </div>

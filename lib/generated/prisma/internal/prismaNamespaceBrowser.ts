@@ -55,6 +55,7 @@ export const ModelName = {
   User: 'User',
   Event: 'Event',
   Guest: 'Guest',
+  GuestInvitation: 'GuestInvitation',
   Media: 'Media'
 } as const
 
@@ -118,6 +119,12 @@ export const EventScalarFieldEnum = {
   slug: 'slug',
   subdomain: 'subdomain',
   isPublished: 'isPublished',
+  status: 'status',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  cancelledAt: 'cancelledAt',
+  archivedAt: 'archivedAt',
+  startNotificationSentAt: 'startNotificationSentAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -139,6 +146,20 @@ export const GuestScalarFieldEnum = {
 } as const
 
 export type GuestScalarFieldEnum = (typeof GuestScalarFieldEnum)[keyof typeof GuestScalarFieldEnum]
+
+
+export const GuestInvitationScalarFieldEnum = {
+  id: 'id',
+  guestId: 'guestId',
+  eventId: 'eventId',
+  channel: 'channel',
+  status: 'status',
+  sentAt: 'sentAt',
+  message: 'message',
+  createdAt: 'createdAt'
+} as const
+
+export type GuestInvitationScalarFieldEnum = (typeof GuestInvitationScalarFieldEnum)[keyof typeof GuestInvitationScalarFieldEnum]
 
 
 export const MediaScalarFieldEnum = {

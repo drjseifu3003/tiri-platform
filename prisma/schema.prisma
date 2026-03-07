@@ -39,6 +39,15 @@ enum InvitationChannel {
   SMS
 }
 
+enum EventStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
 //////////////////////////////////////////////////////
 // STUDIO (Multi-Tenant Root)
 //////////////////////////////////////////////////////
@@ -100,6 +109,12 @@ model Event {
   subdomain       String?   @unique
 
   isPublished     Boolean   @default(false)
+  status          EventStatus @default(DRAFT)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  archivedAt      DateTime?
+  startNotificationSentAt DateTime?
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

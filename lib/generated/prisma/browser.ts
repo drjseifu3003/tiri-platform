@@ -38,6 +38,11 @@ export type Event = Prisma.EventModel
  */
 export type Guest = Prisma.GuestModel
 /**
+ * Model GuestInvitation
+ * 
+ */
+export type GuestInvitation = Prisma.GuestInvitationModel
+/**
  * Model Media
  * 
  */

@@ -32,3 +32,24 @@ export const GuestCategory = {
 } as const
 
 export type GuestCategory = (typeof GuestCategory)[keyof typeof GuestCategory]
+
+
+export const InvitationChannel = {
+  WHATSAPP: 'WHATSAPP',
+  TELEGRAM: 'TELEGRAM',
+  SMS: 'SMS'
+} as const
+
+export type InvitationChannel = (typeof InvitationChannel)[keyof typeof InvitationChannel]
+
+
+export const EventStatus = {
+  DRAFT: 'DRAFT',
+  SCHEDULED: 'SCHEDULED',
+  LIVE: 'LIVE',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus]

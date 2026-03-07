@@ -7,6 +7,20 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+const eventStatusValues = ["DRAFT", "SCHEDULED", "LIVE", "COMPLETED", "CANCELLED", "ARCHIVED"] as const;
+const eventStatusSchema = z.enum(eventStatusValues);
+type EventStatus = (typeof eventStatusValues)[number];
+
+function toPublishedFlag(status: EventStatus) {
+  return status === "SCHEDULED" || status === "LIVE" || status === "COMPLETED";
+}
+
+function statusFromLegacy(input: { eventDate: Date; isPublished?: boolean; status?: EventStatus }) {
+  if (input.status) return input.status;
+  if (input.eventDate < new Date()) return "COMPLETED" as const;
+  return input.isPublished ? "SCHEDULED" : "DRAFT";
+}
+
 type InvitationChannel = "WHATSAPP" | "TELEGRAM" | "SMS";
 
 type LatestInvitationRow = {
@@ -32,12 +46,13 @@ const updateEventSchema = z.object({
   groomPhone: z.string().trim().min(1).optional(),
   eventDate: z.coerce.date().optional(),
   location: z.string().nullable().optional(),
-  googleMapAddress: z.string().trim().min(1).optional(),
+  googleMapAddress: z.string().trim().optional(),
   description: z.string().nullable().optional(),
   coverImage: z.string().url().nullable().optional(),
   slug: z.string().min(2).optional(),
   subdomain: z.string().min(2).nullable().optional(),
   isPublished: z.boolean().optional(),
+  status: eventStatusSchema.optional(),
 });
 
 type RouteContext = {
@@ -145,9 +160,27 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return badRequestResponse("Invalid event payload");
   }
 
+  const nextEventDate = parsed.data.eventDate ?? existingEvent.eventDate;
+  const resolvedStatus = statusFromLegacy({
+    eventDate: nextEventDate,
+    isPublished: parsed.data.isPublished,
+    status: parsed.data.status,
+  });
+
+  const data = {
+    ...parsed.data,
+    googleMapAddress: parsed.data.googleMapAddress ?? existingEvent.googleMapAddress,
+    status: resolvedStatus,
+    isPublished: toPublishedFlag(resolvedStatus),
+    startedAt: resolvedStatus === "LIVE" ? existingEvent.startedAt ?? new Date() : existingEvent.startedAt,
+    completedAt: resolvedStatus === "COMPLETED" ? existingEvent.completedAt ?? new Date() : existingEvent.completedAt,
+    cancelledAt: resolvedStatus === "CANCELLED" ? existingEvent.cancelledAt ?? new Date() : existingEvent.cancelledAt,
+    archivedAt: resolvedStatus === "ARCHIVED" ? existingEvent.archivedAt ?? new Date() : existingEvent.archivedAt,
+  };
+
   const event = await prisma.event.update({
     where: { id: eventId },
-    data: parsed.data,
+    data,
   });
 
   return NextResponse.json({ event });

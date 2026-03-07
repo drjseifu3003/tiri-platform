@@ -388,6 +388,7 @@ export const ModelName = {
   User: 'User',
   Event: 'Event',
   Guest: 'Guest',
+  GuestInvitation: 'GuestInvitation',
   Media: 'Media'
 } as const
 
@@ -404,7 +405,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "studio" | "user" | "event" | "guest" | "media"
+    modelProps: "studio" | "user" | "event" | "guest" | "guestInvitation" | "media"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -704,6 +705,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    GuestInvitation: {
+      payload: Prisma.$GuestInvitationPayload<ExtArgs>
+      fields: Prisma.GuestInvitationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.GuestInvitationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.GuestInvitationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>
+        }
+        findFirst: {
+          args: Prisma.GuestInvitationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.GuestInvitationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>
+        }
+        findMany: {
+          args: Prisma.GuestInvitationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>[]
+        }
+        create: {
+          args: Prisma.GuestInvitationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>
+        }
+        createMany: {
+          args: Prisma.GuestInvitationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.GuestInvitationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>[]
+        }
+        delete: {
+          args: Prisma.GuestInvitationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>
+        }
+        update: {
+          args: Prisma.GuestInvitationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>
+        }
+        deleteMany: {
+          args: Prisma.GuestInvitationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.GuestInvitationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.GuestInvitationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>[]
+        }
+        upsert: {
+          args: Prisma.GuestInvitationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$GuestInvitationPayload>
+        }
+        aggregate: {
+          args: Prisma.GuestInvitationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateGuestInvitation>
+        }
+        groupBy: {
+          args: Prisma.GuestInvitationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GuestInvitationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.GuestInvitationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.GuestInvitationCountAggregateOutputType> | number
+        }
+      }
+    }
     Media: {
       payload: Prisma.$MediaPayload<ExtArgs>
       fields: Prisma.MediaFieldRefs
@@ -861,6 +936,12 @@ export const EventScalarFieldEnum = {
   slug: 'slug',
   subdomain: 'subdomain',
   isPublished: 'isPublished',
+  status: 'status',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  cancelledAt: 'cancelledAt',
+  archivedAt: 'archivedAt',
+  startNotificationSentAt: 'startNotificationSentAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -882,6 +963,20 @@ export const GuestScalarFieldEnum = {
 } as const
 
 export type GuestScalarFieldEnum = (typeof GuestScalarFieldEnum)[keyof typeof GuestScalarFieldEnum]
+
+
+export const GuestInvitationScalarFieldEnum = {
+  id: 'id',
+  guestId: 'guestId',
+  eventId: 'eventId',
+  channel: 'channel',
+  status: 'status',
+  sentAt: 'sentAt',
+  message: 'message',
+  createdAt: 'createdAt'
+} as const
+
+export type GuestInvitationScalarFieldEnum = (typeof GuestInvitationScalarFieldEnum)[keyof typeof GuestInvitationScalarFieldEnum]
 
 
 export const MediaScalarFieldEnum = {
@@ -976,6 +1071,20 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'EventStatus'
+ */
+export type EnumEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'EventStatus[]'
+ */
+export type ListEnumEventStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EventStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'GuestCategory'
  */
 export type EnumGuestCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GuestCategory'>
@@ -986,6 +1095,34 @@ export type EnumGuestCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
  * Reference to a field of type 'GuestCategory[]'
  */
 export type ListEnumGuestCategoryFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'GuestCategory[]'>
+    
+
+
+/**
+ * Reference to a field of type 'BigInt'
+ */
+export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+/**
+ * Reference to a field of type 'BigInt[]'
+ */
+export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+    
+
+
+/**
+ * Reference to a field of type 'InvitationChannel'
+ */
+export type EnumInvitationChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'InvitationChannel'>
+    
+
+
+/**
+ * Reference to a field of type 'InvitationChannel[]'
+ */
+export type ListEnumInvitationChannelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'InvitationChannel[]'>
     
 
 
@@ -1014,6 +1151,20 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
+ * Reference to a field of type 'Float[]'
+ */
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 /**
@@ -1115,6 +1266,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   event?: Prisma.EventOmit
   guest?: Prisma.GuestOmit
+  guestInvitation?: Prisma.GuestInvitationOmit
   media?: Prisma.MediaOmit
 }
 

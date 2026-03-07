@@ -17,6 +17,7 @@ type EventListItem = {
   location: string | null;
   googleMapAddress: string;
   isPublished: boolean;
+  status?: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
   _count: {
     guests: number;
     media: number;
@@ -36,20 +37,34 @@ type EventsResponse = {
   };
 };
 
-type EventQuickFilter = "all" | "published" | "draft" | "completed";
+type EventQuickFilter = "all" | "draft" | "scheduled" | "live" | "completed" | "cancelled" | "archived";
 
-function statusForEvent(event: EventListItem) {
+function resolveStatus(event: EventListItem) {
+  if (event.status) return event.status;
+
   const now = new Date();
   const eventDate = new Date(event.eventDate);
-  if (eventDate < now) return "Completed";
-  if (event.isPublished) return "Published";
+  if (eventDate < now) return "COMPLETED" as const;
+  if (event.isPublished) return "SCHEDULED" as const;
+  return "DRAFT" as const;
+}
+
+function statusLabel(status: ReturnType<typeof resolveStatus>) {
+  if (status === "SCHEDULED") return "Scheduled";
+  if (status === "LIVE") return "Live";
+  if (status === "COMPLETED") return "Completed";
+  if (status === "CANCELLED") return "Cancelled";
+  if (status === "ARCHIVED") return "Archived";
   return "Draft";
 }
 
-function statusClasses(status: string) {
-  if (status === "Published") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (status === "Completed") return "border-neutral-200 bg-neutral-100 text-neutral-700";
-  return "border-amber-200 bg-amber-50 text-amber-700";
+function statusClasses(status: ReturnType<typeof resolveStatus>) {
+  if (status === "LIVE") return "border-rose-300 bg-rose-50 text-rose-800";
+  if (status === "SCHEDULED") return "border-sky-300 bg-sky-50 text-sky-800";
+  if (status === "COMPLETED") return "border-slate-300 bg-slate-100 text-slate-700";
+  if (status === "CANCELLED") return "border-red-300 bg-red-50 text-red-700";
+  if (status === "ARCHIVED") return "border-zinc-300 bg-zinc-100 text-zinc-700";
+  return "border-amber-300 bg-amber-50 text-amber-800";
 }
 
 function formatEventDate(value: string) {
@@ -76,6 +91,23 @@ function slugify(value: string) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 48);
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toTimeInputValue(date: Date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function isValidDate(value: Date) {
+  return !Number.isNaN(value.getTime());
 }
 
 export default function StudioEventsPage() {
@@ -105,11 +137,24 @@ export default function StudioEventsPage() {
     bridePhone: "",
     groomPhone: "",
     eventDate: "",
+    eventTime: "18:00",
     location: "",
     googleMapAddress: "",
     description: "",
-    isPublished: false,
   });
+
+  const minEventDate = toDateInputValue(new Date());
+  const eventDateTime = formData.eventDate && formData.eventTime ? new Date(`${formData.eventDate}T${formData.eventTime}`) : null;
+  const eventDateTimePreview = eventDateTime && isValidDate(eventDateTime)
+    ? new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(eventDateTime)
+    : null;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -173,25 +218,26 @@ export default function StudioEventsPage() {
     const title = formData.title.trim();
     const bridePhone = formData.bridePhone.trim();
     const groomPhone = formData.groomPhone.trim();
-    const googleMapAddress = formData.googleMapAddress.trim();
+    const googleMapAddress = formData.googleMapAddress.trim() || undefined;
 
     if (title.length < 2) {
       setCreateError("Event title must be at least 2 characters.");
       return;
     }
 
-    if (!formData.eventDate) {
+    if (!formData.eventDate || !formData.eventTime) {
       setCreateError("Please provide an event date and time.");
+      return;
+    }
+
+    const parsedEventDateTime = new Date(`${formData.eventDate}T${formData.eventTime}`);
+    if (!isValidDate(parsedEventDateTime)) {
+      setCreateError("Please provide a valid event date and time.");
       return;
     }
 
     if (!bridePhone || !groomPhone) {
       setCreateError("Bride and groom phone numbers are required.");
-      return;
-    }
-
-    if (!googleMapAddress) {
-      setCreateError("Google Map address is required.");
       return;
     }
 
@@ -214,12 +260,13 @@ export default function StudioEventsPage() {
           groomName: formData.groomName.trim() || undefined,
           bridePhone,
           groomPhone,
-          eventDate: new Date(formData.eventDate).toISOString(),
+          eventDate: parsedEventDateTime.toISOString(),
           location: formData.location.trim() || undefined,
           googleMapAddress,
           description: formData.description.trim() || undefined,
           slug,
-          isPublished: formData.isPublished,
+          status: "DRAFT",
+          isPublished: false,
         }),
       });
 
@@ -235,10 +282,10 @@ export default function StudioEventsPage() {
         bridePhone: "",
         groomPhone: "",
         eventDate: "",
+        eventTime: "18:00",
         location: "",
         googleMapAddress: "",
         description: "",
-        isPublished: false,
       });
       setCreateSuccess("Event created successfully.");
       setIsCreateOpen(false);
@@ -297,9 +344,12 @@ export default function StudioEventsPage() {
               <div className="absolute right-0 z-20 mt-2 w-44 rounded-xl border p-1 shadow-lg" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
                 {[
                   { value: "all", label: "All events" },
-                  { value: "published", label: "Published" },
                   { value: "draft", label: "Draft" },
+                  { value: "scheduled", label: "Scheduled" },
+                  { value: "live", label: "Live" },
                   { value: "completed", label: "Completed" },
+                  { value: "cancelled", label: "Cancelled" },
+                  { value: "archived", label: "Archived" },
                 ].map((item) => {
                   const active = quickFilter === item.value;
                   return (
@@ -344,12 +394,12 @@ export default function StudioEventsPage() {
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
             <div className="mb-6">
               <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Create New Event</h3>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Add event details and publish when ready.</p>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Add event details to create your event.</p>
             </div>
 
           <form className="space-y-4" onSubmit={handleCreateEventSubmit}>
             <div className="grid gap-3 md:grid-cols-2">
-              <label className="block">
+              <label className="block md:col-span-2 md:row-span-2">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Title *</span>
                 <input
                   value={formData.title}
@@ -404,16 +454,40 @@ export default function StudioEventsPage() {
                 />
               </label>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Date & Time *</span>
-                <input
-                  type="datetime-local"
-                  value={formData.eventDate}
-                  onChange={(event) => setFormData((current) => ({ ...current, eventDate: event.target.value }))}
-                  className="ui-input"
-                  required
-                />
-              </label>
+              <div className="rounded-xl border p-3 md:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <span className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Schedule *</span>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Date</span>
+                    <input
+                      type="date"
+                      value={formData.eventDate}
+                      min={minEventDate}
+                      onChange={(event) => setFormData((current) => ({ ...current, eventDate: event.target.value }))}
+                      className="ui-input"
+                      required
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Time</span>
+                    <input
+                      type="time"
+                      value={formData.eventTime}
+                      onChange={(event) => setFormData((current) => ({ ...current, eventTime: event.target.value }))}
+                      className="ui-input"
+                      required
+                    />
+                  </label>
+                </div>
+
+                <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                  {eventDateTimePreview ? `Scheduled for ${eventDateTimePreview}` : "Pick a date and time for the event invitation."}
+                </p>
+              </div>
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Location</span>
@@ -426,13 +500,12 @@ export default function StudioEventsPage() {
               </label>
 
               <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map Address *</span>
+                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map Address</span>
                 <input
                   value={formData.googleMapAddress}
                   onChange={(event) => setFormData((current) => ({ ...current, googleMapAddress: event.target.value }))}
                   placeholder="https://maps.google.com/... or share address"
                   className="ui-input"
-                  required
                 />
               </label>
             </div>
@@ -445,16 +518,6 @@ export default function StudioEventsPage() {
                 placeholder="Short event description"
                 className="ui-textarea"
               />
-            </label>
-
-            <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
-              <input
-                type="checkbox"
-                checked={formData.isPublished}
-                onChange={(event) => setFormData((current) => ({ ...current, isPublished: event.target.checked }))}
-                className="h-4 w-4 rounded border" style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
-              />
-              Publish invitation immediately
             </label>
 
             {createError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{createError}</p> : null}
@@ -510,10 +573,8 @@ export default function StudioEventsPage() {
               </thead>
               <tbody>
                 {events.map((event) => {
-                  const checkedInCount = checkedInByEvent[event.id] ?? 0;
                   const totalGuests = event._count.guests;
-                  const attendanceRate = totalGuests === 0 ? 0 : Math.round((checkedInCount / totalGuests) * 100);
-                  const status = statusForEvent(event);
+                  const status = resolveStatus(event);
 
                   return (
                     <tr key={event.id} className="border-t align-middle transition" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
@@ -537,11 +598,10 @@ export default function StudioEventsPage() {
                       <td className="px-4 py-4 text-zinc-600">{formatEventDate(event.eventDate)}</td>
                       <td className="px-4 py-4 text-center">
                         <p className="font-medium text-zinc-700">{totalGuests}</p>
-                        <p className="text-xs text-zinc-500">{attendanceRate}% in</p>
                       </td>
                       <td className="px-4 py-4 text-center text-zinc-700">{event._count.media}</td>
                       <td className="px-4 py-4 text-center">
-                        <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${statusClasses(status)}`}>{status}</span>
+                        <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${statusClasses(status)}`}>{statusLabel(status)}</span>
                       </td>
                       <td className="px-4 py-4 text-right">
                         <Link
