@@ -24,26 +24,24 @@ export function EventTabs({ activeTab, onTabChange, guestCount = 0, mediaCount =
   }
 
   return (
-    <div
-      className="inline-flex flex-wrap gap-1.5 rounded-lg border p-2"
-      style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}
-    >
-      {TABS.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => onTabChange(tab.id)}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
-            activeTab === tab.id
-              ? "bg-white shadow-sm text-slate-900"
-              : "text-slate-600 hover:text-slate-900 hover:bg-white/40"
-          }`}
-          style={
-            activeTab === tab.id ? { borderColor: "var(--border-subtle)" } : {}
-          }
-        >
-          {getTabLabel(tab.id)}
-        </button>
-      ))}
+    <div className="flex gap-8 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+      {TABS.map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className="py-3 text-sm font-medium transition-colors relative"
+            style={{
+              color: isActive ? "var(--primary)" : "var(--text-secondary)",
+              borderBottom: isActive ? `2px solid var(--primary)` : `2px solid transparent`,
+              marginBottom: `-2px`,
+            }}
+          >
+            {getTabLabel(tab.id)}
+          </button>
+        );
+      })}
     </div>
   );
 }
