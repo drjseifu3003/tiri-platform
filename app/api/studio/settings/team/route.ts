@@ -25,16 +25,38 @@ type TeamMember = {
   updatedAt: Date;
 };
 
+async function hasTeamRoleColumn() {
+  const result = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'User'
+        AND column_name = 'teamRole'
+    ) AS "exists"
+  `;
+
+  return result[0]?.exists ?? false;
+}
+
 export async function GET(request: NextRequest) {
   const session = requireStudioSession(request);
   if (session instanceof NextResponse) return session;
 
-  const members = await prisma.$queryRaw<TeamMember[]>`
-    SELECT "id", "phone", "role", "teamRole", "createdAt", "updatedAt"
-    FROM "User"
-    WHERE "studioId" = ${session.studioId}
-    ORDER BY "createdAt" DESC
-  `;
+  const teamRoleColumnExists = await hasTeamRoleColumn();
+  const members = teamRoleColumnExists
+    ? await prisma.$queryRaw<TeamMember[]>`
+        SELECT "id", "phone", "role", "teamRole", "createdAt", "updatedAt"
+        FROM "User"
+        WHERE "studioId" = ${session.studioId}
+        ORDER BY "createdAt" DESC
+      `
+    : await prisma.$queryRaw<TeamMember[]>`
+        SELECT "id", "phone", "role", 'EVENT_PLANNER'::text AS "teamRole", "createdAt", "updatedAt"
+        FROM "User"
+        WHERE "studioId" = ${session.studioId}
+        ORDER BY "createdAt" DESC
+      `;
 
   return NextResponse.json({ members });
 }
@@ -66,18 +88,35 @@ export async function POST(request: NextRequest) {
   const passwordHash = await hashPassword(parsed.data.password);
   const userId = crypto.randomUUID();
 
-  await prisma.$executeRaw`
-    INSERT INTO "User" ("id", "phone", "password", "role", "studioId", "teamRole", "createdAt", "updatedAt")
-    VALUES (${userId}, ${normalizedPhone}, ${passwordHash}, 'STAFF', ${session.studioId}, ${parsed.data.teamRole}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-  `;
+  const teamRoleColumnExists = await hasTeamRoleColumn();
 
-  const members = await prisma.$queryRaw<TeamMember[]>`
-    SELECT "id", "phone", "role", "teamRole", "createdAt", "updatedAt"
-    FROM "User"
-    WHERE "studioId" = ${session.studioId}
-    ORDER BY "createdAt" DESC
-    LIMIT 1
-  `;
+  if (teamRoleColumnExists) {
+    await prisma.$executeRaw`
+      INSERT INTO "User" ("id", "phone", "password", "role", "studioId", "teamRole", "createdAt", "updatedAt")
+      VALUES (${userId}, ${normalizedPhone}, ${passwordHash}, 'STAFF', ${session.studioId}, ${parsed.data.teamRole}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `;
+  } else {
+    await prisma.$executeRaw`
+      INSERT INTO "User" ("id", "phone", "password", "role", "studioId", "createdAt", "updatedAt")
+      VALUES (${userId}, ${normalizedPhone}, ${passwordHash}, 'STAFF', ${session.studioId}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `;
+  }
+
+  const members = teamRoleColumnExists
+    ? await prisma.$queryRaw<TeamMember[]>`
+        SELECT "id", "phone", "role", "teamRole", "createdAt", "updatedAt"
+        FROM "User"
+        WHERE "studioId" = ${session.studioId}
+        ORDER BY "createdAt" DESC
+        LIMIT 1
+      `
+    : await prisma.$queryRaw<TeamMember[]>`
+        SELECT "id", "phone", "role", 'EVENT_PLANNER'::text AS "teamRole", "createdAt", "updatedAt"
+        FROM "User"
+        WHERE "studioId" = ${session.studioId}
+        ORDER BY "createdAt" DESC
+        LIMIT 1
+      `;
 
   return NextResponse.json({ member: members[0] }, { status: 201 });
 }

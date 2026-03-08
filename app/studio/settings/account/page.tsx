@@ -1,7 +1,7 @@
 "use client";
 
-import { PhoneInput } from "@/components/ui/phone-input";
 import { useSession } from "@/lib/session-context";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
@@ -31,15 +31,13 @@ export default function StudioAccountSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [role, setRole] = useState<"ADMIN" | "STAFF">("STAFF");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [formData, setFormData] = useState({
-    phone: "",
     currentPassword: "",
     newPassword: "",
     studioName: "",
-    studioEmail: "",
-    studioPhone: "",
     studioLogoUrl: "",
-    studioPrimaryColor: "",
   });
 
   useEffect(() => {
@@ -71,14 +69,10 @@ export default function StudioAccountSettingsPage() {
 
         setRole(data.user.role);
         setFormData({
-          phone: data.user.phone ?? "",
           currentPassword: "",
           newPassword: "",
           studioName: data.studio?.name ?? "",
-          studioEmail: data.studio?.email ?? "",
-          studioPhone: data.studio?.phone ?? "",
           studioLogoUrl: data.studio?.logoUrl ?? "",
-          studioPrimaryColor: data.studio?.primaryColor ?? "",
         });
       } catch {
         if (!cancelled) setError("Unable to load account settings");
@@ -100,19 +94,14 @@ export default function StudioAccountSettingsPage() {
     setError(null);
     setSuccess(null);
 
-    const payload: Record<string, string | null> = {
-      phone: formData.phone.trim(),
-    };
+    const payload: Record<string, string | null> = {};
 
     if (formData.currentPassword.trim()) payload.currentPassword = formData.currentPassword.trim();
     if (formData.newPassword.trim()) payload.newPassword = formData.newPassword.trim();
 
     if (role === "ADMIN") {
       payload.studioName = formData.studioName.trim();
-      payload.studioEmail = formData.studioEmail.trim() || null;
-      payload.studioPhone = formData.studioPhone.trim();
       payload.studioLogoUrl = formData.studioLogoUrl.trim() || null;
-      payload.studioPrimaryColor = formData.studioPrimaryColor.trim() || null;
     }
 
     try {
@@ -180,7 +169,7 @@ export default function StudioAccountSettingsPage() {
     <main className="ui-page">
       <div>
         <h2 className="ui-title">Settings</h2>
-        <p className="ui-subtitle">Manage your account, studio profile, and studio operations.</p>
+        <p className="ui-subtitle">Manage password and studio identity.</p>
       </div>
 
       <div className="mt-5 flex gap-2">
@@ -193,41 +182,52 @@ export default function StudioAccountSettingsPage() {
       ) : (
         <form className="mt-5 space-y-5" onSubmit={handleSave}>
           <section className="ui-panel">
-            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>User Credentials</h3>
-            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Role: {role}. Update login phone and optionally rotate password.</p>
+            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Password</h3>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Change your password securely.</p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Login Phone *</span>
-                <PhoneInput
-                  value={formData.phone}
-                  onChange={(value) => setFormData((current) => ({ ...current, phone: value ?? "" }))}
-                  defaultCountry="ET"
-                  className="w-full"
-                  required
-                />
-              </label>
-
-              <div className="hidden md:block" />
-
-              <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Current Password</span>
-                <input
-                  type="password"
-                  value={formData.currentPassword}
-                  onChange={(event) => setFormData((current) => ({ ...current, currentPassword: event.target.value }))}
-                  className="ui-input"
-                />
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={formData.currentPassword}
+                    onChange={(event) => setFormData((current) => ({ ...current, currentPassword: event.target.value }))}
+                    className="ui-input pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((current) => !current)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: "var(--text-secondary)" }}
+                    aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+                    title={showCurrentPassword ? "Hide current password" : "Show current password"}
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </label>
 
               <label className="block">
                 <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>New Password</span>
-                <input
-                  type="password"
-                  value={formData.newPassword}
-                  onChange={(event) => setFormData((current) => ({ ...current, newPassword: event.target.value }))}
-                  className="ui-input"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={formData.newPassword}
+                    onChange={(event) => setFormData((current) => ({ ...current, newPassword: event.target.value }))}
+                    className="ui-input pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((current) => !current)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: "var(--text-secondary)" }}
+                    aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                    title={showNewPassword ? "Hide new password" : "Show new password"}
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </label>
             </div>
           </section>
@@ -236,7 +236,7 @@ export default function StudioAccountSettingsPage() {
             <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Studio Profile</h3>
             <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
               {role === "ADMIN"
-                ? "Update your studio identity visible across events and invitations."
+                ? "Update studio name and logo."
                 : "Studio profile fields are read-only for staff accounts."}
             </p>
 
@@ -248,28 +248,6 @@ export default function StudioAccountSettingsPage() {
                   onChange={(event) => setFormData((current) => ({ ...current, studioName: event.target.value }))}
                   disabled={role !== "ADMIN"}
                   className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Email</span>
-                <input
-                  type="email"
-                  value={formData.studioEmail}
-                  onChange={(event) => setFormData((current) => ({ ...current, studioEmail: event.target.value }))}
-                  disabled={role !== "ADMIN"}
-                  className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
-                />
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Phone</span>
-                <PhoneInput
-                  value={formData.studioPhone}
-                  onChange={(value) => setFormData((current) => ({ ...current, studioPhone: value ?? "" }))}
-                  disabled={role !== "ADMIN"}
-                  defaultCountry="ET"
-                  className="w-full"
                 />
               </label>
 
@@ -295,16 +273,6 @@ export default function StudioAccountSettingsPage() {
                 {uploadingLogo ? (
                   <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>Uploading logo...</p>
                 ) : null}
-              </label>
-
-              <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Primary Color Token / Value</span>
-                <input
-                  value={formData.studioPrimaryColor}
-                  onChange={(event) => setFormData((current) => ({ ...current, studioPrimaryColor: event.target.value }))}
-                  disabled={role !== "ADMIN"}
-                  className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
-                />
               </label>
             </div>
           </section>

@@ -24,13 +24,34 @@ type TeamMemberRecord = {
   teamRole: string;
 };
 
-async function findStudioTeamMember(studioId: string, userId: string) {
-  const rows = await prisma.$queryRaw<TeamMemberRecord[]>`
-    SELECT "id", "phone", "role", "studioId", "teamRole"
-    FROM "User"
-    WHERE "id" = ${userId} AND "studioId" = ${studioId}
-    LIMIT 1
+async function hasTeamRoleColumn() {
+  const result = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'User'
+        AND column_name = 'teamRole'
+    ) AS "exists"
   `;
+
+  return result[0]?.exists ?? false;
+}
+
+async function findStudioTeamMember(studioId: string, userId: string, teamRoleColumnExists: boolean) {
+  const rows = teamRoleColumnExists
+    ? await prisma.$queryRaw<TeamMemberRecord[]>`
+        SELECT "id", "phone", "role", "studioId", "teamRole"
+        FROM "User"
+        WHERE "id" = ${userId} AND "studioId" = ${studioId}
+        LIMIT 1
+      `
+    : await prisma.$queryRaw<TeamMemberRecord[]>`
+        SELECT "id", "phone", "role", "studioId", 'EVENT_PLANNER'::text AS "teamRole"
+        FROM "User"
+        WHERE "id" = ${userId} AND "studioId" = ${studioId}
+        LIMIT 1
+      `;
 
   return rows[0] ?? null;
 }
@@ -43,7 +64,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   if (adminError) return adminError;
 
   const { userId } = await context.params;
-  const member = await findStudioTeamMember(session.studioId, userId);
+  const teamRoleColumnExists = await hasTeamRoleColumn();
+  const member = await findStudioTeamMember(session.studioId, userId, teamRoleColumnExists);
   if (!member) return notFoundResponse("Team member not found");
 
   const body = await request.json().catch(() => null);
@@ -66,22 +88,40 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
   const nextPasswordHash = parsed.data.password ? await hashPassword(parsed.data.password) : null;
 
-  await prisma.$executeRaw`
-    UPDATE "User"
-    SET
-      "phone" = ${nextPhone},
-      "teamRole" = ${nextTeamRole},
-      "password" = CASE WHEN ${nextPasswordHash}::text IS NULL THEN "password" ELSE ${nextPasswordHash} END,
-      "updatedAt" = CURRENT_TIMESTAMP
-    WHERE "id" = ${member.id}
-  `;
+  if (teamRoleColumnExists) {
+    await prisma.$executeRaw`
+      UPDATE "User"
+      SET
+        "phone" = ${nextPhone},
+        "teamRole" = ${nextTeamRole},
+        "password" = CASE WHEN ${nextPasswordHash}::text IS NULL THEN "password" ELSE ${nextPasswordHash} END,
+        "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${member.id}
+    `;
+  } else {
+    await prisma.$executeRaw`
+      UPDATE "User"
+      SET
+        "phone" = ${nextPhone},
+        "password" = CASE WHEN ${nextPasswordHash}::text IS NULL THEN "password" ELSE ${nextPasswordHash} END,
+        "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${member.id}
+    `;
+  }
 
-  const updated = await prisma.$queryRaw<TeamMemberRecord[]>`
-    SELECT "id", "phone", "role", "studioId", "teamRole"
-    FROM "User"
-    WHERE "id" = ${member.id}
-    LIMIT 1
-  `;
+  const updated = teamRoleColumnExists
+    ? await prisma.$queryRaw<TeamMemberRecord[]>`
+        SELECT "id", "phone", "role", "studioId", "teamRole"
+        FROM "User"
+        WHERE "id" = ${member.id}
+        LIMIT 1
+      `
+    : await prisma.$queryRaw<TeamMemberRecord[]>`
+        SELECT "id", "phone", "role", "studioId", 'EVENT_PLANNER'::text AS "teamRole"
+        FROM "User"
+        WHERE "id" = ${member.id}
+        LIMIT 1
+      `;
 
   return NextResponse.json({ member: updated[0] });
 }
@@ -99,7 +139,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     return badRequestResponse("You cannot remove your own account");
   }
 
-  const member = await findStudioTeamMember(session.studioId, userId);
+  const teamRoleColumnExists = await hasTeamRoleColumn();
+  const member = await findStudioTeamMember(session.studioId, userId, teamRoleColumnExists);
   if (!member) return notFoundResponse("Team member not found");
 
   await prisma.user.delete({ where: { id: userId } });

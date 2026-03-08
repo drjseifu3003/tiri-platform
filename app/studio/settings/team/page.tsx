@@ -2,6 +2,7 @@
 
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useSession } from "@/lib/session-context";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -50,8 +51,18 @@ export default function StudioTeamSettingsPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | TeamRole>("all");
   const [createLoading, setCreateLoading] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
   const [resetForMemberId, setResetForMemberId] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [showAddPassword, setShowAddPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [formData, setFormData] = useState({
+    phone: "",
+    password: "",
+    teamRole: "EVENT_PLANNER" as TeamRole,
+  });
+  const [editFormData, setEditFormData] = useState({
     phone: "",
     password: "",
     teamRole: "EVENT_PLANNER" as TeamRole,
@@ -142,6 +153,8 @@ export default function StudioTeamSettingsPage() {
       }
 
       setFormData({ phone: "", password: "", teamRole: "EVENT_PLANNER" });
+      setShowAddPassword(false);
+      setIsAddDialogOpen(false);
       setSuccess("Team member added successfully.");
       await loadMembers();
     } catch {
@@ -151,33 +164,73 @@ export default function StudioTeamSettingsPage() {
     }
   }
 
-  async function handleUpdateRole(member: TeamMember, nextRole: TeamRole) {
+  function openEditDialog(member: TeamMember) {
     setActionError(null);
     setSuccess(null);
+    setShowEditPassword(false);
+    setEditingMember(member);
+    setEditFormData({
+      phone: member.phone,
+      password: "",
+      teamRole: member.teamRole,
+    });
+  }
+
+  function closeEditDialog() {
+    setEditingMember(null);
+    setShowEditPassword(false);
+    setEditFormData({
+      phone: "",
+      password: "",
+      teamRole: "EVENT_PLANNER",
+    });
+  }
+
+  async function handleUpdateMember(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingMember) return;
+
+    setActionError(null);
+    setSuccess(null);
+    setEditLoading(true);
 
     if (!isAdmin) {
       setActionError("Only admin users can update team roles.");
+      setEditLoading(false);
       return;
     }
 
+    const payload: { phone: string; teamRole: TeamRole; password?: string } = {
+      phone: editFormData.phone.trim(),
+      teamRole: editFormData.teamRole,
+    };
+
+    if (editFormData.password.trim().length > 0) {
+      payload.password = editFormData.password;
+    }
+
     try {
-      const response = await fetch(`/api/studio/settings/team/${member.id}`, {
+      const response = await fetch(`/api/studio/settings/team/${editingMember.id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamRole: nextRole }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        setActionError(body?.error ?? "Unable to update team role");
+        setActionError(body?.error ?? "Unable to update team member");
         return;
       }
 
-      setSuccess("Team role updated.");
+      closeEditDialog();
+      setSuccess("Team member updated.");
       await loadMembers();
     } catch {
-      setActionError("Unable to update team role");
+      setActionError("Unable to update team member");
+    } finally {
+      setEditLoading(false);
     }
   }
   async function handleResetPassword(memberId: string) {
@@ -283,54 +336,24 @@ export default function StudioTeamSettingsPage() {
         </div>
       </div>
 
-      <section className="ui-panel mt-5">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-zinc-800">Add Team Member</h3>
-          <p className="mt-1 text-sm text-zinc-600">Create a login and assign team role: editor, customer service, event planner, or photo crew.</p>
+      <section className="ui-panel mt-5 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-zinc-800">Team Members</h3>
+          <p className="mt-1 text-sm text-zinc-600">Add and edit team members using dialogs.</p>
         </div>
-
-        <form className="grid gap-3 md:grid-cols-3" onSubmit={handleCreateMember}>
-          <PhoneInput
-            value={formData.phone}
-            onChange={(value) => setFormData((current) => ({ ...current, phone: value ?? "" }))}
-            placeholder="Phone"
-            defaultCountry="ET"
-            className="w-full"
-            required
-            disabled={!isAdmin}
-          />
-          <input
-            type="password"
-            value={formData.password}
-            onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
-            placeholder="Temporary password"
-            className="ui-input"
-            required
-            disabled={!isAdmin}
-          />
-          <select
-            value={formData.teamRole}
-            onChange={(event) => setFormData((current) => ({ ...current, teamRole: event.target.value as TeamRole }))}
-            className="ui-select"
-            disabled={!isAdmin}
-          >
-            {teamRoleOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <div className="md:col-span-3 flex justify-end">
-            <button
-              type="submit"
-              disabled={createLoading || !isAdmin}
-              className="ui-button-primary"
-            >
-              {createLoading ? "Adding..." : "Add Member"}
-            </button>
-          </div>
-        </form>
+        <button
+          type="button"
+          className="ui-button-primary"
+          disabled={!isAdmin}
+          onClick={() => {
+            setActionError(null);
+            setSuccess(null);
+            setShowAddPassword(false);
+            setIsAddDialogOpen(true);
+          }}
+        >
+          Add Team Member
+        </button>
       </section>
 
       {error ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
@@ -384,23 +407,18 @@ export default function StudioTeamSettingsPage() {
                   <tr key={member.id} className="border-t border-zinc-100 align-top hover:bg-zinc-50">
                     <td className="px-4 py-3 font-medium text-zinc-800">{member.phone}</td>
                     <td className="px-4 py-3 text-zinc-700">{member.role}</td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={member.teamRole}
-                        onChange={(event) => void handleUpdateRole(member, event.target.value as TeamRole)}
-                        disabled={!isAdmin}
-                        className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 disabled:cursor-not-allowed disabled:bg-zinc-100"
-                      >
-                        {teamRoleOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
+                    <td className="px-4 py-3 text-zinc-700">{roleLabel(member.teamRole)}</td>
                     <td className="px-4 py-3 text-zinc-600">{formatDate(member.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditDialog(member)}
+                          disabled={!isAdmin}
+                          className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Edit
+                        </button>
                         <button
                           type="button"
                           onClick={() => void handleResetPassword(member.id)}
@@ -430,6 +448,155 @@ export default function StudioTeamSettingsPage() {
           ) : null}
         </div>
       )}
+
+      {isAddDialogOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="mb-5">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Add Team Member</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Create login and assign team role.</p>
+            </div>
+
+            <form className="space-y-3" onSubmit={handleCreateMember}>
+              <PhoneInput
+                value={formData.phone}
+                onChange={(value) => setFormData((current) => ({ ...current, phone: value ?? "" }))}
+                placeholder="Phone"
+                defaultCountry="ET"
+                className="w-full"
+                required
+                disabled={createLoading}
+              />
+              <div className="relative">
+                <input
+                  type={showAddPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(event) => setFormData((current) => ({ ...current, password: event.target.value }))}
+                  placeholder="Temporary password"
+                  className="ui-input pr-10"
+                  required
+                  disabled={createLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAddPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--text-secondary)" }}
+                  disabled={createLoading}
+                  aria-label={showAddPassword ? "Hide temporary password" : "Show temporary password"}
+                  title={showAddPassword ? "Hide temporary password" : "Show temporary password"}
+                >
+                  {showAddPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <select
+                value={formData.teamRole}
+                onChange={(event) => setFormData((current) => ({ ...current, teamRole: event.target.value as TeamRole }))}
+                className="ui-select"
+                disabled={createLoading}
+              >
+                {teamRoleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+                <button
+                  type="button"
+                  className="ui-button-secondary"
+                  onClick={() => setIsAddDialogOpen(false)}
+                  disabled={createLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="ui-button-primary"
+                  disabled={createLoading}
+                >
+                  {createLoading ? "Adding..." : "Add Member"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {editingMember ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="mb-5">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Edit Team Member</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Update phone, role, or reset password.</p>
+            </div>
+
+            <form className="space-y-3" onSubmit={handleUpdateMember}>
+              <PhoneInput
+                value={editFormData.phone}
+                onChange={(value) => setEditFormData((current) => ({ ...current, phone: value ?? "" }))}
+                placeholder="Phone"
+                defaultCountry="ET"
+                className="w-full"
+                required
+                disabled={editLoading}
+              />
+              <select
+                value={editFormData.teamRole}
+                onChange={(event) => setEditFormData((current) => ({ ...current, teamRole: event.target.value as TeamRole }))}
+                className="ui-select"
+                disabled={editLoading}
+              >
+                {teamRoleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="relative">
+                <input
+                  type={showEditPassword ? "text" : "password"}
+                  value={editFormData.password}
+                  onChange={(event) => setEditFormData((current) => ({ ...current, password: event.target.value }))}
+                  placeholder="New password (optional)"
+                  className="ui-input pr-10"
+                  disabled={editLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "var(--text-secondary)" }}
+                  disabled={editLoading}
+                  aria-label={showEditPassword ? "Hide new password" : "Show new password"}
+                  title={showEditPassword ? "Hide new password" : "Show new password"}
+                >
+                  {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+                <button
+                  type="button"
+                  className="ui-button-secondary"
+                  onClick={closeEditDialog}
+                  disabled={editLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="ui-button-primary"
+                  disabled={editLoading}
+                >
+                  {editLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

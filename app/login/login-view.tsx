@@ -1,14 +1,17 @@
 "use client";
 
+import { PhoneInput } from "@/components/ui/phone-input";
 import { useSession } from "@/lib/session-context";
+import { Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export function LoginView() {
-  const { status, session, error, login, logout, clearError, isAuthenticated } = useSession();
+  const { status, error, login, clearError, isAuthenticated } = useSession();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -29,113 +32,106 @@ export function LoginView() {
     }
   }
 
-  async function handleLogout() {
-    clearError();
-
-    try {
-      await logout();
-    } catch {
-      // handled by session state
-    }
+  if (isAuthenticated) {
+    return (
+      <main className="flex min-h-screen items-center justify-center" style={{ background: "var(--background)" }}>
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Redirecting...</p>
+      </main>
+    );
   }
 
   return (
     <main
-      className="flex min-h-screen items-center justify-center px-6 py-6"
+      className="flex min-h-screen items-center justify-center"
       style={{
         background:
-          "radial-gradient(circle at top left, rgba(122, 26, 83, 0.12), transparent 45%), radial-gradient(circle at bottom right, rgba(91, 168, 184, 0.12), transparent 45%), var(--background)",
+          "radial-gradient(circle at top left, rgba(122, 26, 83, 0.1), transparent 40%), radial-gradient(circle at bottom right, rgba(91, 168, 184, 0.08), transparent 45%), var(--background)",
       }}
     >
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-center">
-        <section className="grid w-full overflow-hidden rounded-2xl border bg-white md:grid-cols-2" style={{ borderColor: "var(--border-subtle)" }}>
+      <div className="flex w-full items-center justify-center">
+        <section className="grid w-full min-h-screen overflow-hidden border bg-white shadow-sm lg:grid-cols-[1.1fr_1fr]" style={{ borderColor: "var(--border-subtle)" }}>
           <div
-            className="flex flex-col justify-center gap-6 p-8 text-white md:p-10"
+            className="relative hidden p-10 text-white lg:flex lg:items-center lg:justify-center"
             style={{
               background: "linear-gradient(145deg, var(--primary) 0%, var(--primary-light) 72%, var(--secondary) 100%)",
             }}
           >
-            <p className="text-xs uppercase tracking-[0.2em] text-white/80">Kebkab events</p>
-            <h1 className="text-3xl font-semibold leading-tight">Elevate every celebration with the Kebkab studio suite.</h1>
-            <p className="text-sm text-white/85">
-              Coordinate invitations, guests, and media delivery from one elegant control center.
-            </p>
-            <div className="rounded-xl border border-white/35 bg-white/15 p-4 text-sm backdrop-blur-sm">
-              <p>
-                Studio: <span className="font-medium">{session?.studio?.name ?? "Your Studio"}</span>
-              </p>
+            <div className="pointer-events-none absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.35), transparent 50%)" }} />
+
+            <div className="relative z-10 w-full max-w-xl">
+              <div className="flex items-center gap-3">
+                <img src="/logo.png" alt="Kebkab logo" className="h-9 w-9 rounded-md object-contain" />
+                <p className="text-2xl font-semibold tracking-tight">Kebkab Events</p>
+              </div>
+
+              <h1 className="mt-14 text-5xl font-semibold leading-[1.1] tracking-tight">
+                Orthodox Event
+                <br />
+                Planning
+              </h1>
             </div>
           </div>
 
-          <div className="flex flex-col justify-center gap-5 bg-white p-8 md:p-10">
-            <div>
-              <h2 className="text-2xl font-semibold" style={{ color: "var(--primary)" }}>Studio Login</h2>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Sign in to your Kebkab workspace</p>
-            </div>
+          <div className="flex flex-col justify-center bg-white p-6 sm:p-8 lg:p-10">
+            <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--text-tertiary)" }}>Welcome Back</p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight" style={{ color: "var(--primary)" }}>Sign in to Kebkab</h2>
+              </div>
 
-            {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+              {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
-            {!isAuthenticated ? (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                <label className="flex flex-col gap-1 text-sm text-zinc-700">
-                  Phone
-                  <input
-                    type="text"
+                <label className="flex flex-col gap-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  Phone Number
+                  <PhoneInput
                     value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    className="rounded-lg border px-3 py-2.5 outline-none focus:ring-2"
-                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", boxShadow: "none", ['--tw-ring-color' as string]: "var(--primary-lighter)" }}
-                    autoComplete="username"
-                    placeholder="+12025550101"
+                    onChange={(value) => setPhone(value ?? "")}
+                    defaultCountry="ET"
+                    className="w-full"
+                    placeholder="+2519XXXXXXXX"
                     required
                   />
                 </label>
 
-                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                <label className="flex flex-col gap-1 text-sm" style={{ color: "var(--text-secondary)" }}>
                   Password
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="rounded-lg border px-3 py-2.5 outline-none focus:ring-2"
-                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", boxShadow: "none", ['--tw-ring-color' as string]: "var(--primary-lighter)" }}
-                    autoComplete="current-password"
-                    placeholder="••••••••"
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="ui-input pr-10"
+                      autoComplete="current-password"
+                      placeholder="Enter your password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: "var(--text-secondary)" }}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </label>
 
                 <button
                   type="submit"
                   disabled={status === "loading"}
-                  className="rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-                  style={{ background: "linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)" }}
+                  className="ui-button-primary mt-2 py-2.5 disabled:opacity-50"
                 >
-                  {status === "loading" ? "Signing in..." : "Enter Dashboard"}
+                  {status === "loading" ? "Signing in..." : "Sign in"}
                 </button>
-              </form>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <div className="rounded-lg border p-4 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                  <p>
-                    User: <span className="font-medium" style={{ color: "var(--primary)" }}>{session?.user.phone}</span>
-                  </p>
-                  <p>
-                    Role: <span className="font-medium" style={{ color: "var(--secondary)" }}>{session?.user.role}</span>
-                  </p>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={status === "loading"}
-                  className="rounded-lg border px-4 py-2.5 text-sm font-medium disabled:opacity-50"
-                  style={{ borderColor: "var(--border-subtle)", color: "var(--primary)" }}
-                >
-                  {status === "loading" ? "Working..." : "Sign out"}
-                </button>
-              </div>
-            )}
+                <p className="pt-1 text-center text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  Protected by enterprise-grade security
+                </p>
+              </form>
+            </div>
           </div>
         </section>
       </div>
