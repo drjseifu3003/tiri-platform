@@ -1,299 +1,96 @@
 "use client";
 
-import {
-  CalendarCheck2,
-  Camera,
-  Church,
-  ClipboardList,
-  MapPin,
-  Phone,
-  Users,
-  type LucideIcon,
-} from "lucide-react";
+import { Phone, Mail, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
-
-type WeddingMedia = {
-  id: string;
-  type: "IMAGE" | "VIDEO";
-  url: string;
-  createdAt: string;
-};
-
-type WeddingResult = {
-  id: string;
-  title: string;
-  brideName: string | null;
-  groomName: string | null;
-  eventDate: string;
-  location: string | null;
-  description: string | null;
-  coverImage: string | null;
-  status: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
-  media: WeddingMedia[];
-  _count: {
-    media: number;
-    guests: number;
-  };
-};
-
-type WeddingCheckResponse = {
-  events: WeddingResult[];
-  error?: string;
-};
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function isValidDate(value: Date) {
-  return !Number.isNaN(value.getTime());
-}
-
-function coupleName(event: WeddingResult) {
-  const bride = event.brideName?.trim();
-  const groom = event.groomName?.trim();
-  if (bride && groom) return `${bride} & ${groom}`;
-  if (bride) return bride;
-  if (groom) return groom;
-  return event.title;
-}
+import { useState } from "react";
 
 export default function Home() {
-  const [bookingForm, setBookingForm] = useState({
-    fullName: "",
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [consultationForm, setConsultationForm] = useState({
+    name: "",
+    email: "",
     phone: "",
-    eventDate: "",
-    eventTime: "18:00",
-    location: "",
-    guestCount: "",
+    message: "",
   });
-  const [phoneToCheck, setPhoneToCheck] = useState("");
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState<string | null>(null);
-  const [results, setResults] = useState<WeddingResult[]>([]);
 
-  const minEventDate = toDateInputValue(new Date());
-  const eventDateTime = bookingForm.eventDate && bookingForm.eventTime
-    ? new Date(`${bookingForm.eventDate}T${bookingForm.eventTime}`)
-    : null;
-  const eventDateTimePreview = eventDateTime && isValidDate(eventDateTime)
-    ? new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(eventDateTime)
-    : null;
-
-  const bookingMessage = useMemo(() => {
-    const dateText = eventDateTimePreview ?? "Not set";
-    return [
-      "Hello Kebkab Events, I want to book my wedding.",
-      `Name: ${bookingForm.fullName || "-"}`,
-      `Phone: ${bookingForm.phone || "-"}`,
-      `Wedding date: ${dateText}`,
-      `Location: ${bookingForm.location || "-"}`,
-      `Estimated guests: ${bookingForm.guestCount || "-"}`,
-    ].join("\n");
-  }, [bookingForm, eventDateTimePreview]);
-
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(bookingMessage)}`;
-
-  async function handleWeddingCheckSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLookupError(null);
-    setLookupLoading(true);
-    setResults([]);
-
-    try {
-      const response = await fetch(`/api/public/wedding-check?phone=${encodeURIComponent(phoneToCheck)}`);
-      const payload = (await response.json()) as WeddingCheckResponse;
-
-      if (!response.ok) {
-        setLookupError(payload.error ?? "Unable to check your wedding right now.");
-        return;
-      }
-
-      setResults(payload.events ?? []);
-      if ((payload.events ?? []).length === 0) {
-        setLookupError("No wedding found for this phone number. Try bride or groom phone number.");
-      }
-    } catch {
-      setLookupError("Unable to check your wedding right now.");
-    } finally {
-      setLookupLoading(false);
-    }
-  }
-
-  const services: Array<{ title: string; desc: string; icon: LucideIcon }> = [
-    {
-      title: "Full Wedding Planning",
-      desc: "End-to-end planning from concept, budget, and timeline to final day delivery.",
-      icon: ClipboardList,
-    },
-    {
-      title: "Venue and Decor Design",
-      desc: "Theme direction, floral styling, stage build, and detailed event atmosphere.",
-      icon: Church,
-    },
-    {
-      title: "Guest Management",
-      desc: "Invitation flow, RSVP tracking, guest list cleanup, and check-in coordination.",
-      icon: Users,
-    },
-    {
-      title: "Photo and Video",
-      desc: "Organized image and video delivery so couples can revisit memories anytime.",
-      icon: Camera,
-    },
-    {
-      title: "Vendor Coordination",
-      desc: "One team managing communication with trusted makeup, decor, media, and venue partners.",
-      icon: Phone,
-    },
-    {
-      title: "Day-Of Operations",
-      desc: "On-site team to run schedule, ceremony flow, and guest experience seamlessly.",
-      icon: CalendarCheck2,
-    },
-  ];
+  const handleConsultationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormSubmitted(true);
+    setTimeout(() => setFormSubmitted(false), 3000);
+  };
 
   return (
-    <main className="w-full overflow-x-hidden" style={{ background: "#ffffff" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b px-4 py-4 sm:px-8 lg:px-12" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Kebkab Events" className="h-10 w-10 rounded-lg object-contain" />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Kebkab Events</p>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Orthodox Wedding Planner</p>
-            </div>
+    <div className="w-full bg-white">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-40 border-b" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="text-lg font-semibold" style={{ color: "var(--primary)" }}>
+            Eternal Moments
           </div>
-
-          <nav className="hidden items-center gap-8 lg:flex">
-            <a href="#home" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Home</a>
-            <a href="#services" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Services</a>
-            <a href="#process" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Process</a>
-            <a href="#check" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Check Wedding</a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium border" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "transparent" }}>
-              Login
-            </Link>
+          <div className="flex items-center gap-6">
+            <a href="#services" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Services
+            </a>
+            <a href="#portfolio" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Portfolio
+            </a>
+            <a href="#contact" className="text-sm font-semibold rounded-lg px-4 py-2" style={{ background: "var(--primary)", color: "#ffffff" }}>
+              Book Now
+            </a>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Hero Section with Booking */}
-      <section id="home" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "var(--primary)" }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-            {/* Left: Headline */}
-            <div className="text-white py-8 sm:py-12">
-              <p className="text-sm font-semibold uppercase tracking-wider opacity-90">
-                Orthodox Wedding Planning
-              </p>
-              <h1 className="mt-4 text-4xl sm:text-5xl lg:text-5xl font-semibold leading-tight tracking-tight">
-                Your wedding, beautifully orchestrated
-              </h1>
-              <p className="mt-6 text-lg leading-relaxed opacity-90">
-                Complete event planning, guest management, and media delivery. Book your consultation today.
-              </p>
-            </div>
-
-            {/* Right: Booking Form */}
-            <div className="rounded-lg bg-white p-6 sm:p-8">
-              <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Book Your Wedding</h3>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                Share your details and we'll contact you shortly.
-              </p>
-
-              <form className="mt-5 space-y-3">
-                <input
-                  value={bookingForm.fullName}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, fullName: event.target.value }))}
-                  placeholder="Full name"
-                  className="ui-input w-full"
-                />
-                <input
-                  value={bookingForm.phone}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, phone: event.target.value }))}
-                  placeholder="Phone number"
-                  className="ui-input w-full"
-                  required
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="date"
-                    value={bookingForm.eventDate}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, eventDate: event.target.value }))}
-                    className="ui-input"
-                    min={minEventDate}
-                  />
-                  <input
-                    type="time"
-                    value={bookingForm.eventTime}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, eventTime: event.target.value }))}
-                    className="ui-input"
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    value={bookingForm.guestCount}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, guestCount: event.target.value }))}
-                    placeholder="Estimated guests"
-                    className="ui-input"
-                  />
-                  <input
-                    value={bookingForm.location}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, location: event.target.value }))}
-                    placeholder="Wedding location"
-                    className="ui-input"
-                  />
-                </div>
-
-                <a href={whatsappHref} target="_blank" rel="noreferrer" className="block w-full text-center py-3 rounded-lg text-sm font-semibold" style={{ background: "var(--primary)", color: "#ffffff" }}>
-                  Send via WhatsApp
-                </a>
-              </form>
-            </div>
+      {/* Hero Section */}
+      <section className="px-4 sm:px-6 lg:px-8 py-20 sm:py-32" style={{ background: "var(--primary)" }}>
+        <div className="max-w-4xl mx-auto text-center text-white">
+          <p className="text-sm font-semibold uppercase tracking-wider opacity-90">
+            Professional Wedding Planning
+          </p>
+          <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight">
+            Your dream wedding, perfectly orchestrated
+          </h1>
+          <p className="mt-6 text-lg opacity-90 max-w-2xl mx-auto">
+            From intimate ceremonies to grand celebrations, we bring your vision to life with meticulous attention to every detail.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="#contact" className="inline-flex items-center justify-center px-8 py-3 font-semibold rounded-lg bg-white text-primary gap-2 hover:opacity-90 transition">
+              Schedule Consultation <ArrowRight className="h-4 w-4" />
+            </a>
+            <a href="#portfolio" className="inline-flex items-center justify-center px-8 py-3 font-semibold rounded-lg border-2 border-white text-white hover:bg-white/10 transition">
+              View Portfolio
+            </a>
           </div>
         </div>
       </section>
 
       {/* Services Section */}
-      <section id="services" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "var(--surface-muted)" }}>
+      <section id="services" className="px-4 sm:px-6 lg:px-8 py-20">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-12">
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Services</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              Everything you need for your wedding
+          <div className="text-center mb-16">
+            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              What We Offer
+            </p>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              Comprehensive Wedding Services
             </h2>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => (
-              <div key={service.title} className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
-                <service.icon className="h-6 w-6" style={{ color: "var(--primary)" }} />
-                <h3 className="mt-3 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{service.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  {service.desc}
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              { title: "Full Planning", description: "End-to-end coordination from concept to celebration" },
+              { title: "Day-of Coordination", description: "Expert management ensuring everything runs smoothly" },
+              { title: "Vendor Management", description: "Curated network of trusted professionals" },
+              { title: "Venue Selection", description: "Find the perfect setting for your celebration" },
+              { title: "Design & Decor", description: "Thematic design that reflects your personality" },
+              { title: "Guest Management", description: "Seamless coordination with our digital platform" },
+            ].map((service, idx) => (
+              <div key={idx} className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)" }}>
+                <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {service.title}
+                </h3>
+                <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {service.description}
                 </p>
               </div>
             ))}
@@ -301,97 +98,188 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Process Section */}
-      <section id="process" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "#ffffff" }}>
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-12">
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>How It Works</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              Simple four-step process
+      {/* Portfolio Section */}
+      <section id="portfolio" className="px-4 sm:px-6 lg:px-8 py-20" style={{ background: "var(--surface-muted)" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              Featured Weddings
+            </p>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              Celebrations We've Orchestrated
             </h2>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            {[
-              { step: "01", title: "Consultation", desc: "We align your vision, priorities, and budget." },
-              { step: "02", title: "Planning", desc: "We prepare timeline, ceremony flow, and vendors." },
-              { step: "03", title: "Execution", desc: "We run the full event on your wedding day." },
-              { step: "04", title: "Memories", desc: "Access photos and videos with your phone number." },
-            ].map((item) => (
-              <div key={item.step} className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                <p className="text-2xl font-semibold" style={{ color: "var(--primary)" }}>{item.step}</p>
-                <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{item.title}</h3>
-                <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>{item.desc}</p>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div key={item} className="rounded-lg overflow-hidden border" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+                <div className="h-48 sm:h-56 bg-gradient-to-br from-gray-200 to-gray-300"></div>
+                <div className="p-4">
+                  <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Wedding Celebration {item}
+                  </h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    A beautiful ceremony with 150+ guests
+                  </p>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Wedding Check Section */}
-      <section id="check" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "#ffffff" }}>
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Check Your Wedding</p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              View your wedding and memories
-            </h2>
-            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-              Use bride or groom phone number to access your event details, photos, and videos.
+      {/* Testimonials */}
+      <section className="px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              Client Stories
             </p>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              Loved by Couples
+            </h2>
           </div>
 
-          <form onSubmit={handleWeddingCheckSubmit} className="flex flex-col gap-4 sm:flex-row">
-            <input
-              value={phoneToCheck}
-              onChange={(event) => setPhoneToCheck(event.target.value)}
-              placeholder="Bride or groom phone number"
-              className="ui-input h-11 flex-1"
-              required
-            />
-            <button type="submit" className="h-11 px-6 rounded-lg text-sm font-semibold" style={{ background: "var(--primary)", color: "#ffffff" }} disabled={lookupLoading}>
-              {lookupLoading ? "Checking..." : "Check"}
-            </button>
-          </form>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {[
+              {
+                name: "Sarah & Michael",
+                quote: "From the first consultation to our wedding day, the planning was seamless and stress-free. Highly recommended!",
+              },
+              {
+                name: "Emma & David",
+                quote: "Our wedding exceeded every expectation. The attention to detail was incredible and our guests loved every moment.",
+              },
+              {
+                name: "Rachel & John",
+                quote: "Professional, creative, and dedicated to making our day special. They made the entire process enjoyable.",
+              },
+            ].map((testimonial, idx) => (
+              <div key={idx} className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+                <p className="text-sm italic" style={{ color: "var(--text-secondary)" }}>
+                  "{testimonial.quote}"
+                </p>
+                <p className="mt-4 font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+                  {testimonial.name}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          {lookupError ? (
-            <p className="mt-4 rounded-lg border px-4 py-3 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}>
-              {lookupError}
-            </p>
-          ) : null}
+      {/* Contact Section */}
+      <section id="contact" className="px-4 sm:px-6 lg:px-8 py-20" style={{ background: "var(--surface-muted)" }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            {/* Contact Info */}
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                Get in Touch
+              </p>
+              <h2 className="mt-2 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
+                Ready to plan your perfect wedding?
+              </h2>
+              <p className="mt-4 text-sm" style={{ color: "var(--text-secondary)" }}>
+                Let's discuss your vision and create something truly magical.
+              </p>
 
-          {results.length > 0 ? (
-            <div className="mt-8 space-y-4">
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Your Wedding{results.length > 1 ? 's' : ''} Found</p>
-              {results.map((event) => (
-                <Link key={event.id} href={`/gallery/${event.id}`} className="block rounded-lg border p-6 transition hover:border-opacity-100" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                  <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{event.title}</h3>
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    <span className="flex items-center gap-2">
-                      <CalendarCheck2 className="h-4 w-4" />
-                      {formatDate(event.eventDate)}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Camera className="h-4 w-4" />
-                      {event._count.media} files
-                    </span>
-                  </div>
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--primary)" }}>View wedding →</p>
-                </Link>
-              ))}
+              <div className="mt-8 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  <a href="tel:+1234567890" className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                    +1 (234) 567-8900
+                  </a>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  <a href="mailto:hello@eternalmoments.com" className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                    hello@eternalmoments.com
+                  </a>
+                </div>
+              </div>
             </div>
-          ) : null}
+
+            {/* Consultation Form */}
+            <div className="rounded-lg border p-8" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+              <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                Schedule a Free Consultation
+              </h3>
+
+              <form className="mt-6 space-y-4" onSubmit={handleConsultationSubmit}>
+                <div>
+                  <input
+                    type="text"
+                    placeholder="Your Name"
+                    value={consultationForm.name}
+                    onChange={(e) => setConsultationForm({ ...consultationForm, name: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg border text-sm"
+                    style={{ borderColor: "var(--border-subtle)" }}
+                    required
+                  />
+                </div>
+                <div>
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={consultationForm.email}
+                    onChange={(e) => setConsultationForm({ ...consultationForm, email: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg border text-sm"
+                    style={{ borderColor: "var(--border-subtle)" }}
+                    required
+                  />
+                </div>
+                <div>
+                  <input
+                    type="tel"
+                    placeholder="Phone Number"
+                    value={consultationForm.phone}
+                    onChange={(e) => setConsultationForm({ ...consultationForm, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg border text-sm"
+                    style={{ borderColor: "var(--border-subtle)" }}
+                    required
+                  />
+                </div>
+                <div>
+                  <textarea
+                    placeholder="Tell us about your vision..."
+                    value={consultationForm.message}
+                    onChange={(e) => setConsultationForm({ ...consultationForm, message: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-lg border text-sm"
+                    style={{ borderColor: "var(--border-subtle)" }}
+                    rows={4}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-lg text-sm font-semibold text-white transition"
+                  style={{ background: "var(--primary)" }}
+                >
+                  {formSubmitted ? "Request Sent!" : "Request Consultation"}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="w-full border-t px-4 py-8 sm:px-8 lg:px-12" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
-        <div className="max-w-6xl mx-auto text-center">
+      <footer className="border-t px-4 sm:px-6 lg:px-8 py-8" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            © 2024 Kebkab Events. Orthodox wedding planning platform.
+            © 2024 Eternal Moments. All rights reserved.
           </p>
+          <div className="flex items-center gap-6">
+            <a href="#" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Privacy Policy
+            </a>
+            <a href="#" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Terms of Service
+            </a>
+          </div>
         </div>
       </footer>
-    </main>
+    </div>
   );
 }
