@@ -62,9 +62,8 @@ export function LoginView() {
             <div className="relative z-10 w-full max-w-xl">
               <div className="flex items-center gap-3">
                 <img src="/logo.png" alt="Kebkab logo" className="h-9 w-9 rounded-md object-contain" />
-                <p className="text-2xl font-semibold tracking-tight">Kebkab Events</p>
+                <p className="text-2xl font-semibold tracking-tight">ክብካብ Events</p>
               </div>
-
               <h1 className="mt-14 text-5xl font-semibold leading-[1.1] tracking-tight">
                 Orthodox Event
                 <br />

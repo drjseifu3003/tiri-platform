@@ -1,5 +1,7 @@
 "use client";
 
+import { InsightsTabs } from "@/components/insights/InsightsTabs";
+import { NeoBarChart } from "@/components/insights/NeoChart";
 import { useSession } from "@/lib/session-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -220,90 +222,11 @@ export default function DataInsightsPage() {
           years,
         };
       })
-      .filter((item) => item.daysUntil >= 0 && item.anniversary <= inNinetyDays)
+      .filter((item) => item.years >= 1 && item.daysUntil >= 0 && item.anniversary <= inNinetyDays)
       .sort((a, b) => a.anniversary.getTime() - b.anniversary.getTime())
       .slice(0, 6);
   }, [filteredEvents]);
 
-  const growth = useMemo(() => {
-    const firstHalfStart = new Date(selectedYear, 0, 1);
-    const secondHalfStart = new Date(selectedYear, 6, 1);
-    const nextYearStart = new Date(selectedYear + 1, 0, 1);
-
-    const firstHalf = filteredEvents.filter((event) => {
-      const date = new Date(event.eventDate);
-      return date >= firstHalfStart && date < secondHalfStart;
-    }).length;
-
-    const secondHalf = filteredEvents.filter((event) => {
-      const date = new Date(event.eventDate);
-      return date >= secondHalfStart && date < nextYearStart;
-    }).length;
-
-    const thisYear = filteredEvents.length;
-    const lastYear = events.filter((event) => new Date(event.eventDate).getFullYear() === selectedYear - 1).length;
-
-    const yoyChange = lastYear > 0 ? Math.round(((thisYear - lastYear) / lastYear) * 100) : thisYear > 0 ? 100 : 0;
-
-    const locationCounts = new Map<string, number>();
-    for (const event of filteredEvents) {
-      const location = event.location?.trim();
-      if (!location) continue;
-      locationCounts.set(location, (locationCounts.get(location) ?? 0) + 1);
-    }
-
-    const topLocations = [...locationCounts.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
-
-    return {
-      firstHalf,
-      secondHalf,
-      thisYear,
-      lastYear,
-      yoyChange,
-      topLocations,
-    };
-  }, [events, filteredEvents, selectedYear]);
-
-  const statusMix = useMemo(() => {
-    const counts: Record<EventStatus, number> = {
-      DRAFT: 0,
-      SCHEDULED: 0,
-      LIVE: 0,
-      COMPLETED: 0,
-      CANCELLED: 0,
-      ARCHIVED: 0,
-    };
-
-    for (const event of filteredEvents) {
-      counts[resolveEventStatus(event)] += 1;
-    }
-
-    const ordered: Array<{ label: string; value: number; color: string }> = [
-      { label: "Completed", value: counts.COMPLETED, color: "#2f7d69" },
-      { label: "Scheduled", value: counts.SCHEDULED, color: "#1f6f7f" },
-      { label: "Live", value: counts.LIVE, color: "#8a1f44" },
-      { label: "Draft", value: counts.DRAFT, color: "#a16f30" },
-      { label: "Cancelled", value: counts.CANCELLED, color: "#9f3355" },
-      { label: "Archived", value: counts.ARCHIVED, color: "#6b7280" },
-    ];
-
-    const total = Math.max(1, ordered.reduce((sum, item) => sum + item.value, 0));
-    let cursor = 0;
-    const segments = ordered.map((item) => {
-      const start = cursor;
-      const ratio = item.value / total;
-      cursor += ratio;
-      return `${item.color} ${Math.round(start * 360)}deg ${Math.round(cursor * 360)}deg`;
-    });
-
-    return {
-      ordered,
-      ringStyle: `conic-gradient(${segments.join(",")})`,
-    };
-  }, [filteredEvents]);
 
   if (status === "loading" || status === "idle" || status === "unauthenticated" || loadingData) {
     return (
@@ -315,7 +238,14 @@ export default function DataInsightsPage() {
 
   return (
     <main className="flex min-h-full flex-col gap-6">
-      <section className="rounded-3xl border p-5 shadow-sm sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+      <section
+        className="rounded-3xl border p-5 shadow-sm sm:p-6"
+        style={{
+          borderColor: "var(--border-subtle)",
+          background:
+            "radial-gradient(circle at right top, rgba(91, 168, 184, 0.12), transparent 48%), radial-gradient(circle at left bottom, rgba(160, 54, 92, 0.12), transparent 45%), var(--surface)",
+        }}
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--text-tertiary)" }}>
@@ -325,12 +255,16 @@ export default function DataInsightsPage() {
               Seasonal demand, customer milestones, and growth signals
             </h2>
             <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-              Showing business insights for {selectedYear} based on your real wedding records.
+              Live analytics for {selectedYear} based on your real event records.
             </p>
           </div>
 
           <div className="w-full sm:w-auto">
-            <label className="text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }} htmlFor="insights-year-filter">
+            <label
+              className="text-xs font-semibold uppercase tracking-[0.15em]"
+              style={{ color: "var(--text-tertiary)" }}
+              htmlFor="insights-year-filter"
+            >
               Year
             </label>
             <select
@@ -349,42 +283,26 @@ export default function DataInsightsPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2">
-          <Link
-            href="/studio/insights"
-            className="rounded-lg border px-3 py-2 text-sm font-medium"
-            style={{ borderColor: "var(--primary)", background: "var(--primary)", color: "white" }}
-          >
-            Overview
-          </Link>
-          <Link
-            href="/studio/insights/anniversary"
-            className="rounded-lg border px-3 py-2 text-sm font-medium"
-            style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
-          >
-            Anniversary
-          </Link>
+        <div className="mt-4">
+          <InsightsTabs activeTab="overview" anniversaryCount={upcomingAnniversaries.length} />
         </div>
-      </section>
 
-      <section className="rounded-2xl border p-5 shadow-sm sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Anniversary Insight Priority</h3>
-            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-              {formatNumber(upcomingAnniversaries.length)} upcoming anniversaries in the next 90 days for {selectedYear}.
-            </p>
-            <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-              Open the full-year anniversary page to plan monthly outreach campaigns and retention offers.
-            </p>
+        <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold" style={{ color: "var(--primary)" }}>Anniversary Insight Priority</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                {formatNumber(upcomingAnniversaries.length)} upcoming anniversaries in the next 90 days.
+              </p>
+            </div>
+            <Link
+              href="/studio/insights/anniversary"
+              className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
+              style={{ border: "1px solid var(--primary)", background: "var(--primary)", color: "white" }}
+            >
+              Open Anniversary List
+            </Link>
           </div>
-          <Link
-            href="/studio/insights/anniversary"
-            className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
-            style={{ border: "1px solid var(--primary)", background: "var(--primary)", color: "white" }}
-          >
-            View Full-Year Anniversary List
-          </Link>
         </div>
       </section>
 
@@ -400,84 +318,48 @@ export default function DataInsightsPage() {
         <article className="rounded-2xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
           <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Anniversaries in 90 days</p>
           <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(upcomingAnniversaries.length)}</p>
-          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-            Relationship opportunities to re-engage couples
-          </p>
         </article>
         <article className="rounded-2xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
           <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Peak wedding month</p>
           <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{seasonality.peakMonth.label}</p>
-          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-            {formatNumber(seasonality.peakMonth.count)} weddings in your strongest month
-          </p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>{formatNumber(seasonality.peakMonth.count)} events</p>
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.35fr_1fr]">
+      <section>
         <article className="rounded-2xl border p-5 sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Wedding Season Insights</h3>
-          <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-            Peak month: {seasonality.peakMonth.label} ({seasonality.peakMonth.count}) | Slow month: {seasonality.slowMonth.label} ({seasonality.slowMonth.count})
-          </p>
-          <div className="mt-5 grid grid-cols-6 gap-3 sm:grid-cols-12">
-            {seasonality.buckets.map((bucket) => {
-              const height = Math.max(8, Math.round((bucket.count / seasonality.maxCount) * 120));
-              return (
-                <div key={bucket.label} className="flex flex-col items-center gap-2">
-                  <div className="flex h-32 items-end">
-                    <div
-                      className="w-4 rounded-t-md"
-                      style={{
-                        height,
-                        background: "var(--primary)",
-                      }}
-                      title={`${bucket.label}: ${bucket.count}`}
-                    />
-                  </div>
-                  <p className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{bucket.label}</p>
-                </div>
-              );
-            })}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Wedding Season Insights</h3>
+              <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+                Peak: {seasonality.peakMonth.label} ({seasonality.peakMonth.count}) | Slow: {seasonality.slowMonth.label} ({seasonality.slowMonth.count})
+              </p>
+            </div>
           </div>
-        </article>
 
-        <article className="rounded-2xl border p-5 sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Event Lifecycle Mix</h3>
-          <div className="mt-5 flex items-center gap-5">
-            <div className="relative h-28 w-28 rounded-full" style={{ background: statusMix.ringStyle }}>
-              <div
-                className="absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full"
-                style={{ background: "var(--surface)", border: "1px solid var(--border-subtle)" }}
-              />
-            </div>
-            <div className="space-y-2">
-              {statusMix.ordered.map((item) => (
-                <p key={item.label} className="flex items-center gap-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-                  {item.label}: {formatNumber(item.value)}
-                </p>
-              ))}
-            </div>
+          <div className="mt-4">
+            <NeoBarChart data={seasonality.buckets.map((bucket) => ({ label: bucket.label, value: bucket.count }))} tone="primary" />
           </div>
         </article>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section>
         <article className="rounded-2xl border p-5 sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Customer Relationship Opportunities</h3>
+          <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Relationship Opportunities</h3>
           <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-            Upcoming wedding anniversaries in the next 90 days for reconnect campaigns.
+            Upcoming wedding anniversaries in the next 90 days.
           </p>
           {upcomingAnniversaries.length === 0 ? (
             <p className="mt-4 rounded-xl border px-3 py-3 text-sm" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)", background: "var(--surface-muted)" }}>
-              No anniversaries in the next 90 days yet. Keep adding completed events to unlock lifecycle outreach opportunities.
+              No anniversaries in the next 90 days yet.
             </p>
           ) : (
             <div className="mt-4 space-y-2">
               {upcomingAnniversaries.map((item) => (
-                <div
+                <Link
                   key={item.id}
-                  className="flex items-center justify-between rounded-xl border px-3 py-2"
+                  href={`/studio/events/${item.id}`}
+                  className="flex items-center justify-between rounded-xl border px-3 py-2 transition hover:shadow-sm"
                   style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}
                 >
                   <div>
@@ -487,56 +369,13 @@ export default function DataInsightsPage() {
                   <div className="text-right">
                     <p className="text-xs font-medium" style={{ color: "var(--secondary)" }}>{formatDate(item.anniversary)}</p>
                     <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-                      {item.daysUntil} days | {item.years} year anniversary
+                      {item.daysUntil} days | {item.years} year
                     </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
-        </article>
-
-        <article className="rounded-2xl border p-5 sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Marketing and Growth Signals</h3>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border px-3 py-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Jan-Jun {selectedYear}</p>
-              <p className="mt-1 text-xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(growth.firstHalf)} weddings</p>
-            </div>
-            <div className="rounded-xl border px-3 py-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Jul-Dec {selectedYear}</p>
-              <p className="mt-1 text-xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(growth.secondHalf)} weddings</p>
-            </div>
-            <div className="rounded-xl border px-3 py-3 sm:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>Year-over-year volume</p>
-              <p className="mt-1 text-xl font-semibold" style={{ color: growth.yoyChange >= 0 ? "#1f6f7f" : "#9f3355" }}>
-                {growth.yoyChange >= 0 ? "+" : ""}{growth.yoyChange}%
-              </p>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                {formatNumber(growth.thisYear)} in {selectedYear} vs {formatNumber(growth.lastYear)} in {selectedYear - 1}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>
-              Top locations by demand
-            </p>
-            {growth.topLocations.length === 0 ? (
-              <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                Event locations are not populated yet.
-              </p>
-            ) : (
-              <div className="mt-2 space-y-2">
-                {growth.topLocations.map((location) => (
-                  <div key={location.name} className="flex items-center justify-between text-sm" style={{ color: "var(--text-secondary)" }}>
-                    <span>{location.name}</span>
-                    <span className="font-medium" style={{ color: "var(--primary)" }}>{formatNumber(location.count)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </article>
       </section>
     </main>

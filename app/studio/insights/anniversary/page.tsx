@@ -1,5 +1,7 @@
  "use client";
 
+import { InsightsTabs } from "@/components/insights/InsightsTabs";
+import { NeoBarChart } from "@/components/insights/NeoChart";
 import { useSession } from "@/lib/session-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -212,7 +214,14 @@ export default function AnniversaryInsightsPage() {
 
   return (
     <main className="flex min-h-full flex-col gap-6">
-      <section className="rounded-3xl border p-5 shadow-sm sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+      <section
+        className="rounded-3xl border p-5 shadow-sm sm:p-6"
+        style={{
+          borderColor: "var(--border-subtle)",
+          background:
+            "radial-gradient(circle at right top, rgba(122, 26, 83, 0.12), transparent 48%), radial-gradient(circle at left bottom, rgba(91, 168, 184, 0.1), transparent 50%), var(--surface)",
+        }}
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--text-tertiary)" }}>
@@ -222,7 +231,7 @@ export default function AnniversaryInsightsPage() {
               Full-Year Anniversary Insight
             </h2>
             <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-              High-priority retention view for {selectedYear}: every anniversary date across your completed wedding history.
+              Campaign-ready anniversary planning for {selectedYear} across your completed wedding history.
             </p>
           </div>
 
@@ -246,21 +255,8 @@ export default function AnniversaryInsightsPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex gap-2">
-          <Link
-            href="/studio/insights"
-            className="rounded-lg border px-3 py-2 text-sm font-medium"
-            style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
-          >
-            Overview
-          </Link>
-          <Link
-            href="/studio/insights/anniversary"
-            className="rounded-lg border px-3 py-2 text-sm font-medium"
-            style={{ borderColor: "var(--primary)", background: "var(--primary)", color: "white" }}
-          >
-            Anniversary
-          </Link>
+        <div className="mt-4">
+          <InsightsTabs activeTab="anniversary" anniversaryCount={anniversaryList.length} />
         </div>
       </section>
 
@@ -283,27 +279,11 @@ export default function AnniversaryInsightsPage() {
 
       <section className="rounded-2xl border p-5 shadow-sm sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
         <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Anniversary Distribution by Month ({selectedYear})</h3>
-        <div className="mt-4 grid grid-cols-6 gap-3 sm:grid-cols-12">
-          {monthlyAnniversaryCounts.map((bucket) => {
-            const peak = Math.max(1, ...monthlyAnniversaryCounts.map((item) => item.count));
-            const height = Math.max(8, Math.round((bucket.count / peak) * 120));
-
-            return (
-              <div key={bucket.month} className="flex flex-col items-center gap-2">
-                <div className="flex h-32 items-end">
-                  <div
-                    className="w-4 rounded-t-md"
-                    style={{
-                      height,
-                      background: "var(--primary)",
-                    }}
-                    title={`${bucket.month}: ${bucket.count}`}
-                  />
-                </div>
-                <p className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{bucket.month}</p>
-              </div>
-            );
-          })}
+        <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+          Use this NeoChart view to schedule outreach and offers before high-volume months.
+        </p>
+        <div className="mt-4">
+          <NeoBarChart data={monthlyAnniversaryCounts.map((item) => ({ label: item.month, value: item.count }))} tone="accent" />
         </div>
       </section>
 
@@ -320,25 +300,46 @@ export default function AnniversaryInsightsPage() {
             No anniversary records found for {selectedYear}. Add completed wedding history to unlock this view.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
+              <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
                 <tr>
                   <th className="px-4 py-3 font-medium">Anniversary date</th>
                   <th className="px-4 py-3 font-medium">Couple</th>
                   <th className="px-4 py-3 font-medium">Wedding</th>
                   <th className="px-4 py-3 font-medium">Year milestone</th>
                   <th className="px-4 py-3 font-medium">Location</th>
+                  <th className="px-4 py-3 font-medium text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {anniversaryList.map((item) => (
-                  <tr key={`${item.id}-${item.anniversaryDate.toISOString()}`} className="border-t border-zinc-100 align-top hover:bg-zinc-50">
-                    <td className="px-4 py-3 font-medium text-zinc-800">{formatDate(item.anniversaryDate)}</td>
-                    <td className="px-4 py-3 text-zinc-700">{item.couple}</td>
-                    <td className="px-4 py-3 text-zinc-700">{item.eventTitle}</td>
-                    <td className="px-4 py-3 text-zinc-700">{item.years} year</td>
-                    <td className="px-4 py-3 text-zinc-600">{item.location ?? "-"}</td>
+                  <tr
+                    key={`${item.id}-${item.anniversaryDate.toISOString()}`}
+                    className="align-top transition"
+                    style={{ borderTop: "1px solid var(--border-subtle)" }}
+                  >
+                    <td className="px-4 py-3 font-medium" style={{ color: "var(--text-primary)" }}>{formatDate(item.anniversaryDate)}</td>
+                    <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{item.couple}</td>
+                    <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{item.eventTitle}</td>
+                    <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
+                      <span
+                        className="rounded-full border px-2 py-1 text-xs font-medium"
+                        style={{ borderColor: "var(--secondary-light)", background: "var(--secondary-lighter)", color: "var(--secondary)" }}
+                      >
+                        {item.years} year
+                      </span>
+                    </td>
+                    <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{item.location ?? "-"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link
+                        href={`/studio/events/${item.id}`}
+                        className="inline-flex rounded-lg border px-3 py-1.5 text-xs font-medium transition"
+                        style={{ borderColor: "var(--border-subtle)", color: "var(--primary)", background: "var(--surface-muted)" }}
+                      >
+                        View event
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
