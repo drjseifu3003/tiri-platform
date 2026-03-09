@@ -1,6 +1,5 @@
 "use client";
 
-import { InsightsTabs } from "@/components/insights/InsightsTabs";
 import { NeoBarChart } from "@/components/insights/NeoChart";
 import { useSession } from "@/lib/session-context";
 import Link from "next/link";
@@ -237,32 +236,26 @@ export default function DataInsightsPage() {
   }
 
   return (
-    <main className="flex min-h-full flex-col gap-6">
-      <section
-        className="rounded-3xl border p-5 shadow-sm sm:p-6"
-        style={{
-          borderColor: "var(--border-subtle)",
-          background:
-            "radial-gradient(circle at right top, rgba(91, 168, 184, 0.12), transparent 48%), radial-gradient(circle at left bottom, rgba(160, 54, 92, 0.12), transparent 45%), var(--surface)",
-        }}
-      >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <main className="flex min-h-full flex-col gap-8">
+      {/* Header */}
+      <section className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--text-tertiary)" }}>
-              Data Insight
+            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              Wedding Analytics
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: "var(--primary)" }}>
-              Seasonal demand, customer milestones, and growth signals
+            <h2 className="mt-2 text-2xl sm:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
+              Insights for {selectedYear}
             </h2>
-            <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-              Live analytics for {selectedYear} based on your real event records.
+            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+              Seasonal trends, upcoming anniversaries, and key metrics from your events.
             </p>
           </div>
 
-          <div className="w-full sm:w-auto">
+          <div>
             <label
-              className="text-xs font-semibold uppercase tracking-[0.15em]"
-              style={{ color: "var(--text-tertiary)" }}
+              className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "var(--text-secondary)" }}
               htmlFor="insights-year-filter"
             >
               Year
@@ -271,8 +264,8 @@ export default function DataInsightsPage() {
               id="insights-year-filter"
               value={selectedYear}
               onChange={(event) => setSelectedYear(Number(event.target.value))}
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm sm:w-36"
-              style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-primary)" }}
+              className="mt-2 w-full rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: "var(--border-subtle)", background: "#ffffff", color: "var(--text-primary)" }}
             >
               {availableYears.map((year) => (
                 <option key={year} value={year}>
@@ -282,101 +275,91 @@ export default function DataInsightsPage() {
             </select>
           </div>
         </div>
+      </section>
 
-        <div className="mt-4">
-          <InsightsTabs activeTab="overview" anniversaryCount={upcomingAnniversaries.length} />
+      {/* KPI Cards */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Total Weddings</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(totals.totalEvents)}</p>
         </div>
-
-        <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-base font-semibold" style={{ color: "var(--primary)" }}>Anniversary Insight Priority</h3>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                {formatNumber(upcomingAnniversaries.length)} upcoming anniversaries in the next 90 days.
-              </p>
-            </div>
-            <Link
-              href="/studio/insights/anniversary"
-              className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold"
-              style={{ border: "1px solid var(--primary)", background: "var(--primary)", color: "white" }}
-            >
-              Open Anniversary List
-            </Link>
-          </div>
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Completed</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(totals.completedWeddings)}</p>
+        </div>
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Anniversaries (90d)</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(upcomingAnniversaries.length)}</p>
+        </div>
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Peak Month</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{seasonality.peakMonth.label}</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>{formatNumber(seasonality.peakMonth.count)} weddings</p>
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Total weddings</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(totals.totalEvents)}</p>
-        </article>
-        <article className="rounded-2xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Completed weddings</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(totals.completedWeddings)}</p>
-        </article>
-        <article className="rounded-2xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Anniversaries in 90 days</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(upcomingAnniversaries.length)}</p>
-        </article>
-        <article className="rounded-2xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Peak wedding month</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{seasonality.peakMonth.label}</p>
-          <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>{formatNumber(seasonality.peakMonth.count)} events</p>
-        </article>
+      {/* Seasonality Chart */}
+      <section className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+        <div>
+          <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Wedding Season</h3>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Monthly distribution of weddings through {selectedYear}
+          </p>
+        </div>
+
+        <div className="mt-6">
+          <NeoBarChart data={seasonality.buckets.map((bucket) => ({ label: bucket.label, value: bucket.count }))} tone="primary" />
+        </div>
       </section>
 
-      <section>
-        <article className="rounded-2xl border p-5 sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+      {/* Anniversaries */}
+      <section className="rounded-lg border" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+        <div className="border-b p-6" style={{ borderColor: "var(--border-subtle)" }}>
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Wedding Season Insights</h3>
-              <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                Peak: {seasonality.peakMonth.label} ({seasonality.peakMonth.count}) | Slow: {seasonality.slowMonth.label} ({seasonality.slowMonth.count})
+              <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Upcoming Anniversaries</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                Next 90 days • {formatNumber(upcomingAnniversaries.length)} celebrations
               </p>
             </div>
+            {upcomingAnniversaries.length > 0 && (
+              <Link
+                href="/studio/insights/anniversary"
+                className="rounded-lg border px-4 py-2 text-sm font-medium"
+                style={{ borderColor: "var(--border-subtle)", color: "var(--primary)" }}
+              >
+                View All
+              </Link>
+            )}
           </div>
+        </div>
 
-          <div className="mt-4">
-            <NeoBarChart data={seasonality.buckets.map((bucket) => ({ label: bucket.label, value: bucket.count }))} tone="primary" />
-          </div>
-        </article>
-      </section>
-
-      <section>
-        <article className="rounded-2xl border p-5 sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Relationship Opportunities</h3>
-          <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-            Upcoming wedding anniversaries in the next 90 days.
-          </p>
+        <div className="divide-y" style={{ borderColor: "var(--border-subtle)" }}>
           {upcomingAnniversaries.length === 0 ? (
-            <p className="mt-4 rounded-xl border px-3 py-3 text-sm" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)", background: "var(--surface-muted)" }}>
-              No anniversaries in the next 90 days yet.
+            <p className="p-6 text-center text-sm" style={{ color: "var(--text-secondary)" }}>
+              No anniversaries in the next 90 days
             </p>
           ) : (
-            <div className="mt-4 space-y-2">
-              {upcomingAnniversaries.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`/studio/events/${item.id}`}
-                  className="flex items-center justify-between rounded-xl border px-3 py-2 transition hover:shadow-sm"
-                  style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}
-                >
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{item.couple}</p>
-                    <p className="text-xs" style={{ color: "var(--text-secondary)" }}>{item.eventTitle}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-medium" style={{ color: "var(--secondary)" }}>{formatDate(item.anniversary)}</p>
-                    <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-                      {item.daysUntil} days | {item.years} year
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            upcomingAnniversaries.map((item) => (
+              <Link
+                key={item.id}
+                href={`/studio/events/${item.id}`}
+                className="flex items-center justify-between p-6 transition hover:bg-gray-50"
+              >
+                <div>
+                  <p className="font-medium" style={{ color: "var(--text-primary)" }}>{item.couple}</p>
+                  <p className="mt-0.5 text-sm" style={{ color: "var(--text-secondary)" }}>{item.eventTitle}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium" style={{ color: "var(--primary)" }}>{formatDate(item.anniversary)}</p>
+                  <p className="mt-0.5 text-xs" style={{ color: "var(--text-secondary)" }}>
+                    {item.daysUntil} days • {item.years} year{item.years !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </Link>
+            ))
           )}
-        </article>
+        </div>
       </section>
     </main>
   );

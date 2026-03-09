@@ -146,95 +146,92 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="flex min-h-full flex-col gap-6">
-      <section
-        className="overflow-hidden rounded-3xl border p-5 shadow-sm sm:p-6"
-        style={{
-          borderColor: "var(--border-subtle)",
-          background:
-            "radial-gradient(circle at 12% 15%, rgba(95,18,63,0.1), transparent 35%), radial-gradient(circle at 85% 10%, rgba(91,168,184,0.15), transparent 28%), var(--surface)",
-        }}
-      >
-        <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--text-tertiary)" }}>
-            Studio Pulse
+    <main className="flex min-h-full flex-col gap-8">
+      {/* Featured Event */}
+      <section className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+            Next Event
           </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: "var(--primary)" }}>
-            {nextWedding ? `Next event: ${nextWedding.title}` : "No upcoming event scheduled"}
+          <h2 className="mt-2 text-2xl sm:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
+            {nextWedding ? nextWedding.title : "No upcoming events"}
           </h2>
-          <p className="mt-2 text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-            {nextWedding
-              ? `${formatShortDate(new Date(nextWedding.eventDate))} - Keep your next delivery timeline healthy.`
-              : "Create or publish events to start filling your upcoming pipeline."}
-          </p>
+          {nextWedding && (
+            <p className="mt-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+              {formatShortDate(new Date(nextWedding.eventDate))} • {nextWedding.location || "Location TBD"}
+            </p>
+          )}
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border p-5 shadow-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Draft events</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(draftCount)}</p>
-          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Need publishing before they enter schedule</p>
-        </article>
-        <article className="rounded-2xl border p-5 shadow-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Scheduled</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(scheduledCount)}</p>
-          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Planned events awaiting execution</p>
-        </article>
-        <article className="rounded-2xl border p-5 shadow-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Live now</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(liveCount)}</p>
-          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Events currently in progress</p>
-        </article>
-        <article className="rounded-2xl border p-5 shadow-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-tertiary)" }}>Completed events</p>
-          <p className="mt-2 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(completedCount)}</p>
-          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Finished events ready for follow-up</p>
-        </article>
+      {/* KPI Cards */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Draft</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(draftCount)}</p>
+          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Events waiting to be published</p>
+        </div>
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Scheduled</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(scheduledCount)}</p>
+          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Upcoming weddings</p>
+        </div>
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Live</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(liveCount)}</p>
+          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Events in progress</p>
+        </div>
+        <div className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Completed</p>
+          <p className="mt-3 text-4xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(completedCount)}</p>
+          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Delivered events</p>
+        </div>
       </section>
 
-      <section>
-        <article className="rounded-2xl border p-5 shadow-sm sm:p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Upcoming Events</h3>
-            <Link
-              href="/studio/events"
-              className="rounded-full border px-2.5 py-1 text-xs font-medium"
-              style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--primary)" }}
-            >
-              View full event list
-            </Link>
-          </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Event</th>
-                  <th className="px-4 py-3 font-medium">Couple</th>
-                  <th className="px-4 py-3 font-medium">Date</th>
-                  <th className="px-4 py-3 font-medium">Location</th>
-                  <th className="px-4 py-3 font-medium">Guests</th>
-                </tr>
-              </thead>
-              <tbody>
-                {upcomingScheduledEvents.slice(0, 10).map((event) => (
-                  <tr key={event.id} className="border-t border-zinc-100 align-top hover:bg-zinc-50">
-                    <td className="px-4 py-3 font-medium text-zinc-800">{event.title}</td>
-                    <td className="px-4 py-3 text-zinc-700">{[event.brideName, event.groomName].filter(Boolean).join(" & ") || "-"}</td>
-                    <td className="px-4 py-3 text-zinc-700">{formatShortDate(new Date(event.eventDate))}</td>
-                    <td className="px-4 py-3 text-zinc-600">{event.location || "-"}</td>
-                    <td className="px-4 py-3 text-zinc-700">{formatNumber(event._count.guests)}</td>
+      {/* Upcoming Events Table */}
+      <section className="rounded-lg border" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
+        <div className="border-b p-6 flex items-center justify-between" style={{ borderColor: "var(--border-subtle)" }}>
+          <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Upcoming Events</h3>
+          <Link
+            href="/studio/events"
+            className="rounded-lg border px-4 py-2 text-sm font-medium"
+            style={{ borderColor: "var(--border-subtle)", color: "var(--primary)" }}
+          >
+            View All
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: `1px solid var(--border-subtle)`, background: "var(--surface-muted)" }}>
+                <th className="px-6 py-4 text-left font-semibold" style={{ color: "var(--text-secondary)" }}>Event</th>
+                <th className="px-6 py-4 text-left font-semibold" style={{ color: "var(--text-secondary)" }}>Couple</th>
+                <th className="px-6 py-4 text-left font-semibold" style={{ color: "var(--text-secondary)" }}>Date</th>
+                <th className="px-6 py-4 text-left font-semibold" style={{ color: "var(--text-secondary)" }}>Location</th>
+                <th className="px-6 py-4 text-left font-semibold" style={{ color: "var(--text-secondary)" }}>Guests</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upcomingScheduledEvents.length > 0 ? (
+                upcomingScheduledEvents.slice(0, 8).map((event) => (
+                  <tr key={event.id} style={{ borderBottom: `1px solid var(--border-subtle)` }}>
+                    <td className="px-6 py-4 font-medium" style={{ color: "var(--text-primary)" }}>{event.title}</td>
+                    <td className="px-6 py-4" style={{ color: "var(--text-secondary)" }}>{[event.brideName, event.groomName].filter(Boolean).join(" & ") || "-"}</td>
+                    <td className="px-6 py-4" style={{ color: "var(--text-secondary)" }}>{formatShortDate(new Date(event.eventDate))}</td>
+                    <td className="px-6 py-4" style={{ color: "var(--text-secondary)" }}>{event.location || "-"}</td>
+                    <td className="px-6 py-4" style={{ color: "var(--text-secondary)" }}>{formatNumber(event._count.guests)}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {upcomingScheduledEvents.length === 0 ? (
-              <p className="mt-3 rounded-xl border px-3 py-5 text-center text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                No upcoming events found.
-              </p>
-            ) : null}
-          </div>
-        </article>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center" style={{ color: "var(--text-secondary)" }}>
+                    No upcoming events scheduled
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
   );
