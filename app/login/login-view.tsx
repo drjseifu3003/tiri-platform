@@ -13,6 +13,7 @@ export function LoginView() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const shouldShowError = Boolean(error && error.trim().toLowerCase() !== "unauthorized");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -79,7 +80,7 @@ export function LoginView() {
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight" style={{ color: "var(--primary)" }}>Sign in to Kebkab</h2>
               </div>
 
-              {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+              {shouldShowError ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <label className="flex flex-col gap-1 text-sm" style={{ color: "var(--text-secondary)" }}>
