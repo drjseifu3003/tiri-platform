@@ -200,26 +200,79 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section id="home" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "#ffffff" }}>
-        <div className="max-w-4xl mx-auto text-center py-12 sm:py-20">
-          <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-            Orthodox Wedding Planning Platform
-          </p>
-          <h1 className="mt-4 text-4xl sm:text-5xl lg:text-6xl font-semibold leading-tight tracking-tight" style={{ color: "var(--text-primary)" }}>
-            Your wedding, beautifully orchestrated
-          </h1>
-          <p className="mt-6 text-lg" style={{ color: "var(--text-secondary)" }}>
-            Complete event planning, guest management, and media delivery platform designed for Orthodox weddings.
-          </p>
+      {/* Hero Section with Booking */}
+      <section id="home" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "var(--primary)" }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
+            {/* Left: Headline */}
+            <div className="text-white py-8 sm:py-12">
+              <p className="text-sm font-semibold uppercase tracking-wider opacity-90">
+                Orthodox Wedding Planning
+              </p>
+              <h1 className="mt-4 text-4xl sm:text-5xl lg:text-5xl font-semibold leading-tight tracking-tight">
+                Your wedding, beautifully orchestrated
+              </h1>
+              <p className="mt-6 text-lg leading-relaxed opacity-90">
+                Complete event planning, guest management, and media delivery. Book your consultation today.
+              </p>
+            </div>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="#book" className="inline-flex items-center justify-center px-6 py-3 text-sm font-semibold rounded-lg" style={{ background: "var(--primary)", color: "#ffffff" }}>
-              Start Planning
-            </a>
-            <a href="#check" className="inline-flex items-center justify-center px-6 py-3 text-sm font-semibold rounded-lg border" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}>
-              Check Your Wedding
-            </a>
+            {/* Right: Booking Form */}
+            <div className="rounded-lg bg-white p-6 sm:p-8">
+              <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Book Your Wedding</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                Share your details and we'll contact you shortly.
+              </p>
+
+              <form className="mt-5 space-y-3">
+                <input
+                  value={bookingForm.fullName}
+                  onChange={(event) => setBookingForm((current) => ({ ...current, fullName: event.target.value }))}
+                  placeholder="Full name"
+                  className="ui-input w-full"
+                />
+                <input
+                  value={bookingForm.phone}
+                  onChange={(event) => setBookingForm((current) => ({ ...current, phone: event.target.value }))}
+                  placeholder="Phone number"
+                  className="ui-input w-full"
+                  required
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    type="date"
+                    value={bookingForm.eventDate}
+                    onChange={(event) => setBookingForm((current) => ({ ...current, eventDate: event.target.value }))}
+                    className="ui-input"
+                    min={minEventDate}
+                  />
+                  <input
+                    type="time"
+                    value={bookingForm.eventTime}
+                    onChange={(event) => setBookingForm((current) => ({ ...current, eventTime: event.target.value }))}
+                    className="ui-input"
+                  />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={bookingForm.guestCount}
+                    onChange={(event) => setBookingForm((current) => ({ ...current, guestCount: event.target.value }))}
+                    placeholder="Estimated guests"
+                    className="ui-input"
+                  />
+                  <input
+                    value={bookingForm.location}
+                    onChange={(event) => setBookingForm((current) => ({ ...current, location: event.target.value }))}
+                    placeholder="Wedding location"
+                    className="ui-input"
+                  />
+                </div>
+
+                <a href={whatsappHref} target="_blank" rel="noreferrer" className="block w-full text-center py-3 rounded-lg text-sm font-semibold" style={{ background: "var(--primary)", color: "#ffffff" }}>
+                  Send via WhatsApp
+                </a>
+              </form>
+            </div>
           </div>
         </div>
       </section>
@@ -275,69 +328,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Booking Section */}
-      <section id="book" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "var(--surface-muted)" }}>
-        <div className="max-w-2xl mx-auto">
-          <div className="rounded-lg border p-8" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Book Your Wedding</p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              Get started with a consultation
-            </h2>
-            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-              Share your details and we'll get back to you shortly.
-            </p>
-
-            <form className="mt-6 space-y-4">
-              <input
-                value={bookingForm.fullName}
-                onChange={(event) => setBookingForm((current) => ({ ...current, fullName: event.target.value }))}
-                placeholder="Full name"
-                className="ui-input w-full"
-              />
-              <input
-                value={bookingForm.phone}
-                onChange={(event) => setBookingForm((current) => ({ ...current, phone: event.target.value }))}
-                placeholder="Phone number"
-                className="ui-input w-full"
-              />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <input
-                  type="date"
-                  value={bookingForm.eventDate}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, eventDate: event.target.value }))}
-                  className="ui-input"
-                  min={minEventDate}
-                />
-                <input
-                  type="time"
-                  value={bookingForm.eventTime}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, eventTime: event.target.value }))}
-                  className="ui-input"
-                />
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <input
-                  value={bookingForm.guestCount}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, guestCount: event.target.value }))}
-                  placeholder="Estimated guests"
-                  className="ui-input"
-                />
-                <input
-                  value={bookingForm.location}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, location: event.target.value }))}
-                  placeholder="Wedding location"
-                  className="ui-input"
-                />
-              </div>
-
-              <a href={whatsappHref} target="_blank" rel="noreferrer" className="block w-full text-center py-3 rounded-lg text-sm font-semibold" style={{ background: "var(--primary)", color: "#ffffff" }}>
-                Send via WhatsApp
-              </a>
-            </form>
-          </div>
-        </div>
-      </section>
-
       {/* Wedding Check Section */}
       <section id="check" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "#ffffff" }}>
         <div className="max-w-2xl mx-auto">
@@ -372,25 +362,22 @@ export default function Home() {
 
           {results.length > 0 ? (
             <div className="mt-8 space-y-4">
+              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Your Wedding{results.length > 1 ? 's' : ''} Found</p>
               {results.map((event) => (
-                <div key={event.id} className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                <Link key={event.id} href={`/gallery/${event.id}`} className="block rounded-lg border p-6 transition hover:border-opacity-100" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
                   <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{event.title}</h3>
-                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>{coupleName(event)}</p>
                   <div className="mt-3 flex flex-wrap gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
                     <span className="flex items-center gap-2">
                       <CalendarCheck2 className="h-4 w-4" />
                       {formatDate(event.eventDate)}
                     </span>
                     <span className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      {event.location || "Location pending"}
-                    </span>
-                    <span className="flex items-center gap-2">
                       <Camera className="h-4 w-4" />
                       {event._count.media} files
                     </span>
                   </div>
-                </div>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--primary)" }}>View wedding →</p>
+                </Link>
               ))}
             </div>
           ) : null}
