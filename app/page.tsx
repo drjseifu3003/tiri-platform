@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useMemo, useState } from "react";
 import {
   CalendarCheck2,
   Camera,
@@ -8,390 +9,680 @@ import {
   MapPin,
   Phone,
   Users,
-  type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
 
-type WeddingMedia = {
-  id: string;
-  type: "IMAGE" | "VIDEO";
-  url: string;
-  createdAt: string;
+const CROWN_IMG   = "/images/crowns.png";
+const CEREMONY_BG = "/images/ceremony-bg.avif";
+const COUPLE_1    = "/images/couple-1.jpg";
+const COUPLE_2    = "/images/couple-2.jpg";
+const COUPLE_3    = "/images/couple-3.jpg";
+const AVATARS     = [COUPLE_1, COUPLE_2, COUPLE_3, COUPLE_1];
+
+function toDateInputValue(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function isValidDate(d: Date) { return !isNaN(d.getTime()); }
+
+type BookingForm = {
+  fullName: string; phone: string; eventDate: string;
+  eventTime: string; location: string; guestCount: string;
 };
 
-type WeddingResult = {
-  id: string;
-  title: string;
-  brideName: string | null;
-  groomName: string | null;
-  eventDate: string;
-  location: string | null;
-  description: string | null;
-  coverImage: string | null;
-  status: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
-  media: WeddingMedia[];
-  _count: {
-    media: number;
-    guests: number;
-  };
-};
-
-type WeddingCheckResponse = {
-  events: WeddingResult[];
-  error?: string;
-};
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(value));
-}
-
-function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function isValidDate(value: Date) {
-  return !Number.isNaN(value.getTime());
-}
-
-function coupleName(event: WeddingResult) {
-  const bride = event.brideName?.trim();
-  const groom = event.groomName?.trim();
-  if (bride && groom) return `${bride} & ${groom}`;
-  if (bride) return bride;
-  if (groom) return groom;
-  return event.title;
-}
-
-export default function Home() {
-  const [bookingForm, setBookingForm] = useState({
-    fullName: "",
-    phone: "",
-    eventDate: "",
-    eventTime: "18:00",
-    location: "",
-    guestCount: "",
+export default function HeroSection() {
+  const [form, setForm] = useState<BookingForm>({
+    fullName: "", phone: "", eventDate: "", eventTime: "18:00", location: "", guestCount: "",
   });
-  const [phoneToCheck, setPhoneToCheck] = useState("");
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [lookupError, setLookupError] = useState<string | null>(null);
-  const [results, setResults] = useState<WeddingResult[]>([]);
 
-  const minEventDate = toDateInputValue(new Date());
-  const eventDateTime = bookingForm.eventDate && bookingForm.eventTime
-    ? new Date(`${bookingForm.eventDate}T${bookingForm.eventTime}`)
-    : null;
-  const eventDateTimePreview = eventDateTime && isValidDate(eventDateTime)
-    ? new Intl.DateTimeFormat("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(eventDateTime)
+  const minDate = toDateInputValue(new Date());
+  const dt = form.eventDate && form.eventTime ? new Date(`${form.eventDate}T${form.eventTime}`) : null;
+  const dtPreview = dt && isValidDate(dt)
+    ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(dt)
     : null;
 
-  const bookingMessage = useMemo(() => {
-    const dateText = eventDateTimePreview ?? "Not set";
-    return [
-      "Hello Kebkab Events, I want to book my wedding.",
-      `Name: ${bookingForm.fullName || "-"}`,
-      `Phone: ${bookingForm.phone || "-"}`,
-      `Wedding date: ${dateText}`,
-      `Location: ${bookingForm.location || "-"}`,
-      `Estimated guests: ${bookingForm.guestCount || "-"}`,
-    ].join("\n");
-  }, [bookingForm, eventDateTimePreview]);
+  const msg = useMemo(() => [
+    "Hello Kebkab Events, I want to book my wedding.",
+    `Name: ${form.fullName || "-"}`,
+    `Phone: ${form.phone || "-"}`,
+    `Wedding date: ${dtPreview ?? "Not set"}`,
+    `Location: ${form.location || "-"}`,
+    `Estimated guests: ${form.guestCount || "-"}`,
+  ].join("\n"), [form, dtPreview]);
 
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(bookingMessage)}`;
+  const waHref = `https://wa.me/?text=${encodeURIComponent(msg)}`;
 
-  async function handleWeddingCheckSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLookupError(null);
-    setLookupLoading(true);
-    setResults([]);
-
-    try {
-      const response = await fetch(`/api/public/wedding-check?phone=${encodeURIComponent(phoneToCheck)}`);
-      const payload = (await response.json()) as WeddingCheckResponse;
-
-      if (!response.ok) {
-        setLookupError(payload.error ?? "Unable to check your wedding right now.");
-        return;
-      }
-
-      setResults(payload.events ?? []);
-      if ((payload.events ?? []).length === 0) {
-        setLookupError("No wedding found for this phone number. Try bride or groom phone number.");
-      }
-    } catch {
-      setLookupError("Unable to check your wedding right now.");
-    } finally {
-      setLookupLoading(false);
-    }
-  }
-
-  const services: Array<{ title: string; desc: string; icon: LucideIcon }> = [
-    {
-      title: "Full Wedding Planning",
-      desc: "End-to-end planning from concept, budget, and timeline to final day delivery.",
-      icon: ClipboardList,
-    },
-    {
-      title: "Venue and Decor Design",
-      desc: "Theme direction, floral styling, stage build, and detailed event atmosphere.",
-      icon: Church,
-    },
-    {
-      title: "Guest Management",
-      desc: "Invitation flow, RSVP tracking, guest list cleanup, and check-in coordination.",
-      icon: Users,
-    },
-    {
-      title: "Photo and Video",
-      desc: "Organized image and video delivery so couples can revisit memories anytime.",
-      icon: Camera,
-    },
-    {
-      title: "Vendor Coordination",
-      desc: "One team managing communication with trusted makeup, decor, media, and venue partners.",
-      icon: Phone,
-    },
-    {
-      title: "Day-Of Operations",
-      desc: "On-site team to run schedule, ceremony flow, and guest experience seamlessly.",
-      icon: CalendarCheck2,
-    },
+  const services: Array<{ title: string; desc: string; icon: React.ElementType }> = [
+    { title: "Full Wedding Planning",  desc: "End-to-end planning from concept, budget, and timeline to final day delivery.", icon: ClipboardList },
+    { title: "Venue and Decor Design", desc: "Theme direction, floral styling, stage build, and detailed event atmosphere.",  icon: Church },
+    { title: "Guest Management",       desc: "Invitation flow, RSVP tracking, guest list cleanup, and check-in coordination.", icon: Users },
+    { title: "Photo and Video",        desc: "Organized image and video delivery so couples can revisit memories anytime.",    icon: Camera },
+    { title: "Vendor Coordination",    desc: "One team managing trusted makeup, decor, media, and venue partners.",           icon: Phone },
+    { title: "Day-Of Operations",      desc: "On-site team to run schedule, ceremony flow, and guest experience seamlessly.", icon: CalendarCheck2 },
   ];
 
   return (
-    <main className="w-full overflow-x-hidden" style={{ background: "#ffffff" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b px-4 py-4 sm:px-8 lg:px-12" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Kebkab Events" className="h-10 w-10 rounded-lg object-contain" />
-            <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Kebkab Events</p>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Orthodox Wedding Planner</p>
+    <>
+      {/* ── ALL STYLES LIVE HERE — no dependency on globals.css loading ── */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+        /* Force white text on dark sections — overrides global body color */
+        #home, #home * { color: #ffffff !important; }
+        #book, #book * { color: #ffffff !important; }
+
+        /* Hero heading — big, serif, no wrap */
+        .kk-h1 {
+          font-family: 'Cormorant Garamond', Georgia, serif !important;
+          font-weight: 600 !important;
+          font-size: clamp(2.6rem, 4.5vw, 4.8rem) !important;
+          line-height: 1.06 !important;
+          letter-spacing: -0.015em !important;
+          color: #ffffff !important;
+          white-space: nowrap !important;
+          margin: 0 !important;
+          display: block !important;
+        }
+
+        /* Card name serif */
+        .kk-card-name {
+          font-family: 'Cormorant Garamond', Georgia, serif !important;
+          font-weight: 600 !important;
+          font-size: 18px !important;
+          color: #ffffff !important;
+          line-height: 1 !important;
+          margin: 0 !important;
+        }
+
+        /* ── Card drop-in + pendulum swing ── */
+        @keyframes kk-dropA {
+          0%   { opacity: 0; transform: translateY(-60px) rotate(-6deg); }
+          65%  { opacity: 1; transform: translateY(5px)   rotate(-6deg); }
+          100% { opacity: 1; transform: translateY(0)     rotate(-6deg); }
+        }
+        @keyframes kk-dropB {
+          0%   { opacity: 0; transform: translateY(-60px) rotate(0deg); }
+          65%  { opacity: 1; transform: translateY(5px)   rotate(0deg); }
+          100% { opacity: 1; transform: translateY(0)     rotate(0deg); }
+        }
+        @keyframes kk-dropC {
+          0%   { opacity: 0; transform: translateY(-60px) rotate(6deg); }
+          65%  { opacity: 1; transform: translateY(5px)   rotate(6deg); }
+          100% { opacity: 1; transform: translateY(0)     rotate(6deg); }
+        }
+        @keyframes kk-swingA {
+          0%   { transform: rotate(-8deg); }
+          100% { transform: rotate(-3deg); }
+        }
+        @keyframes kk-swingB {
+          0%   { transform: rotate(-2deg); }
+          100% { transform: rotate(2deg);  }
+        }
+        @keyframes kk-swingC {
+          0%   { transform: rotate(3deg);  }
+          100% { transform: rotate(8deg);  }
+        }
+
+        .kk-card-a {
+          animation:
+            kk-dropA 0.85s cubic-bezier(.22,.68,0,1.2) 0.1s  both,
+            kk-swingA 5s  ease-in-out                  1.0s  infinite alternate;
+          transform-origin: top center;
+          cursor: pointer;
+        }
+        .kk-card-b {
+          animation:
+            kk-dropB 0.85s cubic-bezier(.22,.68,0,1.2) 0.35s both,
+            kk-swingB 4.5s ease-in-out                 1.2s  infinite alternate;
+          transform-origin: top center;
+          cursor: pointer;
+        }
+        .kk-card-c {
+          animation:
+            kk-dropC 0.85s cubic-bezier(.22,.68,0,1.2) 0.6s  both,
+            kk-swingC 5.2s ease-in-out                 1.45s infinite alternate;
+          transform-origin: top center;
+          cursor: pointer;
+        }
+        .kk-card-a:hover,
+        .kk-card-b:hover,
+        .kk-card-c:hover {
+          animation-play-state: paused, paused;
+          z-index: 30 !important;
+          transform: rotate(0deg) scale(1.08) !important;
+          transition: transform 0.35s cubic-bezier(.22,.68,0,1.2);
+        }
+
+        /* Dark form inputs */
+        .kk-fi {
+          width: 100%;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.22);
+          background: rgba(255,255,255,0.11);
+          backdrop-filter: blur(8px);
+          padding: 10px 14px;
+          font-size: 14px;
+          color: #ffffff !important;
+          outline: none;
+          transition: border-color 0.15s, background 0.15s;
+          font-family: 'Inter', sans-serif;
+        }
+        .kk-fi::placeholder { color: rgba(255,255,255,0.5) !important; }
+        .kk-fi:focus {
+          border-color: rgba(255,255,255,0.5);
+          background: rgba(255,255,255,0.17);
+          box-shadow: 0 0 0 3px rgba(255,255,255,0.07);
+        }
+        .kk-fi::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); }
+
+        /* White divider */
+        .kk-rule {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3) 35%, rgba(255,255,255,0.3) 65%, transparent);
+        }
+      `}</style>
+
+      <main style={{ width: "100%", overflowX: "hidden" }}>
+
+        {/* ══════════════════════════════════════════════════
+            HERO
+        ══════════════════════════════════════════════════ */}
+        <section
+          id="home"
+          style={{
+            position: "relative",
+            width: "100%",
+            height: "100vh",
+            minHeight: "680px",
+            maxHeight: "100vh",
+            overflow: "hidden",
+            backgroundImage: `url(${CEREMONY_BG})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Dark primary overlay */}
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 0,
+            background: "linear-gradient(155deg, rgba(35,4,24,0.96) 0%, rgba(85,14,56,0.92) 55%, rgba(100,18,64,0.94) 100%)",
+          }} />
+
+          {/* ── HEADER ── */}
+          <header style={{
+            position: "relative", zIndex: 20, flexShrink: 0,
+            width: "100%", height: "68px", padding: "0 64px",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "rgba(15, 2, 10, 0.6)",
+            backdropFilter: "blur(16px)",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+          }}>
+            {/* Logo */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <div style={{
+                width: "32px", height: "32px", borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.3)",
+                background: "rgba(255,255,255,0.1)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg viewBox="0 0 24 24" style={{ width: "14px", fill: "white" }}>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+                </svg>
+              </div>
+              <span style={{ fontFamily: "Inter, sans-serif", fontSize: "15px", fontWeight: 600, color: "#fff", letterSpacing: "-0.01em" }}>
+                Kebkab Events
+              </span>
             </div>
-          </div>
 
-          <nav className="hidden items-center gap-8 lg:flex">
-            <a href="#home" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Home</a>
-            <a href="#services" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Services</a>
-            <a href="#process" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Process</a>
-            <a href="#check" className="text-sm font-medium transition" style={{ color: "var(--text-secondary)" }}>Check Wedding</a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-medium border" style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "transparent" }}>
-              Login
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* Hero Section with Booking */}
-      <section id="home" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "var(--primary)" }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-center">
-            {/* Left: Headline */}
-            <div className="text-white py-8 sm:py-12">
-              <p className="text-sm font-semibold uppercase tracking-wider opacity-90">
-                Orthodox Wedding Planning
-              </p>
-              <h1 className="mt-4 text-4xl sm:text-5xl lg:text-5xl font-semibold leading-tight tracking-tight">
-                Your wedding, beautifully orchestrated
-              </h1>
-              <p className="mt-6 text-lg leading-relaxed opacity-90">
-                Complete event planning, guest management, and media delivery. Book your consultation today.
-              </p>
-            </div>
-
-            {/* Right: Booking Form */}
-            <div className="rounded-lg bg-white p-6 sm:p-8">
-              <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Book Your Wedding</h3>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                Share your details and we'll contact you shortly.
-              </p>
-
-              <form className="mt-5 space-y-3">
-                <input
-                  value={bookingForm.fullName}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, fullName: event.target.value }))}
-                  placeholder="Full name"
-                  className="ui-input w-full"
-                />
-                <input
-                  value={bookingForm.phone}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, phone: event.target.value }))}
-                  placeholder="Phone number"
-                  className="ui-input w-full"
-                  required
-                />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    type="date"
-                    value={bookingForm.eventDate}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, eventDate: event.target.value }))}
-                    className="ui-input"
-                    min={minEventDate}
-                  />
-                  <input
-                    type="time"
-                    value={bookingForm.eventTime}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, eventTime: event.target.value }))}
-                    className="ui-input"
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <input
-                    value={bookingForm.guestCount}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, guestCount: event.target.value }))}
-                    placeholder="Estimated guests"
-                    className="ui-input"
-                  />
-                  <input
-                    value={bookingForm.location}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, location: event.target.value }))}
-                    placeholder="Wedding location"
-                    className="ui-input"
-                  />
-                </div>
-
-                <a href={whatsappHref} target="_blank" rel="noreferrer" className="block w-full text-center py-3 rounded-lg text-sm font-semibold" style={{ background: "var(--primary)", color: "#ffffff" }}>
-                  Send via WhatsApp
+            {/* Nav */}
+            <nav style={{ display: "flex", alignItems: "center", gap: "40px" }}>
+              {["Home", "Services", "About Us", "Contact Us"].map((item) => (
+                <a key={item}
+                  href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
+                  style={{ fontFamily: "Inter, sans-serif", fontSize: "15px", fontWeight: 400, color: "rgba(255,255,255,0.82)", textDecoration: "none" }}
+                  onMouseEnter={e => (e.currentTarget.style.color = "#fff")}
+                  onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.82)")}
+                >
+                  {item}
                 </a>
-              </form>
+              ))}
+            </nav>
+
+            {/* CTA */}
+            <a href="#book" style={{
+              fontFamily: "Inter, sans-serif", fontSize: "13px", fontWeight: 600, color: "#fff",
+              border: "1.5px solid rgba(255,255,255,0.5)", borderRadius: "2px",
+              padding: "8px 20px", textDecoration: "none",
+            }}
+              onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            >
+              Book Your Event
+            </a>
+          </header>
+
+          {/* ── HERO BODY ── */}
+          <div style={{
+            position: "relative", zIndex: 10,
+            flex: 1,
+            display: "grid",
+            gridTemplateColumns: "1fr 460px",
+            gap: "0",
+            alignItems: "stretch",
+            maxWidth: "1280px", width: "100%", margin: "0 auto",
+            overflow: "hidden",
+          }}>
+
+            {/* LEFT */}
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", padding: "48px 48px 48px 64px" }}>
+
+              {/* Crown */}
+              <img src={CROWN_IMG} alt="Orthodox wedding crowns"
+                style={{
+                  height: "100px", width: "auto", objectFit: "contain",
+                  alignSelf: "flex-start", marginBottom: "22px",
+                  filter: "drop-shadow(0 6px 24px rgba(201,168,76,0.5))",
+                }}
+              />
+
+              {/* Headline */}
+              <span className="kk-h1">Orthodox Event Perfected.</span>
+              <span className="kk-h1" style={{ marginTop: "2px" }}>One Day, Memories Forever.</span>
+
+              {/* Subtext */}
+              <p style={{
+                fontFamily: "Inter, sans-serif",
+                marginTop: "22px", fontSize: "16px", lineHeight: "1.7",
+                color: "rgba(255,255,255,0.88)", maxWidth: "420px",
+              }}>
+                Expertly planning every detail of your Orthodox event,
+                ensuring each moment becomes a cherished memory.
+              </p>
+
+              {/* Avatars + 1k+ */}
+              <div style={{ marginTop: "36px", display: "flex", alignItems: "center", gap: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {AVATARS.map((src, i) => (
+                    <div key={i} style={{
+                      width: "50px", height: "50px", borderRadius: "50%",
+                      border: "2.5px solid rgba(60,10,42,0.9)",
+                      marginLeft: i === 0 ? "0" : "-14px",
+                      overflow: "hidden", position: "relative",
+                      background: "rgba(95,18,63,0.6)",
+                      zIndex: 4 - i, flexShrink: 0,
+                    }}>
+                      <img src={src} alt=""
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                        onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                      />
+                      <div style={{
+                        position: "absolute", inset: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: "rgba(95,18,63,0.55)",
+                      }}>
+                        <svg viewBox="0 0 24 24" style={{ width: "20px", opacity: 0.6 }} fill="white">
+                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                        </svg>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "28px", fontWeight: 700, color: "#fff", lineHeight: 1 }}>1k+</p>
+                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "10px", fontWeight: 600, letterSpacing: "0.13em", textTransform: "uppercase", color: "rgba(255,255,255,0.68)", marginTop: "4px", lineHeight: 1.5 }}>
+                    Orthodox Events,<br />Unforgettable Memories.
+                  </p>
+                </div>
+              </div>
+
+              {/* Book button */}
+              <div style={{ marginTop: "32px" }}>
+                <a href="#book" style={{
+                  fontFamily: "Inter, sans-serif",
+                  display: "inline-flex", alignItems: "center",
+                  fontSize: "14px", fontWeight: 600, color: "#fff",
+                  border: "1.5px solid rgba(255,255,255,0.55)",
+                  borderRadius: "2px", padding: "11px 26px",
+                  textDecoration: "none",
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.08)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                >
+                  Book Your Event
+                </a>
+              </div>
+            </div>
+
+            {/* RIGHT — full-height card panel, strings hang from very top */}
+            <div style={{
+              position: "relative",
+              width: "100%",
+              height: "100%",
+              background: "rgba(0,0,0,0.15)",
+              borderLeft: "1px solid rgba(255,255,255,0.06)",
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "14px",
+              paddingBottom: "32px",
+            }}>
+
+              {/* Horizontal string rail across the very top */}
+              <div style={{
+                position: "absolute", top: 0, left: 0, right: 0,
+                height: "1px",
+                background: "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.18) 20%, rgba(255,255,255,0.18) 80%, transparent 95%)",
+              }} />
+
+              {/* ── Card A — left, leans left ── */}
+              <div className="kk-card-a" style={{ position: "relative", width: "138px", flexShrink: 0 }}>
+                {/* String from top of section */}
+                <div style={{
+                  position: "absolute",
+                  bottom: "100%", left: "50%", transform: "translateX(-50%)",
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  height: "calc(50vh - 34px - 120px)", /* fills from top rail to card */
+                  minHeight: "60px",
+                }}>
+                  <div style={{ flex: 1, width: "1px", background: "rgba(255,255,255,0.25)" }} />
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "rgba(255,255,255,0.45)", flexShrink: 0 }} />
+                </div>
+                <div style={{ borderRadius: "12px", overflow: "hidden", boxShadow: "0 10px 32px rgba(0,0,0,0.65)", background: "#1c0914" }}>
+                  <div style={{ position: "relative", height: "148px", overflow: "hidden", background: "#2e0820" }}>
+                    <img src={COUPLE_1} alt="Sara & Mikael"
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 1 }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "44px", background: "linear-gradient(to top,#1c0914,transparent)", zIndex: 2 }} />
+                  </div>
+                  <div style={{ padding: "10px 11px 12px" }}>
+                    <p className="kk-card-name" style={{ fontSize: "13px" } as React.CSSProperties}>Sara &amp; Mikael</p>
+                    <p style={{ fontFamily: "Inter,sans-serif", marginTop: "5px", fontSize: "10px", color: "#C9A84C", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <CalendarCheck2 style={{ width: "9px", height: "9px", color: "#C9A84C" }} /> Nov 2024
+                    </p>
+                    <p style={{ fontFamily: "Inter,sans-serif", marginTop: "3px", fontSize: "10px", color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <MapPin style={{ width: "9px", height: "9px", color: "rgba(255,255,255,0.4)" }} /> Addis Ababa
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Card B — center, upright, larger, 40px lower ── */}
+              <div className="kk-card-b" style={{ position: "relative", width: "155px", flexShrink: 0, marginTop: "64px" }}>
+                {/* String from top of section */}
+                <div style={{
+                  position: "absolute",
+                  bottom: "100%", left: "50%", transform: "translateX(-50%)",
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  height: "calc(50vh - 34px - 120px + 64px)",
+                  minHeight: "80px",
+                }}>
+                  <div style={{ flex: 1, width: "1px", background: "rgba(255,255,255,0.32)" }} />
+                  <div style={{ width: "7px", height: "7px", borderRadius: "50%", background: "rgba(255,255,255,0.55)", flexShrink: 0 }} />
+                </div>
+                <div style={{ borderRadius: "12px", overflow: "hidden", boxShadow: "0 18px 48px rgba(0,0,0,0.75)", background: "#1c0914", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div style={{ position: "relative", height: "178px", overflow: "hidden", background: "#2e0820" }}>
+                    <img src={COUPLE_2} alt="Hiwot & Dawit"
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 1 }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "52px", background: "linear-gradient(to top,#1c0914,transparent)", zIndex: 2 }} />
+                  </div>
+                  <div style={{ padding: "11px 13px 13px" }}>
+                    <p className="kk-card-name">Hiwot &amp; Dawit</p>
+                    <p style={{ fontFamily: "Inter,sans-serif", marginTop: "5px", fontSize: "10px", color: "#C9A84C", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <CalendarCheck2 style={{ width: "9px", height: "9px", color: "#C9A84C" }} /> Oct 2024
+                    </p>
+                    <p style={{ fontFamily: "Inter,sans-serif", marginTop: "3px", fontSize: "10px", color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <MapPin style={{ width: "9px", height: "9px", color: "rgba(255,255,255,0.4)" }} /> Bahir Dar
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Card C — right, leans right ── */}
+              <div className="kk-card-c" style={{ position: "relative", width: "138px", flexShrink: 0 }}>
+                {/* String from top of section */}
+                <div style={{
+                  position: "absolute",
+                  bottom: "100%", left: "50%", transform: "translateX(-50%)",
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  height: "calc(50vh - 34px - 120px)",
+                  minHeight: "60px",
+                }}>
+                  <div style={{ flex: 1, width: "1px", background: "rgba(255,255,255,0.25)" }} />
+                  <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "rgba(255,255,255,0.45)", flexShrink: 0 }} />
+                </div>
+                <div style={{ borderRadius: "12px", overflow: "hidden", boxShadow: "0 10px 32px rgba(0,0,0,0.65)", background: "#1c0914" }}>
+                  <div style={{ position: "relative", height: "148px", overflow: "hidden", background: "#2e0820" }}>
+                    <img src={COUPLE_3} alt="Marta & Yonas"
+                      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 1 }}
+                      onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                    />
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "44px", background: "linear-gradient(to top,#1c0914,transparent)", zIndex: 2 }} />
+                  </div>
+                  <div style={{ padding: "10px 11px 12px" }}>
+                    <p className="kk-card-name" style={{ fontSize: "13px" } as React.CSSProperties}>Marta &amp; Yonas</p>
+                    <p style={{ fontFamily: "Inter,sans-serif", marginTop: "5px", fontSize: "10px", color: "#C9A84C", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <CalendarCheck2 style={{ width: "9px", height: "9px", color: "#C9A84C" }} /> Aug 2024
+                    </p>
+                    <p style={{ fontFamily: "Inter,sans-serif", marginTop: "3px", fontSize: "10px", color: "rgba(255,255,255,0.4)", display: "flex", alignItems: "center", gap: "3px" }}>
+                      <MapPin style={{ width: "9px", height: "9px", color: "rgba(255,255,255,0.4)" }} /> Gondar
+                    </p>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Services Section */}
-      <section id="services" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "var(--surface-muted)" }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-12">
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Services</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
+        {/* ══════════════════════════════════════════════════
+            BOOK YOUR EVENT
+        ══════════════════════════════════════════════════ */}
+        <section id="book" style={{
+          position: "relative", width: "100%", overflow: "hidden",
+          padding: "80px 64px", color: "#fff",
+        }}>
+          <div style={{ position: "absolute", inset: 0, backgroundImage: `url(${CEREMONY_BG})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, rgba(35,4,24,0.96) 0%, rgba(85,14,56,0.92) 55%, rgba(100,18,64,0.94) 100%)" }} />
+          <div style={{ position: "relative", zIndex: 10, maxWidth: "560px", margin: "0 auto" }}>
+            <p style={{ fontFamily: "Inter, sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.7)" }}>
+              Book Your Event
+            </p>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(1.9rem,3vw,2.6rem)", color: "#fff", marginTop: "8px" }}>
+              Start your journey with us
+            </h2>
+            <p style={{ fontFamily: "Inter, sans-serif", marginTop: "8px", fontSize: "15px", color: "rgba(255,255,255,0.78)" }}>
+              Share your details and we'll reach out to plan your perfect day.
+            </p>
+            <div className="kk-rule" style={{ marginTop: "24px", marginBottom: "24px" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <input value={form.fullName} onChange={e => setForm(c => ({ ...c, fullName: e.target.value }))} placeholder="Full name" className="kk-fi" />
+              <input value={form.phone} onChange={e => setForm(c => ({ ...c, phone: e.target.value }))} placeholder="Phone number" className="kk-fi" />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <input type="date" value={form.eventDate} min={minDate} onChange={e => setForm(c => ({ ...c, eventDate: e.target.value }))} className="kk-fi" />
+                <input type="time" value={form.eventTime} onChange={e => setForm(c => ({ ...c, eventTime: e.target.value }))} className="kk-fi" />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <input value={form.guestCount} onChange={e => setForm(c => ({ ...c, guestCount: e.target.value }))} placeholder="Estimated guests" className="kk-fi" />
+                <input value={form.location} onChange={e => setForm(c => ({ ...c, location: e.target.value }))} placeholder="Wedding location" className="kk-fi" />
+              </div>
+              <a href={waHref} target="_blank" rel="noreferrer" style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: "100%", padding: "13px",
+                borderRadius: "8px", fontFamily: "Inter, sans-serif",
+                fontSize: "14px", fontWeight: 600, color: "#3d0b28",
+                background: "#C9A84C", textDecoration: "none",
+              }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = "0.88")}
+                onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+              >
+                Send via WhatsApp
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════
+            SERVICES
+        ══════════════════════════════════════════════════ */}
+        <section id="services" style={{ background: "var(--surface-muted, #fbf6f8)", padding: "80px 64px" }}>
+          <div style={{ maxWidth: "1152px", margin: "0 auto" }}>
+            <p style={{ fontFamily: "Inter, sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary, #5f123f)" }}>Services</p>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(1.8rem,3vw,2.5rem)", color: "var(--text-primary, #2e1a24)", marginTop: "8px" }}>
               Everything you need for your wedding
             </h2>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((service) => (
-              <div key={service.title} className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
-                <service.icon className="h-6 w-6" style={{ color: "var(--primary)" }} />
-                <h3 className="mt-3 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{service.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  {service.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Process Section */}
-      <section id="process" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "#ffffff" }}>
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-12">
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>How It Works</p>
-            <h2 className="mt-3 text-3xl sm:text-4xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              Simple four-step process
-            </h2>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2">
-            {[
-              { step: "01", title: "Consultation", desc: "We align your vision, priorities, and budget." },
-              { step: "02", title: "Planning", desc: "We prepare timeline, ceremony flow, and vendors." },
-              { step: "03", title: "Execution", desc: "We run the full event on your wedding day." },
-              { step: "04", title: "Memories", desc: "Access photos and videos with your phone number." },
-            ].map((item) => (
-              <div key={item.step} className="rounded-lg border p-6" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                <p className="text-2xl font-semibold" style={{ color: "var(--primary)" }}>{item.step}</p>
-                <h3 className="mt-2 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{item.title}</h3>
-                <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Wedding Check Section */}
-      <section id="check" className="w-full px-4 py-16 sm:px-8 lg:px-12" style={{ background: "#ffffff" }}>
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <p className="text-sm font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Check Your Wedding</p>
-            <h2 className="mt-2 text-2xl sm:text-3xl font-semibold" style={{ color: "var(--text-primary)" }}>
-              View your wedding and memories
-            </h2>
-            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-              Use bride or groom phone number to access your event details, photos, and videos.
-            </p>
-          </div>
-
-          <form onSubmit={handleWeddingCheckSubmit} className="flex flex-col gap-4 sm:flex-row">
-            <input
-              value={phoneToCheck}
-              onChange={(event) => setPhoneToCheck(event.target.value)}
-              placeholder="Bride or groom phone number"
-              className="ui-input h-11 flex-1"
-              required
-            />
-            <button type="submit" className="h-11 px-6 rounded-lg text-sm font-semibold" style={{ background: "var(--primary)", color: "#ffffff" }} disabled={lookupLoading}>
-              {lookupLoading ? "Checking..." : "Check"}
-            </button>
-          </form>
-
-          {lookupError ? (
-            <p className="mt-4 rounded-lg border px-4 py-3 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}>
-              {lookupError}
-            </p>
-          ) : null}
-
-          {results.length > 0 ? (
-            <div className="mt-8 space-y-4">
-              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Your Wedding{results.length > 1 ? 's' : ''} Found</p>
-              {results.map((event) => (
-                <Link key={event.id} href={`/gallery/${event.id}`} className="block rounded-lg border p-6 transition hover:border-opacity-100" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                  <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{event.title}</h3>
-                  <div className="mt-3 flex flex-wrap gap-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    <span className="flex items-center gap-2">
-                      <CalendarCheck2 className="h-4 w-4" />
-                      {formatDate(event.eventDate)}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Camera className="h-4 w-4" />
-                      {event._count.media} files
-                    </span>
+            <div style={{ marginTop: "40px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "20px" }}>
+              {services.map(({ title, desc, icon: Icon }) => (
+                <div key={title} style={{
+                  borderRadius: "14px", border: "1px solid var(--border-subtle, #e9d8e2)",
+                  background: "var(--surface, #fff)", padding: "24px",
+                  boxShadow: "0 1px 4px rgba(0,0,0,.04)", transition: "box-shadow .2s",
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,.09)")}
+                  onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.04)")}
+                >
+                  <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "var(--primary-lighter, #f3e3eb)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon style={{ width: "20px", height: "20px", color: "var(--primary, #5f123f)" }} />
                   </div>
-                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--primary)" }}>View wedding →</p>
-                </Link>
+                  <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", color: "var(--text-primary, #2e1a24)", marginTop: "16px" }}>{title}</p>
+                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", lineHeight: 1.7, color: "var(--text-secondary, #6f4a5d)", marginTop: "8px" }}>{desc}</p>
+                </div>
               ))}
             </div>
-          ) : null}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer className="w-full border-t px-4 py-8 sm:px-8 lg:px-12" style={{ borderColor: "var(--border-subtle)", background: "#ffffff" }}>
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-            © 2024 Kebkab Events. Orthodox wedding planning platform.
+        {/* ══════════════════════════════════════════════════
+            PROCESS
+        ══════════════════════════════════════════════════ */}
+        <section id="process" style={{ background: "var(--surface, #fff)", padding: "80px 64px" }}>
+          <div style={{ maxWidth: "896px", margin: "0 auto" }}>
+            <p style={{ fontFamily: "Inter, sans-serif", fontSize: "11px", fontWeight: 600, letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--primary, #5f123f)" }}>How It Works</p>
+            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "clamp(1.8rem,3vw,2.5rem)", color: "var(--text-primary, #2e1a24)", marginTop: "8px" }}>
+              Simple four-step process
+            </h2>
+            <div style={{ marginTop: "40px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              {[
+                { step: "01", title: "Consultation", desc: "We align your vision, priorities, and budget." },
+                { step: "02", title: "Planning",     desc: "We prepare timeline, ceremony flow, and vendors." },
+                { step: "03", title: "Execution",    desc: "We run the full event on your wedding day." },
+                { step: "04", title: "Memories",     desc: "Access photos and videos with your phone number." },
+              ].map(item => (
+                <div key={item.step} style={{ borderRadius: "14px", border: "1px solid var(--border-subtle, #e9d8e2)", background: "var(--surface-muted, #fbf6f8)", padding: "24px" }}>
+                  <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: "2.2rem", color: "var(--primary, #5f123f)", opacity: .22 }}>{item.step}</p>
+                  <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 600, fontSize: "19px", color: "var(--text-primary, #2e1a24)", marginTop: "8px" }}>{item.title}</p>
+                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "13px", color: "var(--text-secondary, #6f4a5d)", marginTop: "6px" }}>{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ══════════════════════════════════════════════════
+            FOOTER
+        ══════════════════════════════════════════════════ */}
+        <footer style={{
+          background: "#5f123f",
+          color: "#ffffff",
+          padding: "64px 80px 32px",
+          fontFamily: "Inter, sans-serif",
+        }}>
+          {/* Top row — 3 columns */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "40px",
+            alignItems: "start",
+          }}>
+
+            {/* LEFT — Address & Hours */}
+            <div>
+              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", marginBottom: "10px" }}>Address</p>
+              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: "22px", color: "#ffffff", lineHeight: 1.3 }}>
+                Oxford Ave. Cary, NC 27511
+              </p>
+              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", marginTop: "28px", marginBottom: "10px" }}>Opening hours</p>
+              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: "22px", color: "#ffffff" }}>
+                Sun–Mon: 10am – 10pm
+              </p>
+            </div>
+
+            {/* CENTER — Logo, tagline, social */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "20px" }}>
+              {/* Logo */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <svg viewBox="0 0 32 32" style={{ width: "28px", height: "28px" }} fill="none">
+                  <path d="M16 4C10 4 6 8.5 6 14c0 4 2.5 7.5 6 9.5V26h8v-2.5c3.5-2 6-5.5 6-9.5 0-5.5-4-10-10-10z" stroke="white" strokeWidth="1.5" fill="none"/>
+                  <path d="M12 14c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: "24px", color: "#ffffff" }}>
+                  Kebkab Events
+                </span>
+              </div>
+
+              {/* Tagline */}
+              <p style={{ fontSize: "14px", color: "rgba(255,255,255,0.65)", lineHeight: 1.7, maxWidth: "320px" }}>
+                Expertly planning every detail of your Orthodox event, ensuring each moment becomes a cherished memory.
+              </p>
+
+              {/* Social icons */}
+              <div style={{ display: "flex", alignItems: "center", gap: "14px", marginTop: "4px" }}>
+                {[
+                  /* Facebook */
+                  <svg key="fb" viewBox="0 0 24 24" fill="white" style={{ width: "20px", height: "20px" }}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>,
+                  /* Instagram */
+                  <svg key="ig" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: "20px", height: "20px" }}><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="white" stroke="none"/></svg>,
+                  /* X / Twitter */
+                  <svg key="x" viewBox="0 0 24 24" fill="white" style={{ width: "20px", height: "20px" }}><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>,
+                  /* YouTube */
+                  <svg key="yt" viewBox="0 0 24 24" fill="white" style={{ width: "20px", height: "20px" }}><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.95C5.12 20 12 20 12 20s6.88 0 8.59-.47a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>,
+                ].map((icon, i) => (
+                  <a key={i} href="#" style={{
+                    width: "38px", height: "38px", borderRadius: "50%",
+                    background: "rgba(255,255,255,0.12)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    textDecoration: "none", transition: "background 0.2s",
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.22)")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
+                  >
+                    {icon}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT — Phone & Email */}
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", marginBottom: "10px" }}>Phone</p>
+              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: "22px", color: "#ffffff" }}>
+                +322 683–5910
+              </p>
+              <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.55)", marginTop: "28px", marginBottom: "10px" }}>Email</p>
+              <p style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: "22px", color: "#ffffff" }}>
+                hello@kebkabevents.com
+              </p>
+            </div>
+
+          </div>
+
+          {/* Divider */}
+          <div style={{
+            margin: "48px 0 24px",
+            height: "1px",
+            background: "rgba(255,255,255,0.12)",
+          }} />
+
+          {/* Bottom copyright */}
+          <p style={{ textAlign: "center", fontSize: "13px", color: "rgba(255,255,255,0.4)" }}>
+            © Copyright Kebkab Events 2024. Orthodox wedding planning platform.
           </p>
-        </div>
-      </footer>
-    </main>
+
+        </footer>
+
+      </main>
+    </>
   );
 }

@@ -1,5 +1,9 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
+/* ─────────────────────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────────────────────── */
 :root {
   --background: #f7f1f4;
   --foreground: #2e1a24;
@@ -31,6 +35,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ─────────────────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  background-color: var(--background);
+}
+
 body {
   min-height: 100vh;
   background:
@@ -38,12 +53,7 @@ body {
     radial-gradient(circle at bottom left, rgba(91, 168, 184, 0.06), transparent 50%),
     var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-}
-
-html,
-body {
-  background-color: var(--background);
+  font-family: 'Inter', var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
 ::selection {
@@ -51,6 +61,124 @@ body {
   color: var(--foreground);
 }
 
+/* ─────────────────────────────────────────────────────────
+   HERO & DARK SECTIONS — color isolation
+   The body sets color: #2e1a24 (dark maroon on light bg).
+   Dark sections must reset to white so all child text
+   inherits white, not the body default.
+───────────────────────────────────────────────────────── */
+#home,
+#book,
+.hero-dark {
+  color: #ffffff;
+}
+
+/* ─────────────────────────────────────────────────────────
+   HERO TYPOGRAPHY
+───────────────────────────────────────────────────────── */
+.hero-h1 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(2.4rem, 4.2vw, 4.4rem);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  color: #ffffff;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────────────────
+   CARD ANIMATIONS — drop-in bounce then pendulum swing
+───────────────────────────────────────────────────────── */
+@keyframes dropInA {
+  0%   { opacity: 0; transform: translateY(-60px) rotate(3deg); }
+  65%  { opacity: 1; transform: translateY(5px)   rotate(3deg); }
+  100% { opacity: 1; transform: translateY(0px)   rotate(var(--sa)); }
+}
+@keyframes dropInB {
+  0%   { opacity: 0; transform: translateY(-60px) rotate(-3deg); }
+  65%  { opacity: 1; transform: translateY(5px)   rotate(-3deg); }
+  100% { opacity: 1; transform: translateY(0px)   rotate(var(--sa)); }
+}
+@keyframes swingA {
+  0%   { transform: rotate(var(--sa)); }
+  100% { transform: rotate(var(--sb)); }
+}
+@keyframes swingB {
+  0%   { transform: rotate(var(--sa)); }
+  100% { transform: rotate(var(--sb)); }
+}
+
+.card-a {
+  --sa: 3deg;
+  --sb: 8deg;
+  animation:
+    dropInA 1s   cubic-bezier(.22, .68, 0, 1.15) 0.2s both,
+    swingA  5s   ease-in-out                      1.2s infinite alternate;
+  transform-origin: top center;
+}
+
+.card-b {
+  --sa: -8deg;
+  --sb: -3deg;
+  animation:
+    dropInB 1s   cubic-bezier(.22, .68, 0, 1.15) 0.5s both,
+    swingB  4.5s ease-in-out                      1.5s infinite alternate;
+  transform-origin: top center;
+}
+
+.card-a:hover,
+.card-b:hover {
+  animation-play-state: paused, paused;
+  z-index: 30 !important;
+  transform: rotate(0deg) !important;
+  transition: transform 0.3s ease;
+}
+
+/* ─────────────────────────────────────────────────────────
+   BOOKING FORM — dark inputs on photo background
+───────────────────────────────────────────────────────── */
+.fi {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.fi::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+.fi:focus {
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+}
+.fi::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.55);
+}
+
+/* ─────────────────────────────────────────────────────────
+   DIVIDER RULE
+───────────────────────────────────────────────────────── */
+.gr {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.35) 35%,
+    rgba(255, 255, 255, 0.35) 65%,
+    transparent
+  );
+}
+
+/* ─────────────────────────────────────────────────────────
+   UI COMPONENT LIBRARY
+───────────────────────────────────────────────────────── */
 @layer components {
   .ui-page {
     @apply rounded-2xl border p-6 shadow-sm;
