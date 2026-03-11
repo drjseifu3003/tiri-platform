@@ -13,50 +13,23 @@ const PARTNERS = [
 export default function PartnersSection() {
   return (
     <section style={{ background: "var(--primary)", padding: "48px 0" }}>
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 64px" }}>
+      <div className="max-w-7xl mx-auto px-6 md:px-8 lg:px-12">
 
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexWrap: "wrap",
-          gap: "8px 0",
-        }}>
+        <div className="flex items-center justify-center flex-wrap gap-4 md:gap-8 lg:gap-12">
           {PARTNERS.map((p, i) => (
             <React.Fragment key={p.name}>
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                padding: "0 36px",
-              }}>
-                <span style={{
-                  fontFamily: "Inter, sans-serif",
-                  fontSize: "9px",
-                  fontWeight: 600,
-                  letterSpacing: "0.16em",
-                  textTransform: "uppercase" as const,
-                  color: "#C9A84C",
-                  marginBottom: "5px",
-                }}>{p.category}</span>
-                <span style={{
-                  fontFamily: "'Cormorant Garamond', Georgia, serif",
-                  fontSize: "18px",
-                  fontWeight: 500,
-                  color: "rgba(255,255,255,0.85)",
-                  letterSpacing: "0.02em",
-                  whiteSpace: "nowrap",
-                }}>{p.name}</span>
+              <div className="flex flex-col items-center">
+                <span className="font-sans text-xs font-semibold tracking-widest uppercase text-[#C9A84C] mb-2">
+                  {p.category}
+                </span>
+                <span className="font-serif text-base md:text-lg font-medium text-white/85 tracking-wide whitespace-nowrap">
+                  {p.name}
+                </span>
               </div>
 
               {/* Dot separator — not after last */}
               {i < PARTNERS.length - 1 && (
-                <div style={{
-                  width: "3px", height: "3px",
-                  borderRadius: "50%",
-                  background: "rgba(201,168,76,0.4)",
-                  flexShrink: 0,
-                }} />
+                <div className="w-1 h-1 rounded-full bg-[#C9A84C]/40 flex-shrink-0 hidden md:block" />
               )}
             </React.Fragment>
           ))}

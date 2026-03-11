@@ -10,13 +10,13 @@ const STATS = [
 
 export default function StatsSection() {
   return (
-    <section className="kk-section-sm" style={{ background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+    <section className="kk-section-sm border-b border-[var(--border)]" style={{ background: "var(--surface)" }}>
       <div className="kk-container">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "24px" }}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 lg:gap-10">
           {STATS.map((s) => (
-            <div key={s.num} style={{ textAlign: "center", padding: "12px 0" }}>
+            <div key={s.num} className="text-center py-3 md:py-4">
               <p className="kk-stat-number">{s.num}</p>
-              <p className="kk-stat-label">{s.label}</p>
+              <p className="kk-stat-label mt-2 md:mt-3">{s.label}</p>
             </div>
           ))}
         </div>

@@ -23,12 +23,12 @@ export default function GallerySection() {
   return (
     <section className="kk-section" style={{ background: "var(--surface)" }}>
       <div className="kk-container">
-        <div className="kk-section-header-center">
+        <div className="text-center mb-10 md:mb-12 lg:mb-14">
           <p className="kk-label">Portfolio</p>
-          <h2 className="kk-section-title" style={{ textAlign: "center" }}>Our passion is your perfect event</h2>
+          <h2 className="kk-section-title text-center">Our passion is your perfect event</h2>
         </div>
 
-        <div className="kk-gallery-grid">
+        <div className="hidden lg:block kk-gallery-grid">
           {/* Left col top */}
           <div style={{ gridColumn: "1", gridRow: "1", borderRadius: "4px", overflow: "hidden" }}>
             <div className="kk-gallery-cell" onClick={() => setLightbox(0)}>
@@ -92,6 +92,22 @@ export default function GallerySection() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Mobile gallery — responsive grid */}
+        <div className="lg:hidden grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+          {IMG_GALLERY.map((src, i) => (
+            <div key={i} className="rounded overflow-hidden bg-[var(--primary-lighter)] cursor-pointer group relative aspect-square">
+              <img src={src} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                onError={e => { (e.target as HTMLImageElement).style.opacity = "0"; }} />
+              <div className="absolute inset-0 bg-[var(--primary)]/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border-1.5 border-white/70 flex items-center justify-center">
+                  <PlusIcon size={20} />
+                </div>
+              </div>
+              <button onClick={() => setLightbox(i)} className="sr-only">View</button>
+            </div>
+          ))}
         </div>
       </div>
 

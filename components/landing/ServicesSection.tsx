@@ -176,43 +176,20 @@ export default function ServicesSection() {
         </div>
 
         {/* Grid */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
-          borderTop: "1px solid var(--border)",
-          borderLeft: "1px solid var(--border)",
-        }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 border-t border-l border-[var(--border)]">
           {SERVICES.map(({ title, desc, Icon }) => (
-            <div key={title} style={{
-              padding: "40px 36px",
-              borderRight: "1px solid var(--border)",
-              borderBottom: "1px solid var(--border)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-              transition: "background 0.2s",
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = "var(--primary-lighter)")}
-              onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+            <div key={title} className="p-8 md:p-10 lg:p-10 border-r border-b border-[var(--border)] flex flex-col gap-4 transition-colors hover:bg-[var(--primary-lighter)]"
             >
               {/* Icon */}
-              <div style={{ width: "38px", color: "var(--primary)", opacity: 0.8 }}>
+              <div className="w-9 text-[var(--primary)] opacity-80">
                 <Icon />
               </div>
 
               {/* Title */}
-              <p style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: "19px", fontWeight: 600,
-                color: "var(--text)", margin: 0, letterSpacing: "0.01em",
-              }}>{title}</p>
+              <p className="font-serif text-lg md:text-xl font-semibold text-[var(--text)] m-0 tracking-wide">{title}</p>
 
               {/* Desc */}
-              <p style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: "13.5px", lineHeight: 1.7,
-                color: "var(--text-2)", margin: 0,
-              }}>{desc}</p>
+              <p className="font-sans text-sm leading-relaxed text-[var(--text-2)] m-0">{desc}</p>
             </div>
           ))}
         </div>

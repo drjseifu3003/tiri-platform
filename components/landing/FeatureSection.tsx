@@ -7,30 +7,30 @@ export default function FeatureSection() {
   return (
     <section className="kk-section" style={{ background: "var(--surface-muted)" }}>
       <div className="kk-container">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "64px", alignItems: "center" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Image */}
-          <div style={{ borderRadius: "16px", overflow: "hidden", height: "420px", background: "var(--primary-lighter)" }}>
+          <div className="rounded-2xl overflow-hidden h-80 md:h-96 lg:h-[420px] bg-[var(--primary-lighter)] order-2 lg:order-1">
             <img src={IMG_FEATURE} alt="We keep quality"
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              className="w-full h-full object-cover block"
               onError={e => { (e.target as HTMLImageElement).style.opacity = "0"; }}
             />
           </div>
           {/* Text */}
-          <div>
+          <div className="order-1 lg:order-2">
             <p className="kk-label">Our Promise</p>
             <h2 className="kk-section-title">We keep in mind the quality of service</h2>
-            <p className="kk-body" style={{ marginTop: "18px" }}>
+            <p className="kk-body mt-4 md:mt-5">
               Every Orthodox celebration deserves perfection. From the Koumbaros ceremony to the wedding banquet, our planners handle every detail with reverence and precision, so you can be fully present in every sacred moment.
             </p>
-            <ul style={{ marginTop: "24px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <ul className="mt-6 md:mt-8 flex flex-col gap-3 md:gap-4">
               {["Ceremony coordination & church liaison", "Catering & floral design", "Music & entertainment", "Photography & videography"].map(item => (
-                <li key={item} style={{ display: "flex", alignItems: "center", gap: "10px", fontFamily: "Inter,sans-serif", fontSize: "14px", color: "var(--text-2)" }}>
-                  <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--primary)", flexShrink: 0, display: "inline-block" }} />
+                <li key={item} className="flex items-center gap-2 font-sans text-sm md:text-base text-[var(--text-2)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] flex-shrink-0 inline-block" />
                   {item}
                 </li>
               ))}
             </ul>
-            <div style={{ marginTop: "32px" }}>
+            <div className="mt-8 md:mt-10">
               <a href="/about" className="kk-btn kk-btn-outline-dark">Learn More</a>
             </div>
           </div>
