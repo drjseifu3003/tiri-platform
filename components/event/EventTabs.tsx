@@ -1,6 +1,6 @@
 "use client";
 
-type EventTab = "overview" | "guests" | "media" | "gifts";
+type EventTab = "overview" | "guests" | "media";
 
 interface EventTabsProps {
   activeTab: EventTab;
@@ -13,7 +13,6 @@ const TABS = [
   { id: "overview" as EventTab, label: "Overview" },
   { id: "guests" as EventTab, label: "Guests" },
   { id: "media" as EventTab, label: "Media" },
-  { id: "gifts" as EventTab, label: "Gifts" },
 ];
 
 export function EventTabs({ activeTab, onTabChange, guestCount = 0, mediaCount = 0 }: EventTabsProps) {

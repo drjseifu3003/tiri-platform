@@ -10,11 +10,10 @@ import { EventShareSection } from "@/components/event/EventShareSection";
 import { AddGuestDialog } from "@/components/event/AddGuestDialog";
 import { MediaUploadDialog } from "@/components/event/MediaUploadDialog";
 import { AvatarUploadDialog } from "@/components/event/AvatarUploadDialog";
-import { MoreHorizontal, PencilLine, Send, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { ExternalLink, Eye, FolderOpen, MoreHorizontal, PencilLine, Send, Trash2 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { isValidPhoneNumber } from "react-phone-number-input";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type GuestItem = {
   id: string;
@@ -49,6 +48,7 @@ type EventDetail = {
   googleMapAddress: string;
   description: string | null;
   coverImage?: string | null;
+  invitationCardUrl: string | null;
   status?: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
   isPublished: boolean;
   guests: GuestItem[];
@@ -57,26 +57,41 @@ type EventDetail = {
 
 type EventResponse = { event: EventDetail };
 
-type EventTab = "overview" | "guests" | "media" | "gifts";
+type EventTab = "overview" | "guests" | "media";
 
 type GuestCategory = "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST";
 type MediaType = "IMAGE" | "VIDEO";
 type InviteChannel = "WHATSAPP" | "TELEGRAM" | "SMS";
+type InviteActionChannel = "WHATSAPP" | "TELEGRAM";
 type SocialPlatform = "INSTAGRAM" | "FACEBOOK" | "TIKTOK";
 
-type InviteResponse = {
+type WhatsAppBatchInviteResponse = {
   results: Array<{
     guestId: string;
     guestName: string;
-    channel: InviteChannel;
-    shareUrl: string | null;
-    status: "sent" | "skipped";
+    whatsappLink: string | null;
+    status: "READY" | "SKIPPED";
+    reason: string | null;
+  }>;
+  summary: {
+    requested: number;
+    ready: number;
+    skipped: number;
+  };
+};
+
+type TelegramInviteResponse = {
+  results: Array<{
+    guestId: string;
+    guestName: string;
+    status: "SENT" | "SKIPPED" | "FAILED";
     reason: string | null;
   }>;
   summary: {
     requested: number;
     sent: number;
     skipped: number;
+    failed: number;
   };
 };
 
@@ -315,6 +330,10 @@ export default function EventDetailPage() {
 
   const [isMediaUploadDialogOpen, setIsMediaUploadDialogOpen] = useState(false);
   const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
+  const [mediaDeleteLoadingId, setMediaDeleteLoadingId] = useState<string | null>(null);
+  const [invitationCardLoading, setInvitationCardLoading] = useState(false);
+  const [invitationCardError, setInvitationCardError] = useState<string | null>(null);
+  const invitationCardInputRef = useRef<HTMLInputElement>(null);
 
   const [isAvatarUploadDialogOpen, setIsAvatarUploadDialogOpen] = useState(false);
   const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
@@ -375,7 +394,7 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
-    if (requestedTab === "overview" || requestedTab === "guests" || requestedTab === "media" || requestedTab === "gifts") {
+    if (requestedTab === "overview" || requestedTab === "guests" || requestedTab === "media") {
       setTab(requestedTab);
     }
   }, [searchParams]);
@@ -512,7 +531,7 @@ export default function EventDetailPage() {
     });
   }
 
-  async function sendInvites(guestIds: string[], channel: InviteChannel, openFirst = false) {
+  async function sendInvites(channel: InviteActionChannel, guestIds: string[], openFirst = false) {
     if (!event || guestIds.length === 0) return;
 
     setInviteSubmitting(true);
@@ -520,30 +539,82 @@ export default function EventDetailPage() {
     setInviteSuccess(null);
 
     try {
-      const response = await fetch(`/api/studio/events/${event.id}/invites`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guestIds, channel }),
-      });
+      if (channel === "WHATSAPP") {
+        const response = await fetch("/api/invitations/whatsapp-batch", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: event.id, guestIds }),
+        });
 
-      if (!response.ok) {
-        setInviteError("Unable to send invitations. Please try again.");
-        return;
+        if (!response.ok) {
+          setInviteError("Unable to send invitations. Please try again.");
+          return;
+        }
+
+        const payload = (await response.json()) as WhatsAppBatchInviteResponse;
+        const readyItems = payload.results.filter((item) => item.status === "READY" && item.whatsappLink);
+
+        if (openFirst && readyItems[0]?.whatsappLink) {
+          window.open(readyItems[0].whatsappLink, "_blank", "noopener,noreferrer");
+        }
+
+        setInviteSuccess(`WhatsApp invites ready: ${payload.summary.ready}, skipped: ${payload.summary.skipped}.`);
+      } else {
+        const response = await fetch("/api/invitations/telegram/send", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId: event.id, guestIds }),
+        });
+
+        if (!response.ok) {
+          setInviteError("Unable to send Telegram invitations. Please try again.");
+          return;
+        }
+
+        const payload = (await response.json()) as TelegramInviteResponse;
+
+        const unlinkedGuestIds = payload.results
+          .filter(
+            (item) =>
+              item.status === "SKIPPED" &&
+              (item.reason ?? "").toLowerCase().includes("has not started the telegram bot")
+          )
+          .map((item) => item.guestId);
+
+        if (unlinkedGuestIds.length > 0) {
+          const whatsappFallbackResponse = await fetch("/api/invitations/whatsapp-batch", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ eventId: event.id, guestIds: unlinkedGuestIds }),
+          });
+
+          if (!whatsappFallbackResponse.ok) {
+            setInviteSuccess(
+              `Telegram invites: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed. WhatsApp fallback could not be prepared.`
+            );
+          } else {
+            const whatsappFallbackPayload = (await whatsappFallbackResponse.json()) as WhatsAppBatchInviteResponse;
+            const fallbackReadyItems = whatsappFallbackPayload.results.filter(
+              (item) => item.status === "READY" && item.whatsappLink
+            );
+
+            if (openFirst && fallbackReadyItems[0]?.whatsappLink) {
+              window.open(fallbackReadyItems[0].whatsappLink, "_blank", "noopener,noreferrer");
+            }
+
+            setInviteSuccess(
+              `Telegram: ${payload.summary.sent} sent, ${payload.summary.failed} failed. Auto-fallback WhatsApp ready: ${whatsappFallbackPayload.summary.ready}, skipped: ${whatsappFallbackPayload.summary.skipped}.`
+            );
+          }
+        } else {
+          setInviteSuccess(
+            `Telegram invites: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed.`
+          );
+        }
       }
-
-      const payload = (await response.json()) as InviteResponse;
-      const sentItems = payload.results.filter((item) => item.status === "sent" && item.shareUrl);
-
-      if (openFirst && sentItems[0]?.shareUrl) {
-        window.open(sentItems[0].shareUrl, "_blank", "noopener,noreferrer");
-      }
-
-      setInviteSuccess(
-        `Invites processed: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped via ${labelForInviteChannel(
-          channel
-        )}.`
-      );
 
       await loadEvent(false);
     } catch {
@@ -560,7 +631,7 @@ export default function EventDetailPage() {
     setIsInviteChannelDialogOpen(true);
   }
 
-  async function confirmInviteChannel(channel: InviteChannel) {
+  async function confirmInviteChannel(channel: InviteActionChannel) {
     const guestIds = pendingInviteGuestIds;
     const openFirst = pendingInviteOpenFirst;
 
@@ -568,7 +639,7 @@ export default function EventDetailPage() {
     setPendingInviteGuestIds([]);
     setPendingInviteOpenFirst(false);
 
-    await sendInvites(guestIds, channel, openFirst);
+    await sendInvites(channel, guestIds, openFirst);
   }
 
   function openEditModal() {
@@ -997,33 +1068,35 @@ export default function EventDetailPage() {
     }
   }
 
-  async function handleMediaUploadDialog(data: { type: MediaType; groupLabel: string; file: File }): Promise<boolean> {
+  async function handleMediaUploadDialog(data: { type: MediaType; groupLabel: string; files: File[] }): Promise<boolean> {
     if (!event) return false;
 
     setMediaUploadError(null);
     setMediaSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append("eventId", event.id);
-      formData.append("type", data.type);
-      formData.append("groupLabel", data.groupLabel);
-      formData.append("file", data.file);
+      for (const file of data.files) {
+        const formData = new FormData();
+        formData.append("eventId", event.id);
+        formData.append("type", data.type);
+        formData.append("groupLabel", data.groupLabel);
+        formData.append("file", file);
 
-      const response = await fetch("/api/studio/media", {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
+        const response = await fetch("/api/studio/media", {
+          method: "POST",
+          credentials: "include",
+          body: formData,
+        });
 
-      if (!response.ok) {
-        setMediaUploadError("Unable to upload media.");
-        return false;
+        if (!response.ok) {
+          setMediaUploadError("Unable to upload media.");
+          return false;
+        }
       }
 
       setIsMediaUploadDialogOpen(false);
       await loadEvent(false);
-      setMediaFormSuccess("Media uploaded successfully.");
+      setMediaFormSuccess(`${data.files.length} media file${data.files.length === 1 ? "" : "s"} uploaded successfully.`);
       setTimeout(() => setMediaFormSuccess(null), 3000);
       return true;
     } catch {
@@ -1031,6 +1104,98 @@ export default function EventDetailPage() {
       return false;
     } finally {
       setMediaSubmitting(false);
+    }
+  }
+
+  async function handleDeleteMedia(mediaId: string) {
+    setMediaUploadError(null);
+    setMediaDeleteLoadingId(mediaId);
+
+    try {
+      const response = await fetch(`/api/studio/media/${mediaId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        setMediaUploadError("Unable to delete media.");
+        return;
+      }
+
+      if (previewMediaItem?.id === mediaId) {
+        setPreviewMediaItem(null);
+      }
+
+      await loadEvent(false);
+      setMediaFormSuccess("Media deleted successfully.");
+      setTimeout(() => setMediaFormSuccess(null), 3000);
+    } catch {
+      setMediaUploadError("Unable to delete media right now.");
+    } finally {
+      setMediaDeleteLoadingId(null);
+    }
+  }
+
+  async function handleInvitationCardUpload(file: File) {
+    if (!event) return;
+
+    setInvitationCardError(null);
+    setInvitationCardLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`/api/studio/events/${event.id}/invitation-card`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setInvitationCardError(payload?.error || "Unable to upload invitation card.");
+        return;
+      }
+
+      await loadEvent(false);
+      setMediaFormSuccess("Invitation card uploaded successfully.");
+      setTimeout(() => setMediaFormSuccess(null), 3000);
+    } catch {
+      setInvitationCardError("Unable to upload invitation card right now.");
+    } finally {
+      setInvitationCardLoading(false);
+      if (invitationCardInputRef.current) {
+        invitationCardInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleDeleteInvitationCard() {
+    if (!event) return;
+
+    setInvitationCardError(null);
+    setInvitationCardLoading(true);
+
+    try {
+      const response = await fetch(`/api/studio/events/${event.id}/invitation-card`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setInvitationCardError(payload?.error || "Unable to remove invitation card.");
+        return;
+      }
+
+      await loadEvent(false);
+      setMediaFormSuccess("Invitation card removed successfully.");
+      setTimeout(() => setMediaFormSuccess(null), 3000);
+    } catch {
+      setInvitationCardError("Unable to remove invitation card right now.");
+    } finally {
+      setInvitationCardLoading(false);
     }
   }
 
@@ -1336,6 +1501,80 @@ export default function EventDetailPage() {
                 {event.description ? (
                   <p className="mt-4 text-sm" style={{ color: "var(--text-secondary)" }}>{event.description}</p>
                 ) : null}
+
+                <div className="mt-5 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
+                      Invitation Card
+                    </p>
+                    <div className="flex items-center gap-2">
+                      {event.invitationCardUrl ? (
+                        <>
+                          <a
+                            href={event.invitationCardUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
+                            style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
+                            title="Open invitation card"
+                            aria-label="Open invitation card"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void handleDeleteInvitationCard();
+                            }}
+                            disabled={invitationCardLoading}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
+                            style={{ borderColor: "var(--error)", color: "var(--error)", background: "var(--surface)" }}
+                            title="Delete invitation card"
+                            aria-label="Delete invitation card"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => invitationCardInputRef.current?.click()}
+                        disabled={invitationCardLoading}
+                        className="ui-button-secondary h-8 px-3 text-xs"
+                      >
+                        {event.invitationCardUrl ? "Replace" : "Upload"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <input
+                    ref={invitationCardInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(eventChange) => {
+                      const file = eventChange.target.files?.[0];
+                      if (!file) return;
+                      void handleInvitationCardUpload(file);
+                    }}
+                  />
+
+                  {event.invitationCardUrl ? (
+                    <div className="mt-3 overflow-hidden rounded-lg border" style={{ borderColor: "var(--border-subtle)" }}>
+                      <img src={event.invitationCardUrl} alt="Invitation card" className="h-44 w-full object-cover" />
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+                      No invitation card uploaded.
+                    </p>
+                  )}
+
+                  {invitationCardError ? (
+                    <p className="mt-2 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>
+                      {invitationCardError}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </section>
           ) : null}
@@ -1383,7 +1622,9 @@ export default function EventDetailPage() {
                     <button
                       type="button"
                       disabled={selectedCount === 0 || inviteSubmitting}
-                      onClick={() => openInviteChannelDialog(selectedGuestIds)}
+                      onClick={() => {
+                        openInviteChannelDialog(selectedGuestIds);
+                      }}
                       className="ui-button-primary h-9 px-3 text-sm"
                     >
                       {inviteSubmitting ? "Sending..." : `Send Invite (${selectedCount})`}
@@ -1559,13 +1800,17 @@ export default function EventDetailPage() {
                     {event?.media.length || 0} file{event?.media.length !== 1 ? "s" : ""} uploaded
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsMediaUploadDialogOpen(true)}
-                  className="ui-button-primary h-10"
-                >
-                  Upload Media
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMediaUploadDialogOpen(true);
+                    }}
+                    className="ui-button-primary h-10"
+                  >
+                    Upload Media
+                  </button>
+                </div>
               </div>
 
               {mediaFormError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{mediaFormError}</p> : null}
@@ -1680,30 +1925,49 @@ export default function EventDetailPage() {
                                     <button
                                       type="button"
                                       onClick={() => setSelectedMediaFolder(item.name)}
-                                      className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
                                       style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                      aria-label="Open folder"
+                                      title="Open folder"
                                     >
-                                      Open
+                                      <FolderOpen size={14} />
                                     </button>
                                   ) : (
                                     <div className="inline-flex items-center gap-2">
                                       <button
                                         type="button"
                                         onClick={() => setPreviewMediaItem(item.file)}
-                                        className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
                                         style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                        aria-label="Preview media"
+                                        title="Preview"
                                       >
-                                        Preview
+                                        <Eye size={14} />
                                       </button>
                                       <a
                                         href={item.file.url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
                                         style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                        aria-label="Open media in new tab"
+                                        title="Open"
                                       >
-                                        Open
+                                        <ExternalLink size={14} />
                                       </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          void handleDeleteMedia(item.file.id);
+                                        }}
+                                        disabled={mediaDeleteLoadingId === item.file.id}
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
+                                        style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
+                                        aria-label="Delete media"
+                                        title="Delete"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
                                     </div>
                                   )}
                                 </td>
@@ -1745,20 +2009,37 @@ export default function EventDetailPage() {
                                 <button
                                   type="button"
                                   onClick={() => setPreviewMediaItem(item.file)}
-                                  className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
                                   style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                  aria-label="Preview media"
+                                  title="Preview"
                                 >
-                                  Preview
+                                  <Eye size={14} />
                                 </button>
                                 <a
                                   href={item.file.url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
                                   style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                                  aria-label="Open media in new tab"
+                                  title="Open"
                                 >
-                                  Open
+                                  <ExternalLink size={14} />
                                 </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void handleDeleteMedia(item.file.id);
+                                  }}
+                                  disabled={mediaDeleteLoadingId === item.file.id}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
+                                  style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
+                                  aria-label="Delete media"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
                               </div>
                             </div>
                           )}
@@ -1768,15 +2049,6 @@ export default function EventDetailPage() {
                   )}
                 </div>
               )}
-            </section>
-          ) : null}
-
-          {tab === "gifts" ? (
-            <section className="mt-5 ui-panel">
-              <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Gifts</h3>
-              <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                No gifts recorded for this event yet.
-              </p>
             </section>
           ) : null}
 
@@ -1960,11 +2232,19 @@ export default function EventDetailPage() {
           />
 
           <MediaUploadDialog
+            key={`gallery-${isMediaUploadDialogOpen ? "open" : "closed"}`}
             isOpen={isMediaUploadDialogOpen}
             onClose={() => setIsMediaUploadDialogOpen(false)}
-            onSubmit={handleMediaUploadDialog}
+            eventId={event.id}
+            onMediaChanged={async () => {
+              await loadEvent(false);
+            }}
             isLoading={mediaSubmitting}
             error={mediaUploadError || undefined}
+            dialogTitle="Upload Media"
+            initialType="IMAGE"
+            initialGroupLabel=""
+            lockType={false}
           />
 
           <AvatarUploadDialog
@@ -1990,11 +2270,26 @@ export default function EventDetailPage() {
                       href={previewMediaItem.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
                       style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
+                      aria-label="Open media in new tab"
+                      title="Open"
                     >
-                      Open in new tab
+                      <ExternalLink size={14} />
                     </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleDeleteMedia(previewMediaItem.id);
+                      }}
+                      disabled={mediaDeleteLoadingId === previewMediaItem.id}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
+                      style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
+                      aria-label="Delete media"
+                      title="Delete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                     <button
                       type="button"
                       onClick={() => setPreviewMediaItem(null)}
@@ -2024,8 +2319,11 @@ export default function EventDetailPage() {
                 <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
                   Send invitation for {pendingInviteGuestIds.length} guest{pendingInviteGuestIds.length !== 1 ? "s" : ""} using:
                 </p>
+                <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
+                  Telegram will auto-fallback to WhatsApp for guests who have not started the bot.
+                </p>
 
-                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -2045,16 +2343,6 @@ export default function EventDetailPage() {
                     style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
                   >
                     Telegram
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void confirmInviteChannel("SMS");
-                    }}
-                    className="rounded-md border px-3 py-2 text-sm font-medium transition hover:opacity-90"
-                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
-                  >
-                    SMS
                   </button>
                 </div>
 

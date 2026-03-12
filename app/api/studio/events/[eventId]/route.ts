@@ -22,6 +22,7 @@ function statusFromLegacy(input: { eventDate: Date; isPublished?: boolean; statu
 }
 
 type InvitationChannel = "WHATSAPP" | "TELEGRAM" | "SMS";
+const INVITATION_CARD_LABEL = "INVITATION_CARD";
 
 type LatestInvitationRow = {
   channel: InvitationChannel;
@@ -339,6 +340,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const enrichedEvent = {
     ...event,
+    invitationCardUrl: event.media.find((item) => item.groupLabel === INVITATION_CARD_LABEL)?.url ?? null,
+    media: event.media.filter((item) => item.groupLabel !== INVITATION_CARD_LABEL),
     guests: event.guests.map((guest) => {
       const latestInvite = latestInviteByGuest[guest.id];
       return {
