@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type EventStatus = "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED";
 
@@ -9,7 +9,7 @@ interface StatusChangeConfirmDialogProps {
   isOpen: boolean;
   currentStatus: EventStatus;
   newStatus: EventStatus;
-  onConfirm: () => Promise<void>;
+  onConfirm: (cancellationReason?: string) => Promise<void>;
   onCancel: () => void;
   eventTitle?: string;
 }
@@ -64,13 +64,29 @@ export function StatusChangeConfirmDialog({
   eventTitle = "this event",
 }: StatusChangeConfirmDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [reasonError, setReasonError] = useState<string | null>(null);
+  const requiresReason = newStatus === "CANCELLED";
 
   const content = getConfirmationContent(currentStatus, newStatus, eventTitle);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    setCancellationReason("");
+    setReasonError(null);
+  }, [isOpen, newStatus]);
+
   async function handleConfirm() {
+    const trimmedReason = cancellationReason.trim();
+
+    if (requiresReason && trimmedReason.length < 5) {
+      setReasonError("Please provide a cancellation reason (at least 5 characters).");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      await onConfirm();
+      await onConfirm(requiresReason ? trimmedReason : undefined);
     } finally {
       setIsLoading(false);
     }
@@ -79,39 +95,61 @@ export function StatusChangeConfirmDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl border bg-white" style={{ borderColor: "var(--border-subtle)" }}>
-        {/* Header */}
-        <div className="border-b px-6 py-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-          <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="mb-5">
+          <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
             {content.title}
           </h2>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            Review this action before continuing.
+          </p>
         </div>
 
-        {/* Content */}
-        <div className="space-y-4 p-6">
+        <div className="space-y-4">
           <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
             {content.message}
           </p>
 
+          {requiresReason ? (
+            <div>
+              <label className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+                Cancellation Reason
+              </label>
+              <textarea
+                value={cancellationReason}
+                onChange={(event) => {
+                  setCancellationReason(event.target.value);
+                  if (reasonError) setReasonError(null);
+                }}
+                className="ui-textarea"
+                placeholder="Briefly explain why this event is being cancelled"
+                rows={3}
+                maxLength={500}
+              />
+              {reasonError ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{reasonError}</p> : null}
+            </div>
+          ) : null}
+
           {content.warning && (
-            <div className="rounded-lg p-3 flex gap-3" style={{ background: "var(--warning)" + "1A", borderLeft: `3px solid var(--warning)` }}>
+            <div className="rounded-lg border px-3 py-2" style={{ borderColor: "#f6d28b", background: "#fff7e6", color: "#9a6b13" }}>
+              <div className="flex items-start gap-2">
               <svg className="h-5 w-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--warning)" }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm font-medium" style={{ color: "var(--warning)" }}>
+              <p className="text-sm font-medium">
                 {content.warning}
               </p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 border-t px-6 py-4" style={{ borderColor: "var(--border-subtle)" }}>
-          <Button variant="outline" onClick={onCancel} disabled={isLoading}>
+        <div className="mt-4 flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+          <Button variant="outline" onClick={onCancel} disabled={isLoading} className="ui-button-secondary">
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={isLoading} style={{ background: "var(--primary)", color: "white" }}>
+          <Button onClick={handleConfirm} disabled={isLoading} className="ui-button-primary">
             {isLoading ? "Updating..." : "Confirm"}
           </Button>
         </div>

@@ -42,13 +42,11 @@ export function MediaUploadDialog({ isOpen, onClose, onSubmit, isLoading, error 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
-        <div className="mb-6">
+        <div className="mb-5">
           <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
             Upload {formData.type === "IMAGE" ? "Photo" : "Video"}
           </h2>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            Add media files to your wedding gallery
-          </p>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Add media files to this event gallery.</p>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
@@ -114,11 +112,11 @@ export function MediaUploadDialog({ isOpen, onClose, onSubmit, isLoading, error 
             </div>
           )}
 
-          <div className="flex justify-end gap-3 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+          <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
             <Button variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading || !formData.file} className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" disabled={isLoading || !formData.file} className="ui-button-primary">
               {isLoading ? "Uploading..." : "Upload"}
             </Button>
           </div>

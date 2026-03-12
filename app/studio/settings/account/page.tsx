@@ -166,126 +166,155 @@ export default function StudioAccountSettingsPage() {
   }
 
   return (
-    <main className="ui-page">
+    <main className="ui-page rounded-lg flex min-h-[calc(100dvh-7rem)] flex-col p-4">
       <div>
         <h2 className="ui-title">Settings</h2>
-        <p className="ui-subtitle">Manage password and studio identity.</p>
+        <p className="ui-subtitle">Manage account security and studio profile in one place.</p>
       </div>
 
-      <div className="mt-5 flex gap-2">
-        <Link href="/studio/settings/account" className="rounded-lg px-3 py-2 text-sm font-medium" style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))", color: "white" }}>Account</Link>
-        <Link href="/studio/settings/team" className="rounded-lg border px-3 py-2 text-sm font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>Team</Link>
+      <div className="mt-4 flex gap-8 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+        <Link
+          href="/studio/settings/account"
+          className="relative py-3 text-sm font-medium"
+          style={{
+            color: "var(--primary)",
+            borderBottom: "2px solid var(--primary)",
+            marginBottom: "-2px",
+          }}
+        >
+          Account
+        </Link>
+        <Link
+          href="/studio/settings/team"
+          className="relative py-3 text-sm font-medium"
+          style={{ color: "var(--text-secondary)", borderBottom: "2px solid transparent", marginBottom: "-2px" }}
+        >
+          Team
+        </Link>
       </div>
 
       {loading ? (
-        <p className="mt-5 text-sm" style={{ color: "var(--text-secondary)" }}>Loading account settings...</p>
+        <div className="mt-5 flex min-h-[16rem] items-center justify-center rounded-lg border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading account settings...</p>
+        </div>
       ) : (
-        <form className="mt-5 space-y-5" onSubmit={handleSave}>
-          <section className="ui-panel">
-            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Password</h3>
-            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Change your password securely.</p>
-
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Current Password</span>
-                <div className="relative">
-                  <input
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={formData.currentPassword}
-                    onChange={(event) => setFormData((current) => ({ ...current, currentPassword: event.target.value }))}
-                    className="ui-input pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword((current) => !current)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                    style={{ color: "var(--text-secondary)" }}
-                    aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
-                    title={showCurrentPassword ? "Hide current password" : "Show current password"}
-                  >
-                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+        <form className="mt-5 flex min-h-0 flex-1 flex-col gap-4" onSubmit={handleSave}>
+          <section className="grid gap-4 xl:grid-cols-2">
+            <article className="ui-panel h-full rounded-lg">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Password</h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Use a strong password to secure your account.</p>
                 </div>
-              </label>
+                <span className="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)", background: "var(--surface-muted)" }}>
+                  {role}
+                </span>
+              </div>
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>New Password</span>
-                <div className="relative">
+              <div className="mt-4 grid gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Current Password</span>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={formData.currentPassword}
+                      onChange={(event) => setFormData((current) => ({ ...current, currentPassword: event.target.value }))}
+                      className="ui-input pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword((current) => !current)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: "var(--text-secondary)" }}
+                      aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
+                      title={showCurrentPassword ? "Hide current password" : "Show current password"}
+                    >
+                      {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>New Password</span>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={formData.newPassword}
+                      onChange={(event) => setFormData((current) => ({ ...current, newPassword: event.target.value }))}
+                      className="ui-input pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((current) => !current)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: "var(--text-secondary)" }}
+                      aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                      title={showNewPassword ? "Hide new password" : "Show new password"}
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+              </div>
+            </article>
+
+            <article className="ui-panel h-full rounded-lg">
+              <div>
+                <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Studio Profile</h3>
+                <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                  {role === "ADMIN"
+                    ? "Update your studio identity and branding assets."
+                    : "Studio profile fields are read-only for staff accounts."}
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Name</span>
                   <input
-                    type={showNewPassword ? "text" : "password"}
-                    value={formData.newPassword}
-                    onChange={(event) => setFormData((current) => ({ ...current, newPassword: event.target.value }))}
-                    className="ui-input pr-10"
+                    value={formData.studioName}
+                    onChange={(event) => setFormData((current) => ({ ...current, studioName: event.target.value }))}
+                    disabled={role !== "ADMIN"}
+                    className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword((current) => !current)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                    style={{ color: "var(--text-secondary)" }}
-                    aria-label={showNewPassword ? "Hide new password" : "Show new password"}
-                    title={showNewPassword ? "Hide new password" : "Show new password"}
-                  >
-                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </label>
-            </div>
-          </section>
+                </label>
 
-          <section className="ui-panel">
-            <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Studio Profile</h3>
-            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-              {role === "ADMIN"
-                ? "Update studio name and logo."
-                : "Studio profile fields are read-only for staff accounts."}
-            </p>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Logo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        void handleLogoUpload(file);
+                      }
+                    }}
+                    disabled={role !== "ADMIN"}
+                    className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
+                  />
 
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Name</span>
-                <input
-                  value={formData.studioName}
-                  onChange={(event) => setFormData((current) => ({ ...current, studioName: event.target.value }))}
-                  disabled={role !== "ADMIN"}
-                  className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
-                />
-              </label>
+                  {uploadingLogo ? (
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>Uploading logo...</p>
+                  ) : null}
 
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Studio Logo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void handleLogoUpload(file);
-                    }
-                  }}
-                  disabled={role !== "ADMIN"}
-                  className="ui-input disabled:cursor-not-allowed disabled:bg-zinc-100"
-                />
-                {formData.studioLogoUrl ? (
-                  <p className="mt-1 truncate text-xs" style={{ color: "var(--text-tertiary)" }}>
-                    Uploaded URL: {formData.studioLogoUrl}
-                  </p>
-                ) : null}
-                {uploadingLogo ? (
-                  <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>Uploading logo...</p>
-                ) : null}
-              </label>
-            </div>
+                  {formData.studioLogoUrl ? (
+                    <div className="mt-2 rounded-lg border p-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+                      <p className="truncate text-xs" style={{ color: "var(--text-tertiary)" }}>
+                        {formData.studioLogoUrl}
+                      </p>
+                    </div>
+                  ) : null}
+                </label>
+              </div>
+            </article>
           </section>
 
           {error ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{error}</p> : null}
           {success ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{success}</p> : null}
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={saving}
-              className="ui-button-primary"
-            >
+          <div className="mt-auto flex justify-end border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+            <button type="submit" disabled={saving} className="ui-button-primary min-w-36">
               {saving ? "Saving..." : "Save Settings"}
             </button>
           </div>

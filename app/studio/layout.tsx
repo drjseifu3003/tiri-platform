@@ -343,7 +343,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             </div>
           </header>
 
-          <div className="px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-5">
+          <div className="px-2 pb-3 pt-2 sm:px-3 sm:pb-4 sm:pt-3">
             <div className="w-full">{children}</div>
           </div>
         </section>

@@ -39,7 +39,17 @@ const listEventsQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   search: z.string().trim().optional(),
   filter: z.enum(["all", "draft", "scheduled", "live", "completed", "cancelled", "archived", "published"]).default("all"),
+  dateFilter: z.enum(["all", "today", "upcoming", "past", "this-month", "custom"]).default("all"),
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
+
+function parseDateBoundary(value: string, endOfDay = false) {
+  const [year, month, day] = value.split("-").map(Number);
+  return endOfDay
+    ? new Date(year, month - 1, day + 1, 0, 0, 0, 0)
+    : new Date(year, month - 1, day, 0, 0, 0, 0);
+}
 
 export async function GET(request: NextRequest) {
   const session = requireStudioSession(request);
@@ -50,15 +60,42 @@ export async function GET(request: NextRequest) {
     pageSize: request.nextUrl.searchParams.get("pageSize") ?? "10",
     search: request.nextUrl.searchParams.get("search") ?? undefined,
     filter: request.nextUrl.searchParams.get("filter") ?? "all",
+    dateFilter: request.nextUrl.searchParams.get("dateFilter") ?? "all",
+    dateFrom: request.nextUrl.searchParams.get("dateFrom") ?? undefined,
+    dateTo: request.nextUrl.searchParams.get("dateTo") ?? undefined,
   });
 
   if (!parsedQuery.success) {
     return badRequestResponse("Invalid events query params");
   }
 
-  const { page, pageSize, search, filter } = parsedQuery.data;
+  const { page, pageSize, search, filter, dateFilter, dateFrom, dateTo } = parsedQuery.data;
   const skip = (page - 1) * pageSize;
   const now = new Date();
+
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const thisMonthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+  const nextMonthStart = new Date(todayStart.getFullYear(), todayStart.getMonth() + 1, 1);
+
+  const customDateRange = {
+    ...(dateFrom ? { gte: parseDateBoundary(dateFrom, false) } : {}),
+    ...(dateTo ? { lt: parseDateBoundary(dateTo, true) } : {}),
+  };
+
+  const dateWhere = dateFilter === "today"
+    ? { eventDate: { gte: todayStart, lt: tomorrowStart } }
+    : dateFilter === "upcoming"
+      ? { eventDate: { gte: now } }
+      : dateFilter === "past"
+        ? { eventDate: { lt: now } }
+        : dateFilter === "this-month"
+          ? { eventDate: { gte: thisMonthStart, lt: nextMonthStart } }
+          : dateFilter === "custom"
+              ? (Object.keys(customDateRange).length > 0 ? { eventDate: customDateRange } : {})
+            : {};
 
   const where = {
     studioId: session.studioId,
@@ -90,6 +127,7 @@ export async function GET(request: NextRequest) {
                 : filter === "published"
                   ? { status: { in: ["SCHEDULED", "LIVE"] as const } }
                   : {}),
+    ...dateWhere,
   };
 
   const [total, events] = await prisma.$transaction([

@@ -33,9 +33,48 @@ type PhoneInputProps = Omit<
 
 type InputProps = React.ComponentProps<typeof Input>;
 
+const COUNTRY_PREFIX_RULES: Array<{ prefix: string; country: RPNInput.Country }> = [
+  { prefix: "+251", country: "ET" },
+  { prefix: "+1", country: "US" },
+];
+
+function inferCountryFromValue(value: string): RPNInput.Country | undefined {
+  const normalized = value.trim();
+  if (!normalized.startsWith("+")) return undefined;
+
+  for (const rule of COUNTRY_PREFIX_RULES) {
+    if (normalized.startsWith(rule.prefix)) {
+      return rule.country;
+    }
+  }
+
+  return undefined;
+}
+
 const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
   React.forwardRef<React.ElementRef<typeof RPNInput.default>, PhoneInputProps>(
-    ({ className, onChange, ...props }, ref) => {
+    ({ className, onChange, defaultCountry, country: controlledCountry, onCountryChange, ...props }, ref) => {
+      const fallbackCountry = defaultCountry ?? "ET";
+      const [autoCountry, setAutoCountry] = React.useState<RPNInput.Country | undefined>(fallbackCountry);
+
+      const handleCountryChange = React.useCallback((nextCountry?: RPNInput.Country) => {
+        onCountryChange?.(nextCountry);
+        if (!controlledCountry && nextCountry) {
+          setAutoCountry(nextCountry);
+        }
+      }, [controlledCountry, onCountryChange]);
+
+      const handleValueChange = React.useCallback((value: RPNInput.Value | undefined) => {
+        const normalized = value ?? "";
+        onChange?.(normalized);
+
+        if (controlledCountry) return;
+        const inferred = inferCountryFromValue(normalized);
+        if (inferred) {
+          setAutoCountry(inferred);
+        }
+      }, [controlledCountry, onChange]);
+
       return (
         <RPNInput.default
           ref={ref}
@@ -44,8 +83,10 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
           countrySelectComponent={CountrySelect}
           inputComponent={InputComponent}
           international
-          defaultCountry="ET"
-          onChange={(value) => onChange?.(value ?? "")}
+          defaultCountry={fallbackCountry}
+          country={controlledCountry ?? autoCountry}
+          onCountryChange={handleCountryChange}
+          onChange={handleValueChange}
           {...props}
         />
       );

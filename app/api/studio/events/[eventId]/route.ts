@@ -25,6 +25,7 @@ type InvitationChannel = "WHATSAPP" | "TELEGRAM" | "SMS";
 
 type LatestInvitationRow = {
   channel: InvitationChannel;
+  status: string;
   sentAt: Date;
 };
 
@@ -72,6 +73,23 @@ const updateEventSchema = z.object({
   subdomain: z.string().min(2).nullable().optional(),
   isPublished: z.boolean().optional(),
   status: eventStatusSchema.optional(),
+  cancellationReason: z.string().trim().max(500).optional(),
+}).superRefine((value, ctx) => {
+  if (value.status === "ARCHIVED") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "ARCHIVED status is no longer supported.",
+      path: ["status"],
+    });
+  }
+
+  if (value.status === "CANCELLED" && (!value.cancellationReason || value.cancellationReason.trim().length < 5)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Cancellation reason is required.",
+      path: ["cancellationReason"],
+    });
+  }
 });
 
 type RouteContext = {
@@ -90,6 +108,7 @@ async function findStudioEvent(studioId: string, eventId: string) {
         studioId: true,
         eventDate: true,
         isPublished: true,
+        status: true,
         googleMapAddress: true,
         startedAt: true,
         completedAt: true,
@@ -119,6 +138,7 @@ async function findStudioEvent(studioId: string, eventId: string) {
     return legacyEvent
       ? {
           ...legacyEvent,
+          status: undefined,
           startedAt: null,
           completedAt: null,
           cancelledAt: null,
@@ -273,14 +293,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   let latestInviteByGuest: Record<
     string,
-    { invitationChannel: InvitationChannel; invitationSentAt: string }
+    { invitationChannel: InvitationChannel | null; invitationSentAt: string | null; invitationStatus: "SENT" | "NOT_SENT" }
   > = {};
 
   try {
     const latestRows = await Promise.all(
       event.guests.map((guest) =>
         prisma.$queryRaw<LatestInvitationRow[]>`
-          SELECT channel AS "channel", "sentAt" AS "sentAt"
+          SELECT channel AS "channel", status AS "status", "sentAt" AS "sentAt"
           FROM "GuestInvitation"
           WHERE "guestId" = ${guest.id}
           ORDER BY "sentAt" DESC
@@ -298,12 +318,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
           return [
             event.guests[index].id,
             {
-              invitationChannel: latest.channel,
-              invitationSentAt: latest.sentAt.toISOString(),
+              invitationChannel: latest.status?.toUpperCase() === "SENT" ? latest.channel : null,
+              invitationSentAt: latest.status?.toUpperCase() === "SENT" ? latest.sentAt.toISOString() : null,
+              invitationStatus: latest.status?.toUpperCase() === "SENT" ? "SENT" : "NOT_SENT",
             },
           ];
         })
-        .filter((row): row is [string, { invitationChannel: InvitationChannel; invitationSentAt: string }] => !!row)
+        .filter(
+          (
+            row
+          ): row is [
+            string,
+            { invitationChannel: InvitationChannel | null; invitationSentAt: string | null; invitationStatus: "SENT" | "NOT_SENT" }
+          ] => !!row
+        )
     );
   } catch (error) {
     if (!isInvitationTableMissingError(error)) throw error;
@@ -315,7 +343,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       const latestInvite = latestInviteByGuest[guest.id];
       return {
         ...guest,
-        invitationStatus: latestInvite ? "SENT" : "NOT_SENT",
+        invitationStatus: latestInvite?.invitationStatus ?? "NOT_SENT",
         invitationChannel: latestInvite?.invitationChannel ?? null,
         invitationSentAt: latestInvite?.invitationSentAt ?? null,
       };
@@ -340,7 +368,17 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     return badRequestResponse("Invalid event payload");
   }
 
-  const { status: requestedStatus, ...patchableData } = parsed.data;
+  const { status: requestedStatus, cancellationReason, ...patchableData } = parsed.data;
+
+  const existingStatus = statusFromLegacy({
+    eventDate: existingEvent.eventDate,
+    isPublished: existingEvent.isPublished,
+    status: existingEvent.status ?? undefined,
+  });
+
+  if (existingStatus === "COMPLETED") {
+    return badRequestResponse("Completed events cannot be edited");
+  }
 
   const nextEventDate = patchableData.eventDate ?? existingEvent.eventDate;
   const resolvedStatus = statusFromLegacy({

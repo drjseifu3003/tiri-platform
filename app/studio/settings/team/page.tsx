@@ -1,8 +1,9 @@
 "use client";
 
 import { PhoneInput } from "@/components/ui/phone-input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSession } from "@/lib/session-context";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, KeyRound, MoreHorizontal, PencilLine, ShieldAlert, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
@@ -53,10 +54,15 @@ export default function StudioTeamSettingsPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
   const [resetForMemberId, setResetForMemberId] = useState<string | null>(null);
+  const [deleteForMemberId, setDeleteForMemberId] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+  const [resetDialogMember, setResetDialogMember] = useState<TeamMember | null>(null);
+  const [deleteDialogMember, setDeleteDialogMember] = useState<TeamMember | null>(null);
+  const [openMenuMemberId, setOpenMenuMemberId] = useState<string | null>(null);
   const [showAddPassword, setShowAddPassword] = useState(false);
-  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
   const [formData, setFormData] = useState({
     phone: "",
     password: "",
@@ -64,7 +70,6 @@ export default function StudioTeamSettingsPage() {
   });
   const [editFormData, setEditFormData] = useState({
     phone: "",
-    password: "",
     teamRole: "EVENT_PLANNER" as TeamRole,
   });
 
@@ -116,6 +121,7 @@ export default function StudioTeamSettingsPage() {
 
   const summary = useMemo(() => {
     return {
+      total: members.length,
       admins: members.filter((member) => member.role === "ADMIN").length,
       staff: members.filter((member) => member.role === "STAFF").length,
       photoCrew: members.filter((member) => member.teamRole === "PHOTO_CREW").length,
@@ -167,21 +173,17 @@ export default function StudioTeamSettingsPage() {
   function openEditDialog(member: TeamMember) {
     setActionError(null);
     setSuccess(null);
-    setShowEditPassword(false);
     setEditingMember(member);
     setEditFormData({
       phone: member.phone,
-      password: "",
       teamRole: member.teamRole,
     });
   }
 
   function closeEditDialog() {
     setEditingMember(null);
-    setShowEditPassword(false);
     setEditFormData({
       phone: "",
-      password: "",
       teamRole: "EVENT_PLANNER",
     });
   }
@@ -201,14 +203,10 @@ export default function StudioTeamSettingsPage() {
       return;
     }
 
-    const payload: { phone: string; teamRole: TeamRole; password?: string } = {
+    const payload: { phone: string; teamRole: TeamRole } = {
       phone: editFormData.phone.trim(),
       teamRole: editFormData.teamRole,
     };
-
-    if (editFormData.password.trim().length > 0) {
-      payload.password = editFormData.password;
-    }
 
     try {
       const response = await fetch(`/api/studio/settings/team/${editingMember.id}`, {
@@ -233,25 +231,46 @@ export default function StudioTeamSettingsPage() {
       setEditLoading(false);
     }
   }
-  async function handleResetPassword(memberId: string) {
-    const nextPassword = window.prompt("Set new password (min 6 chars):");
-    if (!nextPassword) return;
 
-    if (nextPassword.length < 6) {
+  function openResetDialog(member: TeamMember) {
+    if (!isAdmin) {
+      setActionError("Only admin users can reset passwords.");
+      return;
+    }
+
+    setActionError(null);
+    setSuccess(null);
+    setShowResetPassword(false);
+    setResetPassword("");
+    setResetDialogMember(member);
+  }
+
+  function closeResetDialog() {
+    setResetDialogMember(null);
+    setShowResetPassword(false);
+    setResetPassword("");
+  }
+
+  async function handleResetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!resetDialogMember) return;
+
+    if (resetPassword.length < 6) {
       setActionError("Password must be at least 6 characters.");
       return;
     }
 
-    setResetForMemberId(memberId);
+    setResetForMemberId(resetDialogMember.id);
     setActionError(null);
     setSuccess(null);
 
     try {
-      const response = await fetch(`/api/studio/settings/team/${memberId}`, {
+      const response = await fetch(`/api/studio/settings/team/${resetDialogMember.id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: nextPassword }),
+        body: JSON.stringify({ password: resetPassword }),
       });
 
       if (!response.ok) {
@@ -261,6 +280,7 @@ export default function StudioTeamSettingsPage() {
       }
 
       setSuccess("Password reset successfully.");
+      closeResetDialog();
     } catch {
       setActionError("Unable to reset password");
     } finally {
@@ -268,7 +288,29 @@ export default function StudioTeamSettingsPage() {
     }
   }
 
-  async function handleDeleteMember(member: TeamMember) {
+  function openDeleteDialog(member: TeamMember) {
+    if (!isAdmin) {
+      setActionError("Only admin users can remove team members.");
+      return;
+    }
+
+    if (member.id === session?.user.id) {
+      setActionError("You cannot remove your own account.");
+      return;
+    }
+
+    setActionError(null);
+    setSuccess(null);
+    setDeleteDialogMember(member);
+  }
+
+  function closeDeleteDialog() {
+    setDeleteDialogMember(null);
+  }
+
+  async function handleDeleteMember() {
+    if (!deleteDialogMember) return;
+
     setActionError(null);
     setSuccess(null);
 
@@ -277,11 +319,10 @@ export default function StudioTeamSettingsPage() {
       return;
     }
 
-    const confirmed = window.confirm(`Remove ${member.phone} from studio team?`);
-    if (!confirmed) return;
+    setDeleteForMemberId(deleteDialogMember.id);
 
     try {
-      const response = await fetch(`/api/studio/settings/team/${member.id}`, {
+      const response = await fetch(`/api/studio/settings/team/${deleteDialogMember.id}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -293,161 +334,235 @@ export default function StudioTeamSettingsPage() {
       }
 
       setSuccess("Team member removed.");
+      closeDeleteDialog();
       await loadMembers();
     } catch {
       setActionError("Unable to remove team member");
+    } finally {
+      setDeleteForMemberId(null);
     }
   }
 
   return (
-    <main className="ui-page">
+    <main className="ui-page rounded-lg flex min-h-[calc(100dvh-7rem)] flex-col p-4">
       <div>
         <h2 className="ui-title">Settings</h2>
-        <p className="ui-subtitle">Manage your account, studio profile, and studio operations.</p>
+        <p className="ui-subtitle">Manage team access, roles, and account security workflows.</p>
       </div>
 
-      <div className="mt-5 flex gap-2">
-        <Link href="/studio/settings/account" className="rounded-lg border px-3 py-2 text-sm font-medium" style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}>Account</Link>
-        <Link href="/studio/settings/team" className="rounded-lg px-3 py-2 text-sm font-medium" style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))", color: "white" }}>Team</Link>
+      <div className="mt-4 flex gap-8 border-b" style={{ borderColor: "var(--border-subtle)" }}>
+        <Link
+          href="/studio/settings/account"
+          className="relative py-3 text-sm font-medium"
+          style={{ color: "var(--text-secondary)", borderBottom: "2px solid transparent", marginBottom: "-2px" }}
+        >
+          Account
+        </Link>
+        <Link
+          href="/studio/settings/team"
+          className="relative py-3 text-sm font-medium"
+          style={{
+            color: "var(--primary)",
+            borderBottom: "2px solid var(--primary)",
+            marginBottom: "-2px",
+          }}
+        >
+          Team
+        </Link>
       </div>
 
       {!isAdmin ? (
-        <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-          STAFF mode: view-only access. ADMIN can add/remove members and change roles.
+        <p className="mt-4 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#f6d28b", background: "#fff7e6", color: "#9a6b13" }}>
+          Staff mode: view-only access. Admin users can add/remove members and change roles.
         </p>
       ) : null}
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Total members</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">{members.length}</p>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Admins</p>
-          <p className="mt-1 text-xl font-semibold text-cyan-700">{summary.admins}</p>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Staff</p>
-          <p className="mt-1 text-xl font-semibold text-violet-700">{summary.staff}</p>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Photo crew</p>
-          <p className="mt-1 text-xl font-semibold text-zinc-900">{summary.photoCrew}</p>
-        </div>
-      </div>
+      {error ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{error}</p> : null}
+      {actionError ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{actionError}</p> : null}
+      {success ? <p className="mt-4 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{success}</p> : null}
 
-      <section className="ui-panel mt-5 flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-lg font-semibold text-zinc-800">Team Members</h3>
-          <p className="mt-1 text-sm text-zinc-600">Add and edit team members using dialogs.</p>
-        </div>
-        <button
-          type="button"
-          className="ui-button-primary"
-          disabled={!isAdmin}
-          onClick={() => {
-            setActionError(null);
-            setSuccess(null);
-            setShowAddPassword(false);
-            setIsAddDialogOpen(true);
-          }}
-        >
-          Add Team Member
-        </button>
+      <section className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article className="rounded-lg border p-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Total Members</p>
+          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary)" }}>{summary.total}</p>
+        </article>
+        <article className="rounded-lg border p-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Admins</p>
+          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary)" }}>{summary.admins}</p>
+        </article>
+        <article className="rounded-lg border p-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Staff</p>
+          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary)" }}>{summary.staff}</p>
+        </article>
+        <article className="rounded-lg border p-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Photo Crew</p>
+          <p className="mt-2 text-2xl font-semibold" style={{ color: "var(--primary)" }}>{summary.photoCrew}</p>
+        </article>
       </section>
 
-      {error ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-      {actionError ? <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p> : null}
-      {success ? <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{success}</p> : null}
+      <section className="mt-4 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+            <div className="relative w-80 min-w-80">
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by phone or role"
+                className="ui-input h-10 w-full rounded-lg pl-10"
+              />
+              <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search by phone or role"
-          className="ui-input max-w-xs"
-        />
-
-        {["all", "EDITOR", "CUSTOMER_SERVICE", "EVENT_PLANNER", "PHOTO_CREW"].map((value) => {
-          const active = roleFilter === value;
-          return (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setRoleFilter(value as "all" | TeamRole)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium ${
-                active
-                  ? "bg-gradient-to-r from-cyan-400 to-violet-400 text-white"
-                  : "border border-zinc-300 bg-zinc-50 text-zinc-600"
-              }`}
-            >
-              {value === "all" ? "All roles" : roleLabel(value as TeamRole)}
-            </button>
-          );
-        })}
-      </div>
-
-      {loading ? (
-        <p className="mt-5 text-sm text-zinc-600">Loading team members...</p>
-      ) : (
-        <div className="ui-table">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-zinc-600">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Phone</th>
-                  <th className="px-4 py-3 font-medium">Access</th>
-                  <th className="px-4 py-3 font-medium">Team Role</th>
-                  <th className="px-4 py-3 font-medium">Joined</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredMembers.map((member) => (
-                  <tr key={member.id} className="border-t border-zinc-100 align-top hover:bg-zinc-50">
-                    <td className="px-4 py-3 font-medium text-zinc-800">{member.phone}</td>
-                    <td className="px-4 py-3 text-zinc-700">{member.role}</td>
-                    <td className="px-4 py-3 text-zinc-700">{roleLabel(member.teamRole)}</td>
-                    <td className="px-4 py-3 text-zinc-600">{formatDate(member.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        <button
-                          type="button"
-                          onClick={() => openEditDialog(member)}
-                          disabled={!isAdmin}
-                          className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleResetPassword(member.id)}
-                          disabled={!isAdmin || resetForMemberId === member.id}
-                          className="rounded-md border border-cyan-200 bg-cyan-50 px-2 py-1 text-xs text-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {resetForMemberId === member.id ? "Resetting..." : "Reset Password"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDeleteMember(member)}
-                          disabled={!isAdmin || member.id === session?.user.id}
-                          className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+            <div className="relative min-w-52">
+              <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <line x1="4" y1="6" x2="20" y2="6" />
+                <line x1="7" y1="12" x2="17" y2="12" />
+                <line x1="10" y1="18" x2="14" y2="18" />
+              </svg>
+              <select
+                value={roleFilter}
+                onChange={(event) => setRoleFilter(event.target.value as "all" | TeamRole)}
+                className="ui-input h-10 min-w-52 appearance-none rounded-lg pl-9 pr-8 text-sm font-medium"
+              >
+                <option value="all">All team roles</option>
+                {teamRoleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+              <svg className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--text-tertiary)" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </div>
           </div>
 
-          {filteredMembers.length === 0 ? (
-            <p className="px-4 py-5 text-sm text-zinc-600">No team members match your filters.</p>
-          ) : null}
+          <button
+            type="button"
+            className="ui-button-primary h-10 shrink-0"
+            disabled={!isAdmin}
+            onClick={() => {
+              setActionError(null);
+              setSuccess(null);
+              setShowAddPassword(false);
+              setIsAddDialogOpen(true);
+            }}
+          >
+            Add Team Member
+          </button>
         </div>
-      )}
+      </section>
+
+      <section className="mt-4 min-h-0 flex-1">
+        {loading ? (
+          <div className="flex h-full min-h-[16rem] items-center justify-center rounded-lg border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading team members...</p>
+          </div>
+        ) : (
+          <div className="ui-table rounded-lg flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-auto">
+              <table className="min-w-full table-fixed text-left text-sm">
+                <colgroup>
+                  <col className="w-[30%]" />
+                  <col className="w-[22%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[28%]" />
+                </colgroup>
+                <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
+                  <tr>
+                    <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Phone</th>
+                    <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Role</th>
+                    <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Joined</th>
+                    <th className="sticky top-0 z-10 px-4 py-3.5 text-right font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMembers.map((member) => (
+                    <tr key={member.id} className="border-t align-middle" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                      <td className="px-4 py-3 font-medium" style={{ color: "var(--text-primary)" }}>{member.phone}</td>
+                      <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
+                        {member.role === "ADMIN" ? "Admin" : roleLabel(member.teamRole)}
+                      </td>
+                      <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{formatDate(member.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end">
+                          <Popover
+                            open={openMenuMemberId === member.id}
+                            onOpenChange={(open) => setOpenMenuMemberId(open ? member.id : null)}
+                          >
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-md border"
+                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-secondary)" }}
+                                aria-label="Open team member actions"
+                              >
+                                <MoreHorizontal size={16} />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" className="w-52 p-1" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuMemberId(null);
+                                  openEditDialog(member);
+                                }}
+                                disabled={!isAdmin}
+                                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                <PencilLine size={14} />
+                                Edit member
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuMemberId(null);
+                                  openResetDialog(member);
+                                }}
+                                disabled={!isAdmin || resetForMemberId === member.id}
+                                className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                                style={{ color: "var(--secondary)" }}
+                              >
+                                <KeyRound size={14} />
+                                {resetForMemberId === member.id ? "Resetting..." : "Reset password"}
+                              </button>
+
+                              <div className="my-1 border-t" style={{ borderColor: "var(--border-subtle)" }} />
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpenMenuMemberId(null);
+                                  openDeleteDialog(member);
+                                }}
+                                disabled={!isAdmin || member.id === session?.user.id}
+                                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                                style={{ color: "#b32543" }}
+                              >
+                                {member.id === session?.user.id ? <ShieldAlert size={14} /> : <Trash2 size={14} />}
+                                {member.id === session?.user.id ? "Cannot remove yourself" : "Remove member"}
+                              </button>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredMembers.length === 0 ? (
+              <p className="px-4 py-5 text-sm" style={{ color: "var(--text-secondary)" }}>No team members match your filters.</p>
+            ) : null}
+          </div>
+        )}
+      </section>
 
       {isAddDialogOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
@@ -511,11 +626,7 @@ export default function StudioTeamSettingsPage() {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="ui-button-primary"
-                  disabled={createLoading}
-                >
+                <button type="submit" className="ui-button-primary" disabled={createLoading}>
                   {createLoading ? "Adding..." : "Add Member"}
                 </button>
               </div>
@@ -529,7 +640,7 @@ export default function StudioTeamSettingsPage() {
           <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
             <div className="mb-5">
               <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Edit Team Member</h3>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Update phone, role, or reset password.</p>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Update phone and role.</p>
             </div>
 
             <form className="space-y-3" onSubmit={handleUpdateMember}>
@@ -554,25 +665,52 @@ export default function StudioTeamSettingsPage() {
                   </option>
                 ))}
               </select>
+
+              <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+                <button type="button" className="ui-button-secondary" onClick={closeEditDialog} disabled={editLoading}>
+                  Cancel
+                </button>
+                <button type="submit" className="ui-button-primary" disabled={editLoading}>
+                  {editLoading ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {resetDialogMember ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="mb-5">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Reset Password</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                Set a new password for {resetDialogMember.phone}.
+              </p>
+            </div>
+
+            <form className="space-y-3" onSubmit={handleResetPassword}>
               <div className="relative">
                 <input
-                  type={showEditPassword ? "text" : "password"}
-                  value={editFormData.password}
-                  onChange={(event) => setEditFormData((current) => ({ ...current, password: event.target.value }))}
-                  placeholder="New password (optional)"
+                  type={showResetPassword ? "text" : "password"}
+                  value={resetPassword}
+                  onChange={(event) => setResetPassword(event.target.value)}
+                  placeholder="New password (min 6 chars)"
                   className="ui-input pr-10"
-                  disabled={editLoading}
+                  required
+                  minLength={6}
+                  disabled={resetForMemberId === resetDialogMember.id}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowEditPassword((current) => !current)}
+                  onClick={() => setShowResetPassword((current) => !current)}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                   style={{ color: "var(--text-secondary)" }}
-                  disabled={editLoading}
-                  aria-label={showEditPassword ? "Hide new password" : "Show new password"}
-                  title={showEditPassword ? "Hide new password" : "Show new password"}
+                  disabled={resetForMemberId === resetDialogMember.id}
+                  aria-label={showResetPassword ? "Hide password" : "Show password"}
+                  title={showResetPassword ? "Hide password" : "Show password"}
                 >
-                  {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showResetPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
 
@@ -580,20 +718,57 @@ export default function StudioTeamSettingsPage() {
                 <button
                   type="button"
                   className="ui-button-secondary"
-                  onClick={closeEditDialog}
-                  disabled={editLoading}
+                  onClick={closeResetDialog}
+                  disabled={resetForMemberId === resetDialogMember.id}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   className="ui-button-primary"
-                  disabled={editLoading}
+                  disabled={resetForMemberId === resetDialogMember.id}
                 >
-                  {editLoading ? "Saving..." : "Save Changes"}
+                  {resetForMemberId === resetDialogMember.id ? "Resetting..." : "Reset Password"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteDialogMember ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+            <div className="mb-5">
+              <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Remove Team Member</h3>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                Are you sure you want to remove {deleteDialogMember.phone} from the studio team?
+              </p>
+            </div>
+
+            <div className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#f6b1be", background: "#fff0f4", color: "#b32543" }}>
+              This action removes their team access immediately.
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+              <button
+                type="button"
+                className="ui-button-secondary"
+                onClick={closeDeleteDialog}
+                disabled={deleteForMemberId === deleteDialogMember.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
+                onClick={() => void handleDeleteMember()}
+                disabled={deleteForMemberId === deleteDialogMember.id}
+              >
+                {deleteForMemberId === deleteDialogMember.id ? "Removing..." : "Remove Member"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

@@ -2,15 +2,18 @@
 
 import { useSession } from "@/lib/session-context";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { EventHeader } from "@/components/event/EventHeader";
 import { EventTabs } from "@/components/event/EventTabs";
-import { EventStatusBadge } from "@/components/event/EventStatusBadge";
 import { EventShareSection } from "@/components/event/EventShareSection";
 import { AddGuestDialog } from "@/components/event/AddGuestDialog";
 import { MediaUploadDialog } from "@/components/event/MediaUploadDialog";
 import { AvatarUploadDialog } from "@/components/event/AvatarUploadDialog";
+import { MoreHorizontal, PencilLine, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type GuestItem = {
@@ -249,9 +252,24 @@ export default function EventDetailPage() {
   const [guestFormSuccess, setGuestFormSuccess] = useState<string | null>(null);
   const [guestSubmitting, setGuestSubmitting] = useState(false);
   const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
+  const [guestPage, setGuestPage] = useState(1);
+  const [guestPageSize] = useState(10);
+  const [openGuestMenuId, setOpenGuestMenuId] = useState<string | null>(null);
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+  const [guestDeleteLoading, setGuestDeleteLoading] = useState(false);
+  const [guestDeleteError, setGuestDeleteError] = useState<string | null>(null);
+  const [editingGuest, setEditingGuest] = useState<GuestItem | null>(null);
+  const [guestEditLoading, setGuestEditLoading] = useState(false);
+  const [guestEditError, setGuestEditError] = useState<string | null>(null);
+  const [guestEditForm, setGuestEditForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    category: "GENERAL" as GuestCategory,
+  });
+  const [guestToDelete, setGuestToDelete] = useState<GuestItem | null>(null);
   const [isInviteChannelDialogOpen, setIsInviteChannelDialogOpen] = useState(false);
   const [pendingInviteGuestIds, setPendingInviteGuestIds] = useState<string[]>([]);
   const [pendingInviteOpenFirst, setPendingInviteOpenFirst] = useState(false);
@@ -260,6 +278,14 @@ export default function EventDetailPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
+  const [editFieldErrors, setEditFieldErrors] = useState<{
+    title?: string;
+    bridePhone?: string;
+    groomPhone?: string;
+    eventDate?: string;
+    eventTime?: string;
+    googleMapAddress?: string;
+  }>({});
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusActionError, setStatusActionError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
@@ -425,7 +451,13 @@ export default function EventDetailPage() {
   }, [mediaFolders, selectedMediaFolder]);
 
   const selectedCount = selectedGuestIds.length;
-  const allGuestsSelected = !!event && event.guests.length > 0 && selectedCount === event.guests.length;
+  const guestTotalItems = event?.guests.length ?? 0;
+  const guestTotalPages = Math.max(1, Math.ceil(guestTotalItems / guestPageSize));
+  const clampedGuestPage = Math.min(guestPage, guestTotalPages);
+  const guestStartIndex = (clampedGuestPage - 1) * guestPageSize;
+  const paginatedGuests = (event?.guests ?? []).slice(guestStartIndex, guestStartIndex + guestPageSize);
+  const allGuestsSelected = paginatedGuests.length > 0 && paginatedGuests.every((guest) => selectedGuestIds.includes(guest.id));
+  const isCompletedEvent = !!event && resolveEventStatus(event) === "COMPLETED";
   const minEventDate = toDateInputValue(new Date());
   const editDateTime = editForm.eventDate && editForm.eventTime ? new Date(`${editForm.eventDate}T${editForm.eventTime}`) : null;
   const editSchedulePreview = editDateTime && isValidDate(editDateTime)
@@ -447,6 +479,16 @@ export default function EventDetailPage() {
     };
   }, [shareUploadPreview]);
 
+  useEffect(() => {
+    if (guestPage !== clampedGuestPage) {
+      setGuestPage(clampedGuestPage);
+    }
+  }, [clampedGuestPage, guestPage]);
+
+  useEffect(() => {
+    setGuestPage(1);
+  }, [event?.id]);
+
   function toggleGuestSelection(guestId: string, checked: boolean) {
     setSelectedGuestIds((current) => {
       if (checked) {
@@ -459,8 +501,15 @@ export default function EventDetailPage() {
   }
 
   function toggleSelectAllGuests(checked: boolean) {
-    if (!event) return;
-    setSelectedGuestIds(checked ? event.guests.map((guest) => guest.id) : []);
+    const pageGuestIds = paginatedGuests.map((guest) => guest.id);
+
+    setSelectedGuestIds((current) => {
+      if (checked) {
+        return Array.from(new Set([...current, ...pageGuestIds]));
+      }
+
+      return current.filter((id) => !pageGuestIds.includes(id));
+    });
   }
 
   async function sendInvites(guestIds: string[], channel: InviteChannel, openFirst = false) {
@@ -525,10 +574,16 @@ export default function EventDetailPage() {
   function openEditModal() {
     if (!event) return;
 
+    if (resolveEventStatus(event) === "COMPLETED") {
+      setEditError("Completed events cannot be edited.");
+      return;
+    }
+
     const parsedDate = new Date(event.eventDate);
 
     setEditError(null);
     setEditSuccess(null);
+    setEditFieldErrors({});
     setEditForm({
       title: event.title,
       brideName: event.brideName ?? "",
@@ -548,27 +603,60 @@ export default function EventDetailPage() {
     formEvent.preventDefault();
     if (!event) return;
 
+    if (resolveEventStatus(event) === "COMPLETED") {
+      setEditError("Completed events cannot be edited.");
+      return;
+    }
+
     setEditError(null);
     setEditSuccess(null);
+    setEditFieldErrors({});
+
+    const nextFieldErrors: {
+      title?: string;
+      bridePhone?: string;
+      groomPhone?: string;
+      eventDate?: string;
+      eventTime?: string;
+      googleMapAddress?: string;
+    } = {};
 
     if (editForm.title.trim().length < 2) {
-      setEditError("Event title must be at least 2 characters.");
-      return;
+      nextFieldErrors.title = "Event title must be at least 2 characters.";
     }
 
     if (!editForm.eventDate) {
-      setEditError("Event date is required.");
-      return;
+      nextFieldErrors.eventDate = "Event date is required.";
     }
 
     if (!editForm.eventTime) {
-      setEditError("Event time is required.");
-      return;
+      nextFieldErrors.eventTime = "Event time is required.";
+    }
+
+    const bridePhone = editForm.bridePhone.trim();
+    const groomPhone = editForm.groomPhone.trim();
+
+    if (bridePhone && !isValidPhoneNumber(bridePhone)) {
+      nextFieldErrors.bridePhone = "Please enter a valid bride phone number.";
+    }
+
+    if (groomPhone && !isValidPhoneNumber(groomPhone)) {
+      nextFieldErrors.groomPhone = "Please enter a valid groom phone number.";
+    }
+
+    if (editForm.googleMapAddress.trim() && !/^https?:\/\//i.test(editForm.googleMapAddress.trim())) {
+      nextFieldErrors.googleMapAddress = "Google Map address must start with http:// or https://.";
     }
 
     const parsedEventDate = new Date(`${editForm.eventDate}T${editForm.eventTime}`);
     if (!isValidDate(parsedEventDate)) {
-      setEditError("Please provide a valid event schedule.");
+      nextFieldErrors.eventDate = nextFieldErrors.eventDate ?? "Please provide a valid event date.";
+      nextFieldErrors.eventTime = nextFieldErrors.eventTime ?? "Please provide a valid event time.";
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setEditFieldErrors(nextFieldErrors);
+      setEditError("Please fix the highlighted fields.");
       return;
     }
 
@@ -583,8 +671,8 @@ export default function EventDetailPage() {
           title: editForm.title.trim(),
           brideName: editForm.brideName.trim() || null,
           groomName: editForm.groomName.trim() || null,
-          bridePhone: editForm.bridePhone.trim() || undefined,
-          groomPhone: editForm.groomPhone.trim() || undefined,
+          bridePhone: bridePhone || undefined,
+          groomPhone: groomPhone || undefined,
           eventDate: parsedEventDate.toISOString(),
           location: editForm.location.trim() || null,
           googleMapAddress: editForm.googleMapAddress.trim() || undefined,
@@ -607,7 +695,10 @@ export default function EventDetailPage() {
     }
   }
 
-  async function handleQuickStatusChange(nextStatus: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED") {
+  async function handleQuickStatusChange(
+    nextStatus: "DRAFT" | "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED" | "ARCHIVED",
+    cancellationReason?: string
+  ) {
     if (!event) return;
 
     setStatusActionError(null);
@@ -618,7 +709,10 @@ export default function EventDetailPage() {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({
+          status: nextStatus,
+          cancellationReason: nextStatus === "CANCELLED" ? cancellationReason : undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -725,6 +819,16 @@ export default function EventDetailPage() {
       return false;
     }
 
+    if (phone.length > 0 && !isValidPhoneNumber(phone)) {
+      setAddGuestError("Please enter a valid phone number.");
+      return false;
+    }
+
+    if (email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAddGuestError("Please enter a valid email address.");
+      return false;
+    }
+
     setGuestSubmitting(true);
 
     try {
@@ -782,6 +886,114 @@ export default function EventDetailPage() {
       return false;
     } finally {
       setGuestSubmitting(false);
+    }
+  }
+
+  function openGuestEditDialog(guest: GuestItem) {
+    setGuestEditError(null);
+    setEditingGuest(guest);
+    setGuestEditForm({
+      name: guest.name,
+      phone: guest.phone ?? "",
+      email: guest.email ?? "",
+      category: guest.category,
+    });
+  }
+
+  function closeGuestEditDialog() {
+    setEditingGuest(null);
+    setGuestEditError(null);
+    setGuestEditForm({
+      name: "",
+      phone: "",
+      email: "",
+      category: "GENERAL",
+    });
+  }
+
+  async function handleGuestEditSubmit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    if (!editingGuest) return;
+
+    setGuestEditError(null);
+
+    const name = guestEditForm.name.trim();
+    const phone = guestEditForm.phone.trim();
+    const email = guestEditForm.email.trim();
+
+    if (name.length < 2) {
+      setGuestEditError("Guest name must be at least 2 characters.");
+      return;
+    }
+
+    if (phone.length > 0 && !isValidPhoneNumber(phone)) {
+      setGuestEditError("Please enter a valid phone number.");
+      return;
+    }
+
+    if (email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setGuestEditError("Please enter a valid email address.");
+      return;
+    }
+
+    setGuestEditLoading(true);
+
+    try {
+      const response = await fetch(`/api/studio/guests/${editingGuest.id}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          phone: phone || null,
+          email: email || null,
+          category: guestEditForm.category,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setGuestEditError(payload?.error || "Unable to update guest.");
+        return;
+      }
+
+      closeGuestEditDialog();
+      setGuestFormSuccess("Guest updated successfully.");
+      setTimeout(() => setGuestFormSuccess(null), 3000);
+      await loadEvent(false);
+    } catch {
+      setGuestEditError("Unable to update guest right now.");
+    } finally {
+      setGuestEditLoading(false);
+    }
+  }
+
+  async function handleGuestDelete() {
+    if (!guestToDelete) return;
+
+    setGuestDeleteError(null);
+    setGuestDeleteLoading(true);
+
+    try {
+      const response = await fetch(`/api/studio/guests/${guestToDelete.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setGuestDeleteError(payload?.error || "Unable to delete guest.");
+        return;
+      }
+
+      setGuestToDelete(null);
+      setGuestFormSuccess("Guest removed successfully.");
+      setTimeout(() => setGuestFormSuccess(null), 3000);
+      await loadEvent(false);
+    } catch {
+      setGuestDeleteError("Unable to delete guest right now.");
+    } finally {
+      setGuestDeleteLoading(false);
     }
   }
 
@@ -1009,7 +1221,7 @@ export default function EventDetailPage() {
   if (status === "idle" || status === "loading" || status === "unauthenticated") {
     return (
       <main className="flex min-h-full items-center justify-center">
-        <p className="text-sm text-zinc-600">Loading wedding details...</p>
+        <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading event details...</p>
       </main>
     );
   }
@@ -1024,6 +1236,7 @@ export default function EventDetailPage() {
           eventDate={event.eventDate}
           avatarUrl={event.coverImage || undefined}
           onEdit={openEditModal}
+          editDisabled={isCompletedEvent}
           onStatusChange={handleQuickStatusChange}
           onShare={() => setIsShareOpen(true)}
           onAvatarClick={() => setIsAvatarUploadDialogOpen(true)}
@@ -1031,13 +1244,19 @@ export default function EventDetailPage() {
       ) : null}
 
       {loading ? (
-        <p className="mt-5 text-sm text-zinc-600">Loading wedding details...</p>
+        <p className="mt-5 text-sm" style={{ color: "var(--text-secondary)" }}>Loading event details...</p>
       ) : error ? (
         <p className="mt-5 text-sm text-red-700">{error}</p>
       ) : !event ? (
-        <p className="mt-5 text-sm text-zinc-600">Wedding not found.</p>
+        <p className="mt-5 text-sm" style={{ color: "var(--text-secondary)" }}>Event not found.</p>
       ) : (
         <>
+          {isCompletedEvent ? (
+            <p className="mt-3 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#f6d28b", background: "#fff7e6", color: "#9a6b13" }}>
+              Completed events are locked and cannot be edited.
+            </p>
+          ) : null}
+
           {statusActionError ? <p className="mt-3 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{statusActionError}</p> : null}
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -1069,7 +1288,7 @@ export default function EventDetailPage() {
           {tab === "overview" ? (
             <section className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="ui-panel">
-                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Wedding Overview</h3>
+                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Event Overview</h3>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
                     <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Couple</p>
@@ -1133,8 +1352,7 @@ export default function EventDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddGuestDialogOpen(true)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium"
-                  style={{ background: "var(--primary)", color: "white" }}
+                  className="ui-button-primary h-10"
                 >
                   Add Guest
                 </button>
@@ -1145,8 +1363,8 @@ export default function EventDetailPage() {
               {inviteError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{inviteError}</p> : null}
               {inviteSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{inviteSuccess}</p> : null}
 
-              <div className="rounded-lg border" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="px-4 py-3 border-b flex items-center justify-between gap-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+              <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
                   <div className="flex items-center gap-3">
                     <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
                       <input
@@ -1166,33 +1384,43 @@ export default function EventDetailPage() {
                       type="button"
                       disabled={selectedCount === 0 || inviteSubmitting}
                       onClick={() => openInviteChannelDialog(selectedGuestIds)}
-                      className="px-3 py-1.5 rounded text-sm font-medium transition"
-                      style={{ background: "var(--primary)", color: "white" }}
+                      className="ui-button-primary h-9 px-3 text-sm"
                     >
                       {inviteSubmitting ? "Sending..." : `Send Invite (${selectedCount})`}
                     </button>
                   ) : null}
                 </div>
               </div>
-              <div className="ui-table">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
+              <div className="ui-table rounded-lg flex min-h-0 flex-col overflow-hidden">
+                <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
+                  <table className="min-w-[1100px] text-left text-sm">
+                    <colgroup>
+                      <col className="w-[72px]" />
+                      <col className="w-[220px]" />
+                      <col className="w-[150px]" />
+                      <col className="w-[170px]" />
+                      <col className="w-[260px]" />
+                      <col className="w-[150px]" />
+                      <col className="w-[130px]" />
+                      <col className="w-[170px]" />
+                      <col className="w-[120px]" />
+                    </colgroup>
                     <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
                       <tr>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Select</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Name</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Category</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Phone</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Email</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Invite Status</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Sent Via</th>
-                        <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Sent At</th>
-                        <th className="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Invite</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Select</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Name</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Category</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Phone</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Email</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Invite Status</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Sent Via</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Sent At</th>
+                        <th className="sticky top-0 z-10 px-4 py-3.5 text-right font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {event.guests.map((guest) => (
-                        <tr key={guest.id} className="border-t" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                      {paginatedGuests.map((guest) => (
+                        <tr key={guest.id} className="border-t align-middle transition" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
                           <td className="px-4 py-3">
                             <input
                               type="checkbox"
@@ -1202,32 +1430,84 @@ export default function EventDetailPage() {
                               style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
                             />
                           </td>
-                          <td className="px-4 py-3 text-zinc-700">{guest.name}</td>
-                          <td className="px-4 py-3 text-zinc-600">{labelForCategory(guest.category)}</td>
-                          <td className="px-4 py-3 text-zinc-600">{guest.phone || "—"}</td>
-                          <td className="px-4 py-3 text-zinc-600">{guest.email || "—"}</td>
                           <td className="px-4 py-3">
-                            <span className={`rounded-full border px-2 py-1 text-xs font-medium ${guest.invitationStatus === "SENT" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-zinc-100 text-zinc-700"}`}>
+                            <p className="font-medium" style={{ color: "var(--text-primary)" }}>{guest.name}</p>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{labelForCategory(guest.category)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{guest.phone || "—"}</td>
+                          <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{guest.email || "—"}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-xs font-medium ${guest.invitationStatus === "SENT" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-zinc-100 text-zinc-700"}`}>
                               {guest.invitationStatus === "SENT" ? "Invite sent" : "Not sent"}
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className={`rounded-full border px-2 py-1 text-xs font-medium ${channelPillClasses(guest.invitationChannel)}`}>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-xs font-medium ${channelPillClasses(guest.invitationChannel)}`}>
                               {labelForInviteChannel(guest.invitationChannel)}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-zinc-600">{guest.invitationSentAt ? formatDateTime(guest.invitationSentAt) : "-"}</td>
+                          <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{guest.invitationSentAt ? formatDateTime(guest.invitationSentAt) : "-"}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end">
-                              <button
-                                type="button"
-                                disabled={inviteSubmitting}
-                                onClick={() => openInviteChannelDialog([guest.id], true)}
-                                className="rounded-md border px-2.5 py-1 text-xs font-medium"
-                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
+                              <Popover
+                                open={openGuestMenuId === guest.id}
+                                onOpenChange={(open) => setOpenGuestMenuId(open ? guest.id : null)}
                               >
-                                Invite
-                              </button>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
+                                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-secondary)" }}
+                                    aria-label="Open guest actions"
+                                  >
+                                    <MoreHorizontal size={15} />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent align="end" className="w-44 p-1" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenGuestMenuId(null);
+                                      openGuestEditDialog(guest);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-muted)]"
+                                    style={{ color: "var(--text-primary)" }}
+                                  >
+                                    <PencilLine size={14} />
+                                    Edit
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    disabled={inviteSubmitting}
+                                    onClick={() => {
+                                      setOpenGuestMenuId(null);
+                                      openInviteChannelDialog([guest.id], true);
+                                    }}
+                                    className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+                                    style={{ color: "var(--secondary)" }}
+                                  >
+                                    <Send size={14} />
+                                    Invite
+                                  </button>
+
+                                  <div className="my-1 border-t" style={{ borderColor: "var(--border-subtle)" }} />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenGuestMenuId(null);
+                                      setGuestDeleteError(null);
+                                      setGuestToDelete(guest);
+                                    }}
+                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-muted)]"
+                                    style={{ color: "#b32543" }}
+                                  >
+                                    <Trash2 size={14} />
+                                    Delete
+                                  </button>
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           </td>
                         </tr>
@@ -1235,7 +1515,37 @@ export default function EventDetailPage() {
                     </tbody>
                   </table>
                 </div>
-                {event.guests.length === 0 ? <p className="px-4 py-5 text-sm text-zinc-600">No guests added yet.</p> : null}
+                {event.guests.length === 0 ? <p className="px-4 py-5 text-sm" style={{ color: "var(--text-secondary)" }}>No guests added yet.</p> : null}
+
+                {event.guests.length > 0 ? (
+                  <div className="flex items-center justify-between border-t px-4 py-3 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
+                    <p>
+                      Showing {guestTotalItems === 0 ? 0 : guestStartIndex + 1}-{Math.min(guestStartIndex + guestPageSize, guestTotalItems)} of {guestTotalItems}
+                    </p>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setGuestPage((current) => Math.max(1, current - 1))}
+                        disabled={clampedGuestPage <= 1}
+                        className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
+                      >
+                        Previous
+                      </button>
+                      <span className="px-1 text-xs">Page {clampedGuestPage} / {guestTotalPages}</span>
+                      <button
+                        type="button"
+                        onClick={() => setGuestPage((current) => Math.min(guestTotalPages, current + 1))}
+                        disabled={clampedGuestPage >= guestTotalPages}
+                        className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                        style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -1252,8 +1562,7 @@ export default function EventDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsMediaUploadDialogOpen(true)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium"
-                  style={{ background: "var(--primary)", color: "white" }}
+                  className="ui-button-primary h-10"
                 >
                   Upload Media
                 </button>
@@ -1274,8 +1583,12 @@ export default function EventDetailPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedMediaFolder(null)}
-                        className="rounded px-2 py-1 text-xs"
-                        style={{ background: selectedMediaFolder ? "var(--surface)" : "var(--primary)", color: selectedMediaFolder ? "var(--text-primary)" : "white" }}
+                        className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
+                        style={{
+                          borderColor: selectedMediaFolder ? "var(--border-subtle)" : "var(--primary)",
+                          background: selectedMediaFolder ? "var(--surface)" : "var(--primary)",
+                          color: selectedMediaFolder ? "var(--text-primary)" : "white",
+                        }}
                       >
                         My Drive
                       </button>
@@ -1287,17 +1600,17 @@ export default function EventDetailPage() {
                         <button
                           type="button"
                           onClick={() => setSelectedMediaFolder(null)}
-                          className="rounded-md border px-2.5 py-1 text-xs font-medium"
+                          className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
                           style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
                         >
                           Back to folders
                         </button>
                       ) : null}
-                      <div className="inline-flex rounded-md border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                      <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
                         <button
                           type="button"
                           onClick={() => setMediaViewMode("list")}
-                          className="px-2.5 py-1 text-xs font-medium"
+                          className="rounded px-2.5 py-1 text-xs font-medium"
                           style={{ color: mediaViewMode === "list" ? "white" : "var(--text-primary)", background: mediaViewMode === "list" ? "var(--primary)" : "transparent" }}
                         >
                           List
@@ -1305,7 +1618,7 @@ export default function EventDetailPage() {
                         <button
                           type="button"
                           onClick={() => setMediaViewMode("grid")}
-                          className="px-2.5 py-1 text-xs font-medium"
+                          className="rounded px-2.5 py-1 text-xs font-medium"
                           style={{ color: mediaViewMode === "grid" ? "white" : "var(--text-primary)", background: mediaViewMode === "grid" ? "var(--primary)" : "transparent" }}
                         >
                           Grid
@@ -1341,7 +1654,8 @@ export default function EventDetailPage() {
                                     <button
                                       type="button"
                                       onClick={() => setPreviewMediaItem(item.file)}
-                                      className="flex items-center gap-2 text-left text-zinc-700 hover:underline"
+                                      className="flex items-center gap-2 text-left hover:underline"
+                                      style={{ color: "var(--text-primary)" }}
                                     >
                                       {item.file.type === "VIDEO" ? (
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" style={{ color: "var(--text-secondary)" }} aria-hidden>
@@ -1359,8 +1673,8 @@ export default function EventDetailPage() {
                                     </button>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-zinc-600">{item.kind === "folder" ? `Folder (${item.fileCount})` : item.file.type === "IMAGE" ? "Photo" : "Video"}</td>
-                                <td className="px-4 py-3 text-zinc-600">{item.kind === "folder" ? (item.lastModified ? formatDateTime(item.lastModified) : "-") : formatDateTime(item.file.createdAt)}</td>
+                                <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{item.kind === "folder" ? `Folder (${item.fileCount})` : item.file.type === "IMAGE" ? "Photo" : "Video"}</td>
+                                <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{item.kind === "folder" ? (item.lastModified ? formatDateTime(item.lastModified) : "-") : formatDateTime(item.file.createdAt)}</td>
                                 <td className="px-4 py-3 text-right">
                                   {item.kind === "folder" ? (
                                     <button
@@ -1425,8 +1739,8 @@ export default function EventDetailPage() {
                                   )}
                                 </div>
                               </button>
-                              <p className="mt-2 truncate text-sm font-medium text-zinc-700">{item.file.name}</p>
-                              <p className="mt-1 text-xs text-zinc-500">{formatDateTime(item.file.createdAt)}</p>
+                              <p className="mt-2 truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{item.file.name}</p>
+                              <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>{formatDateTime(item.file.createdAt)}</p>
                               <div className="mt-2 flex items-center gap-2">
                                 <button
                                   type="button"
@@ -1461,13 +1775,13 @@ export default function EventDetailPage() {
             <section className="mt-5 ui-panel">
               <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Gifts</h3>
               <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                No gifts recorded for this wedding yet.
+                No gifts recorded for this event yet.
               </p>
             </section>
           ) : null}
 
           {isEditOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
               <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
                 <div className="mb-6 flex items-start justify-between gap-3">
                   <div>
@@ -1491,7 +1805,18 @@ export default function EventDetailPage() {
                   <div className="grid gap-3 md:grid-cols-2">
                     <label className="block md:col-span-2 md:row-span-2">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Title *</span>
-                      <input value={editForm.title} onChange={(event) => setEditForm((current) => ({ ...current, title: event.target.value }))} className="ui-input" required />
+                      <input
+                        value={editForm.title}
+                        onChange={(event) => {
+                          setEditForm((current) => ({ ...current, title: event.target.value }));
+                          setEditFieldErrors((current) => ({ ...current, title: undefined }));
+                        }}
+                        className="ui-input"
+                        required
+                      />
+                      {editFieldErrors.title ? (
+                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.title}</p>
+                      ) : null}
                     </label>
 
                     <label className="block">
@@ -1504,11 +1829,33 @@ export default function EventDetailPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Phone</span>
-                      <input value={editForm.bridePhone} onChange={(event) => setEditForm((current) => ({ ...current, bridePhone: event.target.value }))} className="ui-input" />
+                      <PhoneInput
+                        value={editForm.bridePhone}
+                        onChange={(value) => {
+                          setEditForm((current) => ({ ...current, bridePhone: value ?? "" }));
+                          setEditFieldErrors((current) => ({ ...current, bridePhone: undefined }));
+                        }}
+                        defaultCountry="ET"
+                        className="w-full"
+                      />
+                      {editFieldErrors.bridePhone ? (
+                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.bridePhone}</p>
+                      ) : null}
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Phone</span>
-                      <input value={editForm.groomPhone} onChange={(event) => setEditForm((current) => ({ ...current, groomPhone: event.target.value }))} className="ui-input" />
+                      <PhoneInput
+                        value={editForm.groomPhone}
+                        onChange={(value) => {
+                          setEditForm((current) => ({ ...current, groomPhone: value ?? "" }));
+                          setEditFieldErrors((current) => ({ ...current, groomPhone: undefined }));
+                        }}
+                        defaultCountry="ET"
+                        className="w-full"
+                      />
+                      {editFieldErrors.groomPhone ? (
+                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.groomPhone}</p>
+                      ) : null}
                     </label>
 
                     <div className="rounded-xl border p-3 md:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
@@ -1524,10 +1871,16 @@ export default function EventDetailPage() {
                             type="date"
                             value={editForm.eventDate}
                             min={minEventDate}
-                            onChange={(event) => setEditForm((current) => ({ ...current, eventDate: event.target.value }))}
+                            onChange={(event) => {
+                              setEditForm((current) => ({ ...current, eventDate: event.target.value }));
+                              setEditFieldErrors((current) => ({ ...current, eventDate: undefined }));
+                            }}
                             className="ui-input"
                             required
                           />
+                          {editFieldErrors.eventDate ? (
+                            <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.eventDate}</p>
+                          ) : null}
                         </label>
 
                         <label className="block">
@@ -1535,10 +1888,16 @@ export default function EventDetailPage() {
                           <input
                             type="time"
                             value={editForm.eventTime}
-                            onChange={(event) => setEditForm((current) => ({ ...current, eventTime: event.target.value }))}
+                            onChange={(event) => {
+                              setEditForm((current) => ({ ...current, eventTime: event.target.value }));
+                              setEditFieldErrors((current) => ({ ...current, eventTime: undefined }));
+                            }}
                             className="ui-input"
                             required
                           />
+                          {editFieldErrors.eventTime ? (
+                            <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.eventTime}</p>
+                          ) : null}
                         </label>
                       </div>
 
@@ -1553,7 +1912,17 @@ export default function EventDetailPage() {
                     </label>
                     <label className="block">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map Address</span>
-                      <input value={editForm.googleMapAddress} onChange={(event) => setEditForm((current) => ({ ...current, googleMapAddress: event.target.value }))} className="ui-input" />
+                      <input
+                        value={editForm.googleMapAddress}
+                        onChange={(event) => {
+                          setEditForm((current) => ({ ...current, googleMapAddress: event.target.value }));
+                          setEditFieldErrors((current) => ({ ...current, googleMapAddress: undefined }));
+                        }}
+                        className="ui-input"
+                      />
+                      {editFieldErrors.googleMapAddress ? (
+                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.googleMapAddress}</p>
+                      ) : null}
                     </label>
                     <label className="block md:col-span-2">
                       <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Description</span>
@@ -1609,9 +1978,9 @@ export default function EventDetailPage() {
           />
 
           {previewMediaItem ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-              <div className="w-full max-w-4xl rounded-2xl border bg-white p-4" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-4xl rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+                <div className="mb-5 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold" style={{ color: "var(--primary)" }}>{previewMediaItem.name}</p>
                     <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>{previewMediaItem.folder}</p>
@@ -1621,7 +1990,7 @@ export default function EventDetailPage() {
                       href={previewMediaItem.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                      className="inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium"
                       style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
                     >
                       Open in new tab
@@ -1629,7 +1998,7 @@ export default function EventDetailPage() {
                     <button
                       type="button"
                       onClick={() => setPreviewMediaItem(null)}
-                      className="inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium"
+                      className="inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium"
                       style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
                     >
                       Close
@@ -1649,7 +2018,7 @@ export default function EventDetailPage() {
           ) : null}
 
           {isInviteChannelDialogOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
               <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
                 <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Choose Invite Method</h3>
                 <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -1662,7 +2031,7 @@ export default function EventDetailPage() {
                     onClick={() => {
                       void confirmInviteChannel("WHATSAPP");
                     }}
-                    className="rounded-md border px-3 py-2 text-sm font-medium"
+                    className="rounded-md border px-3 py-2 text-sm font-medium transition hover:opacity-90"
                     style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
                   >
                     WhatsApp
@@ -1672,7 +2041,7 @@ export default function EventDetailPage() {
                     onClick={() => {
                       void confirmInviteChannel("TELEGRAM");
                     }}
-                    className="rounded-md border px-3 py-2 text-sm font-medium"
+                    className="rounded-md border px-3 py-2 text-sm font-medium transition hover:opacity-90"
                     style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
                   >
                     Telegram
@@ -1682,14 +2051,14 @@ export default function EventDetailPage() {
                     onClick={() => {
                       void confirmInviteChannel("SMS");
                     }}
-                    className="rounded-md border px-3 py-2 text-sm font-medium"
+                    className="rounded-md border px-3 py-2 text-sm font-medium transition hover:opacity-90"
                     style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
                   >
                     SMS
                   </button>
                 </div>
 
-                <div className="mt-5 flex justify-end">
+                <div className="mt-5 flex justify-end border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1697,10 +2066,128 @@ export default function EventDetailPage() {
                       setPendingInviteGuestIds([]);
                       setPendingInviteOpenFirst(false);
                     }}
-                    className="rounded-md border px-3 py-2 text-sm"
-                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-primary)" }}
+                    className="ui-button-secondary"
                   >
                     Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {editingGuest ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+                <div className="mb-5">
+                  <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Edit Guest</h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Update guest details and category.</p>
+                </div>
+
+                <form className="space-y-3" onSubmit={handleGuestEditSubmit}>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Guest Name *</span>
+                    <input
+                      value={guestEditForm.name}
+                      onChange={(event) => setGuestEditForm((current) => ({ ...current, name: event.target.value }))}
+                      className="ui-input"
+                      required
+                      disabled={guestEditLoading}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Phone</span>
+                    <PhoneInput
+                      value={guestEditForm.phone}
+                      onChange={(value) => setGuestEditForm((current) => ({ ...current, phone: value ?? "" }))}
+                      defaultCountry="ET"
+                      className="w-full"
+                      disabled={guestEditLoading}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Email</span>
+                    <input
+                      type="email"
+                      value={guestEditForm.email}
+                      onChange={(event) => setGuestEditForm((current) => ({ ...current, email: event.target.value }))}
+                      className="ui-input"
+                      disabled={guestEditLoading}
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Category</span>
+                    <select
+                      value={guestEditForm.category}
+                      onChange={(event) =>
+                        setGuestEditForm((current) => ({
+                          ...current,
+                          category: event.target.value as GuestCategory,
+                        }))
+                      }
+                      className="ui-select"
+                      disabled={guestEditLoading}
+                    >
+                      <option value="GENERAL">General Guest</option>
+                      <option value="BRIDE_GUEST">Bride Guest</option>
+                      <option value="GROOM_GUEST">Groom Guest</option>
+                    </select>
+                  </label>
+
+                  {guestEditError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{guestEditError}</p> : null}
+
+                  <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+                    <button type="button" className="ui-button-secondary" onClick={closeGuestEditDialog} disabled={guestEditLoading}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="ui-button-primary" disabled={guestEditLoading}>
+                      {guestEditLoading ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          ) : null}
+
+          {guestToDelete ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+              <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+                <div className="mb-5">
+                  <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Delete Guest</h3>
+                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+                    Are you sure you want to remove {guestToDelete.name} from this event?
+                  </p>
+                </div>
+
+                <div className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#f6b1be", background: "#fff0f4", color: "#b32543" }}>
+                  This action cannot be undone.
+                </div>
+
+                {guestDeleteError ? <p className="mt-3 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{guestDeleteError}</p> : null}
+
+                <div className="mt-4 flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
+                  <button
+                    type="button"
+                    className="ui-button-secondary"
+                    onClick={() => {
+                      if (guestDeleteLoading) return;
+                      setGuestToDelete(null);
+                      setGuestDeleteError(null);
+                    }}
+                    disabled={guestDeleteLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
+                    onClick={() => void handleGuestDelete()}
+                    disabled={guestDeleteLoading}
+                  >
+                    {guestDeleteLoading ? "Deleting..." : "Delete Guest"}
                   </button>
                 </div>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CheckCircle2, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { EventStatusBadge } from "./EventStatusBadge";
 import { StatusChangeConfirmDialog } from "./StatusChangeConfirmDialog";
@@ -11,15 +12,15 @@ interface EventStatusDropdownProps {
   currentStatus: EventStatus;
   eventTitle: string;
   eventDate: string;
-  onStatusChange: (newStatus: EventStatus) => Promise<void>;
+  onStatusChange: (newStatus: EventStatus, cancellationReason?: string) => Promise<void>;
 }
 
 const STATUS_TRANSITIONS: Record<EventStatus, EventStatus[]> = {
-  DRAFT: ["SCHEDULED", "ARCHIVED"],
-  SCHEDULED: ["LIVE", "CANCELLED", "ARCHIVED"],
+  DRAFT: ["SCHEDULED", "CANCELLED"],
+  SCHEDULED: ["LIVE", "CANCELLED"],
   LIVE: ["COMPLETED", "CANCELLED"],
-  COMPLETED: ["ARCHIVED"],
-  CANCELLED: ["ARCHIVED"],
+  COMPLETED: ["CANCELLED"],
+  CANCELLED: [],
   ARCHIVED: [],
 };
 
@@ -30,7 +31,7 @@ function getStatusLabel(status: EventStatus) {
     LIVE: "Go Live",
     COMPLETED: "Complete",
     CANCELLED: "Cancel",
-    ARCHIVED: "Archive",
+    ARCHIVED: "Archived",
   };
   return labels[status];
 }
@@ -51,10 +52,10 @@ export function EventStatusDropdown({
     setConfirmStatus(newStatus);
   }
 
-  async function handleConfirmStatusChange() {
+  async function handleConfirmStatusChange(cancellationReason?: string) {
     if (confirmStatus) {
       try {
-        await onStatusChange(confirmStatus);
+        await onStatusChange(confirmStatus, cancellationReason);
         setConfirmStatus(null);
       } catch (error) {
         console.error("Status change failed:", error);
@@ -65,57 +66,46 @@ export function EventStatusDropdown({
 
   return (
     <>
-      <div className="relative">
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 rounded-lg border px-3 py-2.5 transition"
-          style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
-          aria-expanded={isOpen}
-          aria-label="Change event status"
-        >
-          <EventStatusBadge status={currentStatus} eventDate={eventDate} />
-          <svg className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: "var(--text-tertiary)" }}>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
-        </button>
-
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <div
-            className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border bg-white"
-            style={{ borderColor: "var(--border-subtle)" }}
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border px-3 transition"
+            style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
+            aria-expanded={isOpen}
+            aria-label="Change event status"
           >
-            <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-              <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-secondary)" }}>Status</p>
+            <EventStatusBadge status={currentStatus} eventDate={eventDate} />
+            <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} style={{ color: "var(--text-tertiary)" }} />
+          </button>
+        </PopoverTrigger>
+
+        <PopoverContent align="end" className="w-56 p-1" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+          <p className="px-2.5 py-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
+            Update Status
+          </p>
+          {availableTransitions.length > 0 ? (
+            <div className="space-y-1">
+              {availableTransitions.map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => handleStatusSelect(status)}
+                  className="flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-muted)]"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  <span>{getStatusLabel(status)}</span>
+                  <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "var(--text-tertiary)" }} />
+                </button>
+              ))}
             </div>
-            <div>
-              {availableTransitions.length > 0 ? (
-                availableTransitions.map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => handleStatusSelect(status)}
-                    className="w-full px-4 py-3 text-left text-sm transition"
-                    style={{
-                      color: "var(--text-primary)",
-                      borderBottom: `1px solid var(--border-subtle)`,
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--surface-muted)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
-                  >
-                    <span className="font-medium">{getStatusLabel(status)}</span>
-                  </button>
-                ))
-              ) : (
-                <div className="px-4 py-3 text-center text-sm" style={{ color: "var(--text-secondary)" }}>No status changes available</div>
-              )}
+          ) : (
+            <div className="px-2.5 py-2 text-sm" style={{ color: "var(--text-secondary)" }}>
+              No status changes available.
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </PopoverContent>
+      </Popover>
 
       {/* Confirmation Dialog */}
       <StatusChangeConfirmDialog
@@ -126,7 +116,6 @@ export function EventStatusDropdown({
         onConfirm={handleConfirmStatusChange}
         onCancel={() => {
           setConfirmStatus(null);
-          setIsOpen(true);
         }}
       />
     </>

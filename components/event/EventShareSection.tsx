@@ -145,20 +145,16 @@ export function EventShareSection({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
       <div
-        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border bg-white shadow-xl"
+        className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border bg-white"
         style={{ borderColor: "var(--border-subtle)" }}
       >
-        {/* Header */}
-        <div
-          className="border-b px-6 py-5"
-          style={{ borderColor: "var(--border-subtle)", background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%)" }}
-        >
+        <div className="border-b px-6 py-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: "var(--primary-lighter)", color: "var(--primary)" }}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C9.539 12.487 10.88 12 12 12s2.461.487 3.316 1.342m0 0a9 9 0 10-11.632 0m11.632 0a9 9 0 11-11.632 0" />
                 </svg>
               </div>
@@ -166,12 +162,13 @@ export function EventShareSection({
                 <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                   Share {eventTitle}
                 </h2>
-                <p className="text-sm text-slate-600">Create and post to social media</p>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Create and publish to social media.</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 transition p-1"
+              className="rounded p-1 transition hover:opacity-80"
+              style={{ color: "var(--text-secondary)" }}
               aria-label="Close dialog"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,9 +178,7 @@ export function EventShareSection({
           </div>
         </div>
 
-        {/* Content */}
         <div className="space-y-4 p-6">
-          {/* Platform Selection */}
           <div>
             <label className="block text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>
               Select Platform
@@ -193,11 +188,12 @@ export function EventShareSection({
                 <button
                   key={p}
                   onClick={() => setPlatform(p)}
-                  className={`flex flex-col items-center gap-2 rounded-lg border p-3 transition ${
-                    platform === p
-                      ? "border-blue-300 bg-blue-50"
-                      : "border-slate-200 hover:border-slate-300"
-                  }`}
+                  className="flex flex-col items-center gap-2 rounded-lg border p-3 transition"
+                  style={{
+                    borderColor: platform === p ? "var(--primary-light)" : "var(--border-subtle)",
+                    background: platform === p ? "var(--primary-lighter)" : "var(--surface)",
+                    color: "var(--text-primary)",
+                  }}
                 >
                   {socialPlatformIcon(p, "h-6 w-6")}
                   <span className="text-sm font-medium">{labelForSocialPlatform(p)}</span>
@@ -206,7 +202,6 @@ export function EventShareSection({
             </div>
           </div>
 
-          {/* Share Text */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
               Caption
@@ -215,13 +210,12 @@ export function EventShareSection({
               value={shareText}
               onChange={(e) => setShareText(e.target.value)}
               placeholder="Enter your post caption..."
-              className="w-full rounded-lg border p-3"
+              className="ui-textarea"
               style={{ borderColor: "var(--border-subtle)" }}
               rows={5}
             />
           </div>
 
-          {/* Media Upload */}
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
               Media (Optional)
@@ -251,7 +245,8 @@ export function EventShareSection({
                       }
                       setUploadPreview(null);
                     }}
-                    className="text-sm text-blue-600 hover:text-blue-700"
+                    className="text-sm font-medium"
+                    style={{ color: "var(--primary)" }}
                   >
                     Remove
                   </button>
@@ -266,26 +261,25 @@ export function EventShareSection({
                     id="media-upload"
                   />
                   <label htmlFor="media-upload" className="cursor-pointer">
-                    <svg className="mx-auto h-8 w-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="mx-auto h-8 w-8" style={{ color: "var(--text-tertiary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p className="mt-2 text-sm font-medium text-slate-700">Click to upload media</p>
-                    <p className="text-xs text-slate-500">or drag and drop</p>
+                    <p className="mt-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>Click to upload media</p>
+                    <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>or drag and drop</p>
                   </label>
                 </div>
               )}
             </div>
             {uploadError && (
-              <p className="mt-2 text-sm text-red-600">{uploadError}</p>
+              <p className="mt-2 text-sm" style={{ color: "var(--error)" }}>{uploadError}</p>
             )}
-            <p className="mt-2 text-xs text-slate-600">
+            <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
               {socialMediaRequirement(platform, uploadKind)}
             </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 border-t px-6 py-4" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="flex justify-end gap-2 border-t px-6 py-4" style={{ borderColor: "var(--border-subtle)" }}>
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
@@ -298,7 +292,7 @@ export function EventShareSection({
           </Button>
           <Button
             onClick={openSocialPlatform}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="ui-button-primary"
           >
             Open {labelForSocialPlatform(platform)}
           </Button>

@@ -86,10 +86,9 @@ export function AvatarUploadDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-2xl border bg-white" style={{ borderColor: "var(--border-subtle)" }}>
-        {/* Header */}
-        <div className="border-b px-6 py-4" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-sm rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="mb-5">
           <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
             Event Avatar
           </h2>
@@ -98,9 +97,7 @@ export function AvatarUploadDialog({
           </p>
         </div>
 
-        {/* Content */}
-        <div className="space-y-4 p-6">
-          {/* Preview */}
+        <div className="space-y-4">
           {preview && (
             <div className="flex justify-center">
               <img
@@ -112,7 +109,6 @@ export function AvatarUploadDialog({
             </div>
           )}
 
-          {/* Upload Area */}
           <div
             className="rounded-lg border-2 border-dashed p-6 text-center transition cursor-pointer"
             style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
@@ -139,7 +135,6 @@ export function AvatarUploadDialog({
             </p>
           </div>
 
-          {/* Error */}
           {(uploadError || error) && (
             <div className="rounded-lg p-3 text-sm" style={{ background: "var(--error)" + "1A", color: "var(--error)", borderLeft: "3px solid var(--error)" }}>
               {uploadError || error}
@@ -147,16 +142,11 @@ export function AvatarUploadDialog({
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 border-t px-6 py-4" style={{ borderColor: "var(--border-subtle)" }}>
+        <div className="mt-4 flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!selectedFile || isLoading}
-            style={{ background: "var(--primary)", color: "white" }}
-          >
+          <Button onClick={handleSubmit} disabled={!selectedFile || isLoading} className="ui-button-primary">
             {isLoading ? "Uploading..." : "Upload"}
           </Button>
         </div>
