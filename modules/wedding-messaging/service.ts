@@ -159,6 +159,7 @@ export function buildGuestWhatsAppPackage(input: { guest: InvitationGuest; origi
     inviteUrl,
     telegramGuestLink,
   });
+  
   const link = buildWhatsAppLink({ phone: input.guest.phone, message });
 
   return {

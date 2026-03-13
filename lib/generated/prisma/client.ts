@@ -69,3 +69,8 @@ export type GuestInvitation = Prisma.GuestInvitationModel
  * 
  */
 export type Media = Prisma.MediaModel
+/**
+ * Model BookingRequest
+ * 
+ */
+export type BookingRequest = Prisma.BookingRequestModel

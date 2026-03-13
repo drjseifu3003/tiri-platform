@@ -18,6 +18,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
     () => [
       { label: "Overview", href: "/studio/dashboard" },
       { label: "Events", href: "/studio/events" },
+      { label: "Bookings", href: "/studio/bookings" },
       { label: "Media", href: "/studio/media" },
       { label: "Data Insight", href: "/studio/insights" },
       { label: "Settings", href: "/studio/settings/account" },
@@ -29,12 +30,14 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
     () => ({
       "/studio/dashboard": "Overview",
       "/studio/events": "Events",
+      "/studio/bookings": "Bookings",
       "/studio/guests": "Guests",
       "/studio/media": "Media",
       "/studio/insights": "Data Insight",
       "/studio/insights/anniversary": "Data Insight",
       "/studio/settings/account": "Settings",
       "/studio/settings/team": "Settings",
+      "/studio/settings/website": "Settings",
     }),
     []
   );
@@ -98,6 +101,18 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
           <rect x="3" y="5" width="18" height="16" rx="2" />
           <path d="M16 3v4M8 3v4M3 10h18" />
+        </svg>
+      );
+    }
+
+    if (label === "Bookings") {
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={`h-4 w-4 ${iconClass}`} aria-hidden>
+          <rect x="5" y="4" width="14" height="16" rx="2" />
+          <path d="M9 4.5h6" />
+          <path d="M8 9h8" />
+          <path d="M8 13h8" />
+          <path d="M8 17h5" />
         </svg>
       );
     }
@@ -192,6 +207,9 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
               // Special case for Events: highlight if viewing events or event details
               if (item.label === "Events") {
                 active = pathname.startsWith("/studio/events");
+              }
+              if (item.label === "Bookings") {
+                active = pathname.startsWith("/studio/bookings");
               }
               if (item.label === "Data Insight") {
                 active = pathname.startsWith("/studio/insights");

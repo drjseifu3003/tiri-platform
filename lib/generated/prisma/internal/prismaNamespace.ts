@@ -389,7 +389,8 @@ export const ModelName = {
   Event: 'Event',
   Guest: 'Guest',
   GuestInvitation: 'GuestInvitation',
-  Media: 'Media'
+  Media: 'Media',
+  BookingRequest: 'BookingRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "studio" | "user" | "event" | "guest" | "guestInvitation" | "media"
+    modelProps: "studio" | "user" | "event" | "guest" | "guestInvitation" | "media" | "bookingRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -853,6 +854,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    BookingRequest: {
+      payload: Prisma.$BookingRequestPayload<ExtArgs>
+      fields: Prisma.BookingRequestFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BookingRequestFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BookingRequestFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>
+        }
+        findFirst: {
+          args: Prisma.BookingRequestFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BookingRequestFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>
+        }
+        findMany: {
+          args: Prisma.BookingRequestFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>[]
+        }
+        create: {
+          args: Prisma.BookingRequestCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>
+        }
+        createMany: {
+          args: Prisma.BookingRequestCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BookingRequestCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>[]
+        }
+        delete: {
+          args: Prisma.BookingRequestDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>
+        }
+        update: {
+          args: Prisma.BookingRequestUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>
+        }
+        deleteMany: {
+          args: Prisma.BookingRequestDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BookingRequestUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BookingRequestUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>[]
+        }
+        upsert: {
+          args: Prisma.BookingRequestUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookingRequestPayload>
+        }
+        aggregate: {
+          args: Prisma.BookingRequestAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBookingRequest>
+        }
+        groupBy: {
+          args: Prisma.BookingRequestGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingRequestGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BookingRequestCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookingRequestCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -989,6 +1064,21 @@ export const MediaScalarFieldEnum = {
 } as const
 
 export type MediaScalarFieldEnum = (typeof MediaScalarFieldEnum)[keyof typeof MediaScalarFieldEnum]
+
+
+export const BookingRequestScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  phone: 'phone',
+  weddingDate: 'weddingDate',
+  weddingPlace: 'weddingPlace',
+  status: 'status',
+  handledEventId: 'handledEventId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookingRequestScalarFieldEnum = (typeof BookingRequestScalarFieldEnum)[keyof typeof BookingRequestScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1141,6 +1231,20 @@ export type ListEnumMediaTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$Pr
 
 
 /**
+ * Reference to a field of type 'BookingRequestStatus'
+ */
+export type EnumBookingRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingRequestStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'BookingRequestStatus[]'
+ */
+export type ListEnumBookingRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BookingRequestStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
@@ -1268,6 +1372,7 @@ export type GlobalOmitConfig = {
   guest?: Prisma.GuestOmit
   guestInvitation?: Prisma.GuestInvitationOmit
   media?: Prisma.MediaOmit
+  bookingRequest?: Prisma.BookingRequestOmit
 }
 
 /* Types for Logging */

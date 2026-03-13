@@ -53,3 +53,12 @@ export const EventStatus = {
 } as const
 
 export type EventStatus = (typeof EventStatus)[keyof typeof EventStatus]
+
+
+export const BookingRequestStatus = {
+  NEW: 'NEW',
+  HANDLED: 'HANDLED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type BookingRequestStatus = (typeof BookingRequestStatus)[keyof typeof BookingRequestStatus]

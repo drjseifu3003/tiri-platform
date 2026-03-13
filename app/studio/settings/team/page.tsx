@@ -369,6 +369,13 @@ export default function StudioTeamSettingsPage() {
         >
           Team
         </Link>
+        <Link
+          href="/studio/settings/website"
+          className="relative py-3 text-sm font-medium"
+          style={{ color: "var(--text-secondary)", borderBottom: "2px solid transparent", marginBottom: "-2px" }}
+        >
+          Website
+        </Link>
       </div>
 
       {!isAdmin ? (

@@ -48,6 +48,12 @@ enum EventStatus {
   ARCHIVED
 }
 
+enum BookingRequestStatus {
+  NEW
+  HANDLED
+  CANCELLED
+}
+
 //////////////////////////////////////////////////////
 // STUDIO (Multi-Tenant Root)
 //////////////////////////////////////////////////////
@@ -124,6 +130,7 @@ model Event {
   guests          Guest[]
   media           Media[]
   guestInvitations GuestInvitation[]
+  bookingRequest  BookingRequest? @relation("BookingRequestHandledEvent")
 
   @@index([studioId])
 }
@@ -182,4 +189,21 @@ model Media {
   event       Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
+}
+
+model BookingRequest {
+  id           String   @id @default(uuid())
+  name         String
+  phone        String
+  weddingDate  DateTime
+  weddingPlace String
+  status       BookingRequestStatus @default(NEW)
+  handledEventId String? @unique
+  handledEvent Event? @relation("BookingRequestHandledEvent", fields: [handledEventId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([weddingDate])
+  @@index([status])
 }

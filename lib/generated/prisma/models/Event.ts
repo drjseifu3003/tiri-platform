@@ -338,6 +338,7 @@ export type EventWhereInput = {
   guests?: Prisma.GuestListRelationFilter
   media?: Prisma.MediaListRelationFilter
   guestInvitations?: Prisma.GuestInvitationListRelationFilter
+  bookingRequest?: Prisma.XOR<Prisma.BookingRequestNullableScalarRelationFilter, Prisma.BookingRequestWhereInput> | null
 }
 
 export type EventOrderByWithRelationInput = {
@@ -369,6 +370,7 @@ export type EventOrderByWithRelationInput = {
   guests?: Prisma.GuestOrderByRelationAggregateInput
   media?: Prisma.MediaOrderByRelationAggregateInput
   guestInvitations?: Prisma.GuestInvitationOrderByRelationAggregateInput
+  bookingRequest?: Prisma.BookingRequestOrderByWithRelationInput
 }
 
 export type EventWhereUniqueInput = Prisma.AtLeast<{
@@ -403,6 +405,7 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
   guests?: Prisma.GuestListRelationFilter
   media?: Prisma.MediaListRelationFilter
   guestInvitations?: Prisma.GuestInvitationListRelationFilter
+  bookingRequest?: Prisma.XOR<Prisma.BookingRequestNullableScalarRelationFilter, Prisma.BookingRequestWhereInput> | null
 }, "id" | "coupleAccessToken" | "slug" | "subdomain">
 
 export type EventOrderByWithAggregationInput = {
@@ -493,6 +496,7 @@ export type EventCreateInput = {
   guests?: Prisma.GuestCreateNestedManyWithoutEventInput
   media?: Prisma.MediaCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventUncheckedCreateInput = {
@@ -523,6 +527,7 @@ export type EventUncheckedCreateInput = {
   guests?: Prisma.GuestUncheckedCreateNestedManyWithoutEventInput
   media?: Prisma.MediaUncheckedCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationUncheckedCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestUncheckedCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventUpdateInput = {
@@ -553,6 +558,7 @@ export type EventUpdateInput = {
   guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventUncheckedUpdateInput = {
@@ -583,6 +589,7 @@ export type EventUncheckedUpdateInput = {
   guests?: Prisma.GuestUncheckedUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUncheckedUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUncheckedUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUncheckedUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventCreateManyInput = {
@@ -761,6 +768,11 @@ export type EventScalarRelationFilter = {
   isNot?: Prisma.EventWhereInput
 }
 
+export type EventNullableScalarRelationFilter = {
+  is?: Prisma.EventWhereInput | null
+  isNot?: Prisma.EventWhereInput | null
+}
+
 export type EventCreateNestedManyWithoutStudioInput = {
   create?: Prisma.XOR<Prisma.EventCreateWithoutStudioInput, Prisma.EventUncheckedCreateWithoutStudioInput> | Prisma.EventCreateWithoutStudioInput[] | Prisma.EventUncheckedCreateWithoutStudioInput[]
   connectOrCreate?: Prisma.EventCreateOrConnectWithoutStudioInput | Prisma.EventCreateOrConnectWithoutStudioInput[]
@@ -857,6 +869,22 @@ export type EventUpdateOneRequiredWithoutMediaNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.EventUpdateToOneWithWhereWithoutMediaInput, Prisma.EventUpdateWithoutMediaInput>, Prisma.EventUncheckedUpdateWithoutMediaInput>
 }
 
+export type EventCreateNestedOneWithoutBookingRequestInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutBookingRequestInput, Prisma.EventUncheckedCreateWithoutBookingRequestInput>
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutBookingRequestInput
+  connect?: Prisma.EventWhereUniqueInput
+}
+
+export type EventUpdateOneWithoutBookingRequestNestedInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutBookingRequestInput, Prisma.EventUncheckedCreateWithoutBookingRequestInput>
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutBookingRequestInput
+  upsert?: Prisma.EventUpsertWithoutBookingRequestInput
+  disconnect?: Prisma.EventWhereInput | boolean
+  delete?: Prisma.EventWhereInput | boolean
+  connect?: Prisma.EventWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.EventUpdateToOneWithWhereWithoutBookingRequestInput, Prisma.EventUpdateWithoutBookingRequestInput>, Prisma.EventUncheckedUpdateWithoutBookingRequestInput>
+}
+
 export type EventCreateWithoutStudioInput = {
   id?: string
   title: string
@@ -884,6 +912,7 @@ export type EventCreateWithoutStudioInput = {
   guests?: Prisma.GuestCreateNestedManyWithoutEventInput
   media?: Prisma.MediaCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventUncheckedCreateWithoutStudioInput = {
@@ -913,6 +942,7 @@ export type EventUncheckedCreateWithoutStudioInput = {
   guests?: Prisma.GuestUncheckedCreateNestedManyWithoutEventInput
   media?: Prisma.MediaUncheckedCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationUncheckedCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestUncheckedCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventCreateOrConnectWithoutStudioInput = {
@@ -998,6 +1028,7 @@ export type EventCreateWithoutGuestsInput = {
   studio: Prisma.StudioCreateNestedOneWithoutEventsInput
   media?: Prisma.MediaCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventUncheckedCreateWithoutGuestsInput = {
@@ -1027,6 +1058,7 @@ export type EventUncheckedCreateWithoutGuestsInput = {
   updatedAt?: Date | string
   media?: Prisma.MediaUncheckedCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationUncheckedCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestUncheckedCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventCreateOrConnectWithoutGuestsInput = {
@@ -1072,6 +1104,7 @@ export type EventUpdateWithoutGuestsInput = {
   studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
   media?: Prisma.MediaUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventUncheckedUpdateWithoutGuestsInput = {
@@ -1101,6 +1134,7 @@ export type EventUncheckedUpdateWithoutGuestsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   media?: Prisma.MediaUncheckedUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUncheckedUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUncheckedUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventCreateWithoutGuestInvitationsInput = {
@@ -1130,6 +1164,7 @@ export type EventCreateWithoutGuestInvitationsInput = {
   studio: Prisma.StudioCreateNestedOneWithoutEventsInput
   guests?: Prisma.GuestCreateNestedManyWithoutEventInput
   media?: Prisma.MediaCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventUncheckedCreateWithoutGuestInvitationsInput = {
@@ -1159,6 +1194,7 @@ export type EventUncheckedCreateWithoutGuestInvitationsInput = {
   updatedAt?: Date | string
   guests?: Prisma.GuestUncheckedCreateNestedManyWithoutEventInput
   media?: Prisma.MediaUncheckedCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestUncheckedCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventCreateOrConnectWithoutGuestInvitationsInput = {
@@ -1204,6 +1240,7 @@ export type EventUpdateWithoutGuestInvitationsInput = {
   studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
   guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventUncheckedUpdateWithoutGuestInvitationsInput = {
@@ -1233,6 +1270,7 @@ export type EventUncheckedUpdateWithoutGuestInvitationsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   guests?: Prisma.GuestUncheckedUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUncheckedUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUncheckedUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventCreateWithoutMediaInput = {
@@ -1262,6 +1300,7 @@ export type EventCreateWithoutMediaInput = {
   studio: Prisma.StudioCreateNestedOneWithoutEventsInput
   guests?: Prisma.GuestCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventUncheckedCreateWithoutMediaInput = {
@@ -1291,6 +1330,7 @@ export type EventUncheckedCreateWithoutMediaInput = {
   updatedAt?: Date | string
   guests?: Prisma.GuestUncheckedCreateNestedManyWithoutEventInput
   guestInvitations?: Prisma.GuestInvitationUncheckedCreateNestedManyWithoutEventInput
+  bookingRequest?: Prisma.BookingRequestUncheckedCreateNestedOneWithoutHandledEventInput
 }
 
 export type EventCreateOrConnectWithoutMediaInput = {
@@ -1336,6 +1376,7 @@ export type EventUpdateWithoutMediaInput = {
   studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
   guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventUncheckedUpdateWithoutMediaInput = {
@@ -1364,6 +1405,143 @@ export type EventUncheckedUpdateWithoutMediaInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   guests?: Prisma.GuestUncheckedUpdateManyWithoutEventNestedInput
+  guestInvitations?: Prisma.GuestInvitationUncheckedUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUncheckedUpdateOneWithoutHandledEventNestedInput
+}
+
+export type EventCreateWithoutBookingRequestInput = {
+  id?: string
+  title: string
+  brideName?: string | null
+  groomName?: string | null
+  bridePhone?: string | null
+  groomPhone?: string | null
+  coupleAccessToken?: string
+  eventDate: Date | string
+  location?: string | null
+  googleMapAddress: string
+  description?: string | null
+  coverImage?: string | null
+  slug: string
+  subdomain?: string | null
+  isPublished?: boolean
+  status?: $Enums.EventStatus
+  startedAt?: Date | string | null
+  completedAt?: Date | string | null
+  cancelledAt?: Date | string | null
+  archivedAt?: Date | string | null
+  startNotificationSentAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  studio: Prisma.StudioCreateNestedOneWithoutEventsInput
+  guests?: Prisma.GuestCreateNestedManyWithoutEventInput
+  media?: Prisma.MediaCreateNestedManyWithoutEventInput
+  guestInvitations?: Prisma.GuestInvitationCreateNestedManyWithoutEventInput
+}
+
+export type EventUncheckedCreateWithoutBookingRequestInput = {
+  id?: string
+  studioId: string
+  title: string
+  brideName?: string | null
+  groomName?: string | null
+  bridePhone?: string | null
+  groomPhone?: string | null
+  coupleAccessToken?: string
+  eventDate: Date | string
+  location?: string | null
+  googleMapAddress: string
+  description?: string | null
+  coverImage?: string | null
+  slug: string
+  subdomain?: string | null
+  isPublished?: boolean
+  status?: $Enums.EventStatus
+  startedAt?: Date | string | null
+  completedAt?: Date | string | null
+  cancelledAt?: Date | string | null
+  archivedAt?: Date | string | null
+  startNotificationSentAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  guests?: Prisma.GuestUncheckedCreateNestedManyWithoutEventInput
+  media?: Prisma.MediaUncheckedCreateNestedManyWithoutEventInput
+  guestInvitations?: Prisma.GuestInvitationUncheckedCreateNestedManyWithoutEventInput
+}
+
+export type EventCreateOrConnectWithoutBookingRequestInput = {
+  where: Prisma.EventWhereUniqueInput
+  create: Prisma.XOR<Prisma.EventCreateWithoutBookingRequestInput, Prisma.EventUncheckedCreateWithoutBookingRequestInput>
+}
+
+export type EventUpsertWithoutBookingRequestInput = {
+  update: Prisma.XOR<Prisma.EventUpdateWithoutBookingRequestInput, Prisma.EventUncheckedUpdateWithoutBookingRequestInput>
+  create: Prisma.XOR<Prisma.EventCreateWithoutBookingRequestInput, Prisma.EventUncheckedCreateWithoutBookingRequestInput>
+  where?: Prisma.EventWhereInput
+}
+
+export type EventUpdateToOneWithWhereWithoutBookingRequestInput = {
+  where?: Prisma.EventWhereInput
+  data: Prisma.XOR<Prisma.EventUpdateWithoutBookingRequestInput, Prisma.EventUncheckedUpdateWithoutBookingRequestInput>
+}
+
+export type EventUpdateWithoutBookingRequestInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bridePhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groomPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  subdomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  startNotificationSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  studio?: Prisma.StudioUpdateOneRequiredWithoutEventsNestedInput
+  guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
+  media?: Prisma.MediaUpdateManyWithoutEventNestedInput
+  guestInvitations?: Prisma.GuestInvitationUpdateManyWithoutEventNestedInput
+}
+
+export type EventUncheckedUpdateWithoutBookingRequestInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  studioId?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  brideName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groomName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bridePhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groomPhone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coupleAccessToken?: Prisma.StringFieldUpdateOperationsInput | string
+  eventDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  location?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  googleMapAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverImage?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  subdomain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  status?: Prisma.EnumEventStatusFieldUpdateOperationsInput | $Enums.EventStatus
+  startedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  completedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  archivedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  startNotificationSentAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  guests?: Prisma.GuestUncheckedUpdateManyWithoutEventNestedInput
+  media?: Prisma.MediaUncheckedUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUncheckedUpdateManyWithoutEventNestedInput
 }
 
@@ -1420,6 +1598,7 @@ export type EventUpdateWithoutStudioInput = {
   guests?: Prisma.GuestUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventUncheckedUpdateWithoutStudioInput = {
@@ -1449,6 +1628,7 @@ export type EventUncheckedUpdateWithoutStudioInput = {
   guests?: Prisma.GuestUncheckedUpdateManyWithoutEventNestedInput
   media?: Prisma.MediaUncheckedUpdateManyWithoutEventNestedInput
   guestInvitations?: Prisma.GuestInvitationUncheckedUpdateManyWithoutEventNestedInput
+  bookingRequest?: Prisma.BookingRequestUncheckedUpdateOneWithoutHandledEventNestedInput
 }
 
 export type EventUncheckedUpdateManyWithoutStudioInput = {
@@ -1555,6 +1735,7 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   guests?: boolean | Prisma.Event$guestsArgs<ExtArgs>
   media?: boolean | Prisma.Event$mediaArgs<ExtArgs>
   guestInvitations?: boolean | Prisma.Event$guestInvitationsArgs<ExtArgs>
+  bookingRequest?: boolean | Prisma.Event$bookingRequestArgs<ExtArgs>
   _count?: boolean | Prisma.EventCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["event"]>
 
@@ -1647,6 +1828,7 @@ export type EventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   guests?: boolean | Prisma.Event$guestsArgs<ExtArgs>
   media?: boolean | Prisma.Event$mediaArgs<ExtArgs>
   guestInvitations?: boolean | Prisma.Event$guestInvitationsArgs<ExtArgs>
+  bookingRequest?: boolean | Prisma.Event$bookingRequestArgs<ExtArgs>
   _count?: boolean | Prisma.EventCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type EventIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1663,6 +1845,7 @@ export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     guests: Prisma.$GuestPayload<ExtArgs>[]
     media: Prisma.$MediaPayload<ExtArgs>[]
     guestInvitations: Prisma.$GuestInvitationPayload<ExtArgs>[]
+    bookingRequest: Prisma.$BookingRequestPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2087,6 +2270,7 @@ export interface Prisma__EventClient<T, Null = never, ExtArgs extends runtime.Ty
   guests<T extends Prisma.Event$guestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$guestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GuestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   media<T extends Prisma.Event$mediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$mediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   guestInvitations<T extends Prisma.Event$guestInvitationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$guestInvitationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$GuestInvitationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  bookingRequest<T extends Prisma.Event$bookingRequestArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$bookingRequestArgs<ExtArgs>>): Prisma.Prisma__BookingRequestClient<runtime.Types.Result.GetResult<Prisma.$BookingRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2605,6 +2789,25 @@ export type Event$guestInvitationsArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   distinct?: Prisma.GuestInvitationScalarFieldEnum | Prisma.GuestInvitationScalarFieldEnum[]
+}
+
+/**
+ * Event.bookingRequest
+ */
+export type Event$bookingRequestArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the BookingRequest
+   */
+  select?: Prisma.BookingRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the BookingRequest
+   */
+  omit?: Prisma.BookingRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BookingRequestInclude<ExtArgs> | null
+  where?: Prisma.BookingRequestWhereInput
 }
 
 /**
