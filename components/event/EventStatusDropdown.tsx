@@ -13,6 +13,7 @@ interface EventStatusDropdownProps {
   eventTitle: string;
   eventDate: string;
   onStatusChange: (newStatus: EventStatus, cancellationReason?: string) => Promise<void>;
+  disabled?: boolean;
 }
 
 const STATUS_TRANSITIONS: Record<EventStatus, EventStatus[]> = {
@@ -41,6 +42,7 @@ export function EventStatusDropdown({
   eventTitle,
   eventDate,
   onStatusChange,
+  disabled = false,
 }: EventStatusDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [confirmStatus, setConfirmStatus] = useState<EventStatus | null>(null);
@@ -66,11 +68,18 @@ export function EventStatusDropdown({
 
   return (
     <>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <Popover
+        open={disabled ? false : isOpen}
+        onOpenChange={(open) => {
+          if (disabled) return;
+          setIsOpen(open);
+        }}
+      >
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="inline-flex h-10 items-center gap-2 rounded-lg border px-3 transition"
+            disabled={disabled}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border px-3 transition disabled:cursor-not-allowed disabled:opacity-60"
             style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
             aria-expanded={isOpen}
             aria-label="Change event status"

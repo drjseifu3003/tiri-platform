@@ -2,6 +2,36 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
+const ALLOWED_METHODS = "POST, OPTIONS";
+const ALLOWED_HEADERS = "Content-Type";
+
+function resolveAllowedOrigin(request: NextRequest) {
+  const requestOrigin = request.headers.get("origin");
+  if (!requestOrigin) return "*";
+
+  const configuredOrigins = process.env.PUBLIC_BOOKINGS_CORS_ORIGINS
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (!configuredOrigins || configuredOrigins.length === 0) {
+    return "*";
+  }
+
+  return configuredOrigins.includes(requestOrigin) ? requestOrigin : null;
+}
+
+function withCors(request: NextRequest, response: NextResponse) {
+  const allowedOrigin = resolveAllowedOrigin(request);
+  if (!allowedOrigin) return response;
+
+  response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  response.headers.set("Access-Control-Allow-Methods", ALLOWED_METHODS);
+  response.headers.set("Access-Control-Allow-Headers", ALLOWED_HEADERS);
+  response.headers.set("Vary", "Origin");
+  return response;
+}
+
 const createBookingSchema = z.object({
   name: z.string().trim().min(2, "Please provide your name."),
   phone: z
@@ -18,13 +48,17 @@ function parseDateOnly(value: string) {
   return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
 }
 
+export async function OPTIONS(request: NextRequest) {
+  return withCors(request, new NextResponse(null, { status: 204 }));
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const parsed = createBookingSchema.safeParse(body);
 
   if (!parsed.success) {
     const message = parsed.error.issues[0]?.message ?? "Invalid booking payload.";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return withCors(request, NextResponse.json({ error: message }, { status: 400 }));
   }
 
   const bookingDate = parseDateOnly(parsed.data.weddingDate);
@@ -32,7 +66,7 @@ export async function POST(request: NextRequest) {
   today.setHours(0, 0, 0, 0);
 
   if (bookingDate.getTime() < today.getTime()) {
-    return NextResponse.json({ error: "Wedding date must be today or later." }, { status: 400 });
+    return withCors(request, NextResponse.json({ error: "Wedding date must be today or later." }, { status: 400 }));
   }
 
   const booking = await prisma.bookingRequest.create({
@@ -52,5 +86,5 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return NextResponse.json({ booking }, { status: 201 });
+  return withCors(request, NextResponse.json({ booking }, { status: 201 }));
 }

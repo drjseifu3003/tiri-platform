@@ -9,9 +9,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
   const { status, session, logout } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const notificationsRef = useRef<HTMLDivElement | null>(null);
   const accountRef = useRef<HTMLDivElement | null>(null);
 
   const navigation = useMemo(
@@ -48,10 +46,6 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
     function handleOutsideClick(event: MouseEvent) {
       const target = event.target as Node;
 
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setNotificationsOpen(false);
-      }
-
       if (accountRef.current && !accountRef.current.contains(target)) {
         setAccountOpen(false);
       }
@@ -80,6 +74,23 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
     setAccountOpen(false);
     await logout();
     router.replace("/");
+  }
+
+  function isNavActive(item: { label: string; href: string }) {
+    let active = pathname === item.href;
+    if (item.label === "Events") {
+      active = pathname.startsWith("/studio/events");
+    }
+    if (item.label === "Bookings") {
+      active = pathname.startsWith("/studio/bookings");
+    }
+    if (item.label === "Data Insight") {
+      active = pathname.startsWith("/studio/insights");
+    }
+    if (item.label === "Settings") {
+      active = pathname.startsWith("/studio/settings");
+    }
+    return active;
   }
 
   function NavIcon({ label, active }: { label: string; active: boolean }) {
@@ -178,7 +189,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
     >
       <div className="grid h-full w-full lg:grid-cols-[240px_1fr]">
         <aside
-          className="sticky top-0 flex h-screen flex-col border-r px-3 py-4 backdrop-blur"
+          className="sticky top-0 hidden h-screen flex-col border-r px-3 py-4 backdrop-blur lg:flex"
           style={{
             borderColor: "var(--border-subtle)",
             background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, var(--surface-muted) 100%)",
@@ -203,21 +214,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
 
           <nav className="mt-1 flex flex-col gap-1.5 px-1">
             {navigation.map((item) => {
-              let active = pathname === item.href;
-              // Special case for Events: highlight if viewing events or event details
-              if (item.label === "Events") {
-                active = pathname.startsWith("/studio/events");
-              }
-              if (item.label === "Bookings") {
-                active = pathname.startsWith("/studio/bookings");
-              }
-              if (item.label === "Data Insight") {
-                active = pathname.startsWith("/studio/insights");
-              }
-              // Keep Settings selected across all settings sub-pages (account, notifications, team, etc.)
-              if (item.label === "Settings") {
-                active = pathname.startsWith("/studio/settings");
-              }
+              const active = isNavActive(item);
               return (
                 <Link
                   key={item.href}
@@ -243,7 +240,7 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           </nav>
         </aside>
 
-        <section className="h-screen overflow-y-auto bg-transparent">
+        <section className="h-screen overflow-y-auto bg-transparent pb-20 lg:pb-0">
           <header
             className="sticky top-0 z-20 flex items-center justify-between border-b px-4 py-3 backdrop-blur sm:px-6"
             style={{
@@ -258,40 +255,10 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="relative" ref={notificationsRef}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNotificationsOpen((value) => !value);
-                    setAccountOpen(false);
-                  }}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition hover:opacity-80"
-                  style={{ background: "var(--primary-lighter)", borderColor: "var(--border-subtle)", color: "var(--primary)" }}
-                  aria-label="Open notifications"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden>
-                    <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                    <path d="M10 17a2 2 0 0 0 4 0" />
-                  </svg>
-                </button>
-
-                {notificationsOpen ? (
-                  <div className="absolute right-0 z-30 mt-2 w-72 rounded-xl border bg-white p-3 shadow-lg" style={{ borderColor: "var(--border-subtle)" }}>
-                    <p className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Notifications</p>
-                    <p className="mt-2 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                      No notifications for now.
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
               <div className="relative" ref={accountRef}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setAccountOpen((value) => !value);
-                    setNotificationsOpen(false);
-                  }}
+                  onClick={() => setAccountOpen((value) => !value)}
                   className="flex items-center gap-2 rounded-full border py-1 pl-1 pr-2 transition hover:opacity-80"
                   style={{ background: "var(--secondary-lighter)", borderColor: "var(--border-subtle)", color: "var(--secondary)" }}
                   aria-label="Open account menu"
@@ -366,6 +333,45 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
           </div>
         </section>
       </div>
+
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-30 border-t px-1 pb-[calc(env(safe-area-inset-bottom,0px)+0.35rem)] pt-1 lg:hidden"
+        style={{
+          borderColor: "var(--border-subtle)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.95) 100%)",
+          boxShadow: "0 -6px 16px rgba(42, 42, 42, 0.06)",
+        }}
+      >
+        <div className="mx-auto flex w-full max-w-2xl items-stretch justify-between gap-1">
+          {navigation.map((item) => {
+            const active = isNavActive(item);
+
+            return (
+              <Link
+                key={`mobile-${item.href}`}
+                href={item.href}
+                className="flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-1.5 text-[10px] font-semibold leading-tight transition"
+                style={
+                  active
+                    ? {
+                        color: "var(--surface)",
+                        background: "var(--primary)",
+                      }
+                    : {
+                        color: "var(--text-secondary)",
+                        background: "transparent",
+                      }
+                }
+              >
+                <span className="inline-flex h-4 w-4 items-center justify-center" aria-hidden>
+                  <NavIcon label={item.label} active={active} />
+                </span>
+                <span className="mt-1 truncate">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </main>
   );
 }

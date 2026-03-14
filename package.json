@@ -27,6 +27,7 @@
     "react-hook-form": "^7.71.2",
     "react-phone-number-input": "^3.4.16",
     "react-redux": "^9.2.0",
+    "recharts": "^3.8.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

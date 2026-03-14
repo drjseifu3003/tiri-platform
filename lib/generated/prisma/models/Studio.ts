@@ -208,6 +208,7 @@ export type StudioWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"Studio"> | Date | string
   users?: Prisma.UserListRelationFilter
   events?: Prisma.EventListRelationFilter
+  websiteSettings?: Prisma.XOR<Prisma.StudioWebsiteSettingsNullableScalarRelationFilter, Prisma.StudioWebsiteSettingsWhereInput> | null
 }
 
 export type StudioOrderByWithRelationInput = {
@@ -221,6 +222,7 @@ export type StudioOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   users?: Prisma.UserOrderByRelationAggregateInput
   events?: Prisma.EventOrderByRelationAggregateInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsOrderByWithRelationInput
 }
 
 export type StudioWhereUniqueInput = Prisma.AtLeast<{
@@ -237,6 +239,7 @@ export type StudioWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"Studio"> | Date | string
   users?: Prisma.UserListRelationFilter
   events?: Prisma.EventListRelationFilter
+  websiteSettings?: Prisma.XOR<Prisma.StudioWebsiteSettingsNullableScalarRelationFilter, Prisma.StudioWebsiteSettingsWhereInput> | null
 }, "id" | "phone">
 
 export type StudioOrderByWithAggregationInput = {
@@ -278,6 +281,7 @@ export type StudioCreateInput = {
   updatedAt?: Date | string
   users?: Prisma.UserCreateNestedManyWithoutStudioInput
   events?: Prisma.EventCreateNestedManyWithoutStudioInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsCreateNestedOneWithoutStudioInput
 }
 
 export type StudioUncheckedCreateInput = {
@@ -291,6 +295,7 @@ export type StudioUncheckedCreateInput = {
   updatedAt?: Date | string
   users?: Prisma.UserUncheckedCreateNestedManyWithoutStudioInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutStudioInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUncheckedCreateNestedOneWithoutStudioInput
 }
 
 export type StudioUpdateInput = {
@@ -304,6 +309,7 @@ export type StudioUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   users?: Prisma.UserUpdateManyWithoutStudioNestedInput
   events?: Prisma.EventUpdateManyWithoutStudioNestedInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUpdateOneWithoutStudioNestedInput
 }
 
 export type StudioUncheckedUpdateInput = {
@@ -317,6 +323,7 @@ export type StudioUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   users?: Prisma.UserUncheckedUpdateManyWithoutStudioNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutStudioNestedInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUncheckedUpdateOneWithoutStudioNestedInput
 }
 
 export type StudioCreateManyInput = {
@@ -402,6 +409,20 @@ export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
 
+export type StudioCreateNestedOneWithoutWebsiteSettingsInput = {
+  create?: Prisma.XOR<Prisma.StudioCreateWithoutWebsiteSettingsInput, Prisma.StudioUncheckedCreateWithoutWebsiteSettingsInput>
+  connectOrCreate?: Prisma.StudioCreateOrConnectWithoutWebsiteSettingsInput
+  connect?: Prisma.StudioWhereUniqueInput
+}
+
+export type StudioUpdateOneRequiredWithoutWebsiteSettingsNestedInput = {
+  create?: Prisma.XOR<Prisma.StudioCreateWithoutWebsiteSettingsInput, Prisma.StudioUncheckedCreateWithoutWebsiteSettingsInput>
+  connectOrCreate?: Prisma.StudioCreateOrConnectWithoutWebsiteSettingsInput
+  upsert?: Prisma.StudioUpsertWithoutWebsiteSettingsInput
+  connect?: Prisma.StudioWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.StudioUpdateToOneWithWhereWithoutWebsiteSettingsInput, Prisma.StudioUpdateWithoutWebsiteSettingsInput>, Prisma.StudioUncheckedUpdateWithoutWebsiteSettingsInput>
+}
+
 export type StudioCreateNestedOneWithoutUsersInput = {
   create?: Prisma.XOR<Prisma.StudioCreateWithoutUsersInput, Prisma.StudioUncheckedCreateWithoutUsersInput>
   connectOrCreate?: Prisma.StudioCreateOrConnectWithoutUsersInput
@@ -430,6 +451,74 @@ export type StudioUpdateOneRequiredWithoutEventsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.StudioUpdateToOneWithWhereWithoutEventsInput, Prisma.StudioUpdateWithoutEventsInput>, Prisma.StudioUncheckedUpdateWithoutEventsInput>
 }
 
+export type StudioCreateWithoutWebsiteSettingsInput = {
+  id?: string
+  name: string
+  email?: string | null
+  phone: string
+  logoUrl?: string | null
+  primaryColor?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  users?: Prisma.UserCreateNestedManyWithoutStudioInput
+  events?: Prisma.EventCreateNestedManyWithoutStudioInput
+}
+
+export type StudioUncheckedCreateWithoutWebsiteSettingsInput = {
+  id?: string
+  name: string
+  email?: string | null
+  phone: string
+  logoUrl?: string | null
+  primaryColor?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  users?: Prisma.UserUncheckedCreateNestedManyWithoutStudioInput
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutStudioInput
+}
+
+export type StudioCreateOrConnectWithoutWebsiteSettingsInput = {
+  where: Prisma.StudioWhereUniqueInput
+  create: Prisma.XOR<Prisma.StudioCreateWithoutWebsiteSettingsInput, Prisma.StudioUncheckedCreateWithoutWebsiteSettingsInput>
+}
+
+export type StudioUpsertWithoutWebsiteSettingsInput = {
+  update: Prisma.XOR<Prisma.StudioUpdateWithoutWebsiteSettingsInput, Prisma.StudioUncheckedUpdateWithoutWebsiteSettingsInput>
+  create: Prisma.XOR<Prisma.StudioCreateWithoutWebsiteSettingsInput, Prisma.StudioUncheckedCreateWithoutWebsiteSettingsInput>
+  where?: Prisma.StudioWhereInput
+}
+
+export type StudioUpdateToOneWithWhereWithoutWebsiteSettingsInput = {
+  where?: Prisma.StudioWhereInput
+  data: Prisma.XOR<Prisma.StudioUpdateWithoutWebsiteSettingsInput, Prisma.StudioUncheckedUpdateWithoutWebsiteSettingsInput>
+}
+
+export type StudioUpdateWithoutWebsiteSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUpdateManyWithoutStudioNestedInput
+  events?: Prisma.EventUpdateManyWithoutStudioNestedInput
+}
+
+export type StudioUncheckedUpdateWithoutWebsiteSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  phone?: Prisma.StringFieldUpdateOperationsInput | string
+  logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  primaryColor?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  users?: Prisma.UserUncheckedUpdateManyWithoutStudioNestedInput
+  events?: Prisma.EventUncheckedUpdateManyWithoutStudioNestedInput
+}
+
 export type StudioCreateWithoutUsersInput = {
   id?: string
   name: string
@@ -440,6 +529,7 @@ export type StudioCreateWithoutUsersInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   events?: Prisma.EventCreateNestedManyWithoutStudioInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsCreateNestedOneWithoutStudioInput
 }
 
 export type StudioUncheckedCreateWithoutUsersInput = {
@@ -452,6 +542,7 @@ export type StudioUncheckedCreateWithoutUsersInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   events?: Prisma.EventUncheckedCreateNestedManyWithoutStudioInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUncheckedCreateNestedOneWithoutStudioInput
 }
 
 export type StudioCreateOrConnectWithoutUsersInput = {
@@ -480,6 +571,7 @@ export type StudioUpdateWithoutUsersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   events?: Prisma.EventUpdateManyWithoutStudioNestedInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUpdateOneWithoutStudioNestedInput
 }
 
 export type StudioUncheckedUpdateWithoutUsersInput = {
@@ -492,6 +584,7 @@ export type StudioUncheckedUpdateWithoutUsersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   events?: Prisma.EventUncheckedUpdateManyWithoutStudioNestedInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUncheckedUpdateOneWithoutStudioNestedInput
 }
 
 export type StudioCreateWithoutEventsInput = {
@@ -504,6 +597,7 @@ export type StudioCreateWithoutEventsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   users?: Prisma.UserCreateNestedManyWithoutStudioInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsCreateNestedOneWithoutStudioInput
 }
 
 export type StudioUncheckedCreateWithoutEventsInput = {
@@ -516,6 +610,7 @@ export type StudioUncheckedCreateWithoutEventsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   users?: Prisma.UserUncheckedCreateNestedManyWithoutStudioInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUncheckedCreateNestedOneWithoutStudioInput
 }
 
 export type StudioCreateOrConnectWithoutEventsInput = {
@@ -544,6 +639,7 @@ export type StudioUpdateWithoutEventsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   users?: Prisma.UserUpdateManyWithoutStudioNestedInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUpdateOneWithoutStudioNestedInput
 }
 
 export type StudioUncheckedUpdateWithoutEventsInput = {
@@ -556,6 +652,7 @@ export type StudioUncheckedUpdateWithoutEventsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   users?: Prisma.UserUncheckedUpdateManyWithoutStudioNestedInput
+  websiteSettings?: Prisma.StudioWebsiteSettingsUncheckedUpdateOneWithoutStudioNestedInput
 }
 
 
@@ -609,6 +706,7 @@ export type StudioSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   updatedAt?: boolean
   users?: boolean | Prisma.Studio$usersArgs<ExtArgs>
   events?: boolean | Prisma.Studio$eventsArgs<ExtArgs>
+  websiteSettings?: boolean | Prisma.Studio$websiteSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.StudioCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["studio"]>
 
@@ -649,6 +747,7 @@ export type StudioOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 export type StudioInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   users?: boolean | Prisma.Studio$usersArgs<ExtArgs>
   events?: boolean | Prisma.Studio$eventsArgs<ExtArgs>
+  websiteSettings?: boolean | Prisma.Studio$websiteSettingsArgs<ExtArgs>
   _count?: boolean | Prisma.StudioCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type StudioIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -659,6 +758,7 @@ export type $StudioPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   objects: {
     users: Prisma.$UserPayload<ExtArgs>[]
     events: Prisma.$EventPayload<ExtArgs>[]
+    websiteSettings: Prisma.$StudioWebsiteSettingsPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1065,6 +1165,7 @@ export interface Prisma__StudioClient<T, Null = never, ExtArgs extends runtime.T
   readonly [Symbol.toStringTag]: "PrismaPromise"
   users<T extends Prisma.Studio$usersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Studio$usersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   events<T extends Prisma.Studio$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Studio$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  websiteSettings<T extends Prisma.Studio$websiteSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Studio$websiteSettingsArgs<ExtArgs>>): Prisma.Prisma__StudioWebsiteSettingsClient<runtime.Types.Result.GetResult<Prisma.$StudioWebsiteSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1535,6 +1636,25 @@ export type Studio$eventsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.EventScalarFieldEnum | Prisma.EventScalarFieldEnum[]
+}
+
+/**
+ * Studio.websiteSettings
+ */
+export type Studio$websiteSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the StudioWebsiteSettings
+   */
+  select?: Prisma.StudioWebsiteSettingsSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the StudioWebsiteSettings
+   */
+  omit?: Prisma.StudioWebsiteSettingsOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.StudioWebsiteSettingsInclude<ExtArgs> | null
+  where?: Prisma.StudioWebsiteSettingsWhereInput
 }
 
 /**

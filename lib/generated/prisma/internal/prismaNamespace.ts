@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Studio: 'Studio',
+  StudioWebsiteSettings: 'StudioWebsiteSettings',
   User: 'User',
   Event: 'Event',
   Guest: 'Guest',
@@ -406,7 +407,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "studio" | "user" | "event" | "guest" | "guestInvitation" | "media" | "bookingRequest"
+    modelProps: "studio" | "studioWebsiteSettings" | "user" | "event" | "guest" | "guestInvitation" | "media" | "bookingRequest"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -481,6 +482,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.StudioCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.StudioCountAggregateOutputType> | number
+        }
+      }
+    }
+    StudioWebsiteSettings: {
+      payload: Prisma.$StudioWebsiteSettingsPayload<ExtArgs>
+      fields: Prisma.StudioWebsiteSettingsFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.StudioWebsiteSettingsFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.StudioWebsiteSettingsFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>
+        }
+        findFirst: {
+          args: Prisma.StudioWebsiteSettingsFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.StudioWebsiteSettingsFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>
+        }
+        findMany: {
+          args: Prisma.StudioWebsiteSettingsFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>[]
+        }
+        create: {
+          args: Prisma.StudioWebsiteSettingsCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>
+        }
+        createMany: {
+          args: Prisma.StudioWebsiteSettingsCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.StudioWebsiteSettingsCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>[]
+        }
+        delete: {
+          args: Prisma.StudioWebsiteSettingsDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>
+        }
+        update: {
+          args: Prisma.StudioWebsiteSettingsUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>
+        }
+        deleteMany: {
+          args: Prisma.StudioWebsiteSettingsDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.StudioWebsiteSettingsUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.StudioWebsiteSettingsUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>[]
+        }
+        upsert: {
+          args: Prisma.StudioWebsiteSettingsUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$StudioWebsiteSettingsPayload>
+        }
+        aggregate: {
+          args: Prisma.StudioWebsiteSettingsAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateStudioWebsiteSettings>
+        }
+        groupBy: {
+          args: Prisma.StudioWebsiteSettingsGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StudioWebsiteSettingsGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.StudioWebsiteSettingsCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.StudioWebsiteSettingsCountAggregateOutputType> | number
         }
       }
     }
@@ -981,6 +1056,19 @@ export const StudioScalarFieldEnum = {
 export type StudioScalarFieldEnum = (typeof StudioScalarFieldEnum)[keyof typeof StudioScalarFieldEnum]
 
 
+export const StudioWebsiteSettingsScalarFieldEnum = {
+  id: 'id',
+  studioId: 'studioId',
+  featuredEvents: 'featuredEvents',
+  packages: 'packages',
+  gallery: 'gallery',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StudioWebsiteSettingsScalarFieldEnum = (typeof StudioWebsiteSettingsScalarFieldEnum)[keyof typeof StudioWebsiteSettingsScalarFieldEnum]
+
+
 export const UserScalarFieldEnum = {
   id: 'id',
   phone: 'phone',
@@ -1089,6 +1177,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -1103,6 +1198,15 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
 
@@ -1136,6 +1240,20 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Json'
+ */
+export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+/**
+ * Reference to a field of type 'QueryMode'
+ */
+export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -1367,6 +1485,7 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   studio?: Prisma.StudioOmit
+  studioWebsiteSettings?: Prisma.StudioWebsiteSettingsOmit
   user?: Prisma.UserOmit
   event?: Prisma.EventOmit
   guest?: Prisma.GuestOmit

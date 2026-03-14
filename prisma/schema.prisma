@@ -70,6 +70,21 @@ model Studio {
 
   users         User[]
   events        Event[]
+  websiteSettings StudioWebsiteSettings?
+}
+
+model StudioWebsiteSettings {
+  id             String   @id @default(uuid())
+  studioId       String   @unique
+  featuredEvents Json
+  packages       Json
+  gallery        Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  studio         Studio   @relation(fields: [studioId], references: [id], onDelete: Cascade)
+
+  @@index([studioId])
 }
 
 //////////////////////////////////////////////////////

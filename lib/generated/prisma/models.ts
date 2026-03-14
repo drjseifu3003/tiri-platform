@@ -9,6 +9,7 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/Studio'
+export type * from './models/StudioWebsiteSettings'
 export type * from './models/User'
 export type * from './models/Event'
 export type * from './models/Guest'

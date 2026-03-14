@@ -46,6 +46,13 @@ body {
   background-color: var(--background);
 }
 
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
 ::selection {
   background: rgba(122, 26, 83, 0.18);
   color: var(--foreground);

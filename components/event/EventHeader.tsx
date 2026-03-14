@@ -13,8 +13,8 @@ interface EventHeaderProps {
   avatarUrl?: string;
   onEdit: () => void;
   editDisabled?: boolean;
+  statusChangeDisabled?: boolean;
   onStatusChange: (newStatus: EventStatus, cancellationReason?: string) => Promise<void>;
-  onShare: () => void;
   onAvatarClick?: () => void;
 }
 
@@ -26,8 +26,8 @@ export function EventHeader({
   avatarUrl,
   onEdit,
   editDisabled = false,
+  statusChangeDisabled = false,
   onStatusChange,
-  onShare,
   onAvatarClick,
 }: EventHeaderProps) {
   return (
@@ -76,10 +76,8 @@ export function EventHeader({
             eventTitle={eventTitle}
             eventDate={eventDate}
             onStatusChange={onStatusChange}
+            disabled={statusChangeDisabled}
           />
-          <Button variant="outline" onClick={onShare} className="flex-1 sm:flex-none">
-            Share Event
-          </Button>
           <Button
             onClick={onEdit}
             disabled={editDisabled}

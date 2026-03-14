@@ -45,6 +45,11 @@ export { Prisma }
  */
 export type Studio = Prisma.StudioModel
 /**
+ * Model StudioWebsiteSettings
+ * 
+ */
+export type StudioWebsiteSettings = Prisma.StudioWebsiteSettingsModel
+/**
  * Model User
  * 
  */

@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Studio: 'Studio',
+  StudioWebsiteSettings: 'StudioWebsiteSettings',
   User: 'User',
   Event: 'Event',
   Guest: 'Guest',
@@ -88,6 +89,19 @@ export const StudioScalarFieldEnum = {
 } as const
 
 export type StudioScalarFieldEnum = (typeof StudioScalarFieldEnum)[keyof typeof StudioScalarFieldEnum]
+
+
+export const StudioWebsiteSettingsScalarFieldEnum = {
+  id: 'id',
+  studioId: 'studioId',
+  featuredEvents: 'featuredEvents',
+  packages: 'packages',
+  gallery: 'gallery',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type StudioWebsiteSettingsScalarFieldEnum = (typeof StudioWebsiteSettingsScalarFieldEnum)[keyof typeof StudioWebsiteSettingsScalarFieldEnum]
 
 
 export const UserScalarFieldEnum = {
@@ -198,6 +212,13 @@ export const SortOrder = {
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
 export const QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -212,4 +233,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
