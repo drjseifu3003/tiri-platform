@@ -15,8 +15,8 @@ type SessionContextValue = {
   session: SessionData | null;
   error: string | null;
   isAuthenticated: boolean;
-  refresh: () => Promise<SessionData>;
-  login: (payload: LoginPayload) => Promise<SessionData>;
+  refresh: () => Promise<SessionData | null>;
+  login: (payload: LoginPayload) => Promise<SessionData | null>;
   logout: () => Promise<void>;
   clearError: () => void;
 };
@@ -39,8 +39,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       session: sessionState.data,
       error: sessionState.error,
       isAuthenticated: sessionState.status === "authenticated",
-      refresh: async () => dispatch(fetchSession()).unwrap(),
-      login: async (payload) => dispatch(login(payload)).unwrap(),
+      refresh: async () => {
+        const action = await dispatch(fetchSession());
+        return action.meta.requestStatus === "fulfilled" ? (action.payload as SessionData) : null;
+      },
+      login: async (payload) => {
+        const action = await dispatch(login(payload));
+        return action.meta.requestStatus === "fulfilled" ? (action.payload as SessionData) : null;
+      },
       logout: async () => {
         await dispatch(logout()).unwrap();
       },

@@ -1,27 +1,10 @@
 ﻿"use client";
 
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useGetRsvpByTokenQuery, useSubmitRsvpByTokenMutation } from "@/lib/api/invitations-api";
+import type { InvitePayload } from "@/lib/api/types";
 import { useParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-
-type InvitePayload = {
-  guest: {
-    id: string;
-    name: string;
-    profile: {
-      rsvpStatus: "PENDING" | "ATTENDING" | "NOT_ATTENDING";
-      rsvpPlusOne: number;
-    };
-  };
-  event: {
-    title: string;
-    brideName: string | null;
-    groomName: string | null;
-    eventDate: string;
-    location: string | null;
-    description: string | null;
-    googleMapAddress: string;
-  };
-};
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -42,41 +25,30 @@ export default function InviteTokenPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const inviteQuery = useGetRsvpByTokenQuery({ token }, { skip: !token });
+  const [submitRsvp] = useSubmitRsvpByTokenMutation();
 
   useEffect(() => {
-    if (!token) return;
+    setLoading(inviteQuery.isLoading || inviteQuery.isFetching);
+  }, [inviteQuery.isFetching, inviteQuery.isLoading]);
 
-    let cancelled = false;
+  useEffect(() => {
+    if (!inviteQuery.data) return;
 
-    const run = async () => {
-      setLoading(true);
-      setError(null);
+    const data = inviteQuery.data as InvitePayload;
+    setPayload(data);
+    setError(null);
+    if (data.guest.profile.rsvpStatus === "NOT_ATTENDING") {
+      setStatus("NOT_ATTENDING");
+    }
+    setPlusOne(data.guest.profile.rsvpPlusOne || 0);
+  }, [inviteQuery.data]);
 
-      try {
-        const response = await fetch(`/api/invitations/rsvp/${encodeURIComponent(token)}`);
-        if (!response.ok) throw new Error("Invitation not found");
-
-        const data = (await response.json()) as InvitePayload;
-        if (cancelled) return;
-
-        setPayload(data);
-        if (data.guest.profile.rsvpStatus === "NOT_ATTENDING") {
-          setStatus("NOT_ATTENDING");
-        }
-        setPlusOne(data.guest.profile.rsvpPlusOne || 0);
-      } catch {
-        if (!cancelled) setError("Invitation was not found.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  useEffect(() => {
+    if (!inviteQuery.error) return;
+    setError(getApiErrorMessage(inviteQuery.error, "Invitation was not found."));
+    setPayload(null);
+  }, [inviteQuery.error]);
 
   const couple = useMemo(() => {
     if (!payload) return "";
@@ -91,23 +63,15 @@ export default function InviteTokenPage() {
     setError(null);
     setMessage(null);
 
-    try {
-      const response = await fetch(`/api/invitations/rsvp/${encodeURIComponent(token)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status,
-          plusOne,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Unable to save RSVP");
-      setMessage("Your RSVP was submitted. Thank you.");
-    } catch {
-      setError("Unable to submit RSVP right now.");
-    } finally {
+    const result = await submitRsvp({ token, status, plusOne });
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to submit RSVP right now."));
       setSubmitting(false);
+      return;
     }
+
+    setMessage("Your RSVP was submitted. Thank you.");
+    setSubmitting(false);
   }
 
   if (loading) {

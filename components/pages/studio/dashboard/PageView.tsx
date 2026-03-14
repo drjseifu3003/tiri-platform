@@ -1,5 +1,7 @@
 ﻿"use client";
 
+import { useLazyGetStudioEventsQuery } from "@/lib/api/studio-api";
+import { getApiErrorMessage } from "@/lib/api/base-api";
 import { useSession } from "@/lib/session-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -101,7 +103,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [fetchStudioEvents] = useLazyGetStudioEventsQuery();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -116,35 +120,30 @@ export default function DashboardPage() {
     async function loadDashboard() {
       setLoadingData(true);
 
-      try {
-        const allEvents: EventListItem[] = [];
-        let page = 1;
-        let hasNext = true;
-        let guard = 0;
+      const allEvents: EventListItem[] = [];
+      let page = 1;
+      let hasNext = true;
+      let guard = 0;
+      let requestError: unknown = null;
 
-        while (hasNext && guard < 50) {
-          const response = await fetch(`/api/studio/events?page=${page}&pageSize=100&filter=all`, {
-            credentials: "include",
-          });
-
-          if (!response.ok) {
-            throw new Error("Unable to load dashboard data");
-          }
-
-          const json = (await response.json()) as EventsResponse;
-          allEvents.push(...(json.events ?? []));
-          hasNext = !!json.pagination?.hasNext;
-          page += 1;
-          guard += 1;
+      while (hasNext && guard < 50) {
+        const result = await fetchStudioEvents({ page, pageSize: 100, filter: "all" }, false);
+        if ("error" in result) {
+          requestError = result.error;
+          break;
         }
 
-        if (!cancelled) {
-          setEvents(allEvents);
-        }
-      } catch {
-        if (!cancelled) setEvents([]);
-      } finally {
-        if (!cancelled) setLoadingData(false);
+        const json = result.data as EventsResponse;
+        allEvents.push(...(json.events ?? []));
+        hasNext = !!json.pagination?.hasNext;
+        page += 1;
+        guard += 1;
+      }
+
+      if (!cancelled) {
+        setEvents(requestError ? [] : allEvents);
+        setLoadError(requestError ? getApiErrorMessage(requestError, "Unable to load dashboard events.") : null);
+        setLoadingData(false);
       }
     }
 
@@ -153,7 +152,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, status]);
+  }, [fetchStudioEvents, router, status]);
 
   const allCounts = useMemo(() => {
     const counts: Record<EventStatus, number> = {
@@ -380,7 +379,7 @@ export default function DashboardPage() {
           <p className="mt-3 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(allCounts.completed)}</p>
         </article>
         <article className="rounded-xl border p-5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Closed</p>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Cancelled</p>
           <p className="mt-3 text-3xl font-semibold" style={{ color: "var(--primary)" }}>{formatNumber(allCounts.closed)}</p>
         </article>
       </section>
@@ -416,8 +415,8 @@ export default function DashboardPage() {
                     return (
                       <article
                         key={event.id}
-                        className="cursor-pointer rounded-lg border p-3 transition hover:-translate-y-px"
-                        style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
+                        className="cursor-pointer rounded-lg border bg-[var(--surface)] p-3 transition hover:-translate-y-px hover:bg-zinc-50"
+                        style={{ borderColor: "var(--border-subtle)" }}
                         role="link"
                         tabIndex={0}
                         onClick={() => router.push(`/studio/events/${event.id}`)}
@@ -478,8 +477,8 @@ export default function DashboardPage() {
                       return (
                         <tr
                           key={event.id}
-                          className="cursor-pointer border-t align-middle transition hover:bg-zinc-50"
-                          style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
+                          className="cursor-pointer border-t align-middle bg-[var(--surface)] transition hover:bg-zinc-50"
+                          style={{ borderColor: "var(--border-subtle)" }}
                           onClick={() => router.push(`/studio/events/${event.id}`)}
                         >
                           <td className="px-4 py-3">

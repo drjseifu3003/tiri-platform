@@ -1,5 +1,9 @@
 ﻿"use client";
 
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useLazyGetStudioEventsQuery } from "@/lib/api/events-api";
+import { useLazyGetStudioMediaQuery } from "@/lib/api/media-api";
+import type { StudioEventListItem, StudioEventsResponse, StudioMediaResponse } from "@/lib/api/types";
 import { useSession } from "@/lib/session-context";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { MobileFilterSheet } from "@/components/ui/mobile-filter-sheet";
@@ -7,14 +11,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type EventListItem = {
-  id: string;
-  title: string;
-  brideName: string | null;
-  groomName: string | null;
+type EventListItem = StudioEventListItem & {
   bridePhone: string | null;
   groomPhone: string | null;
-  eventDate: string;
 };
 
 type MediaItem = {
@@ -22,9 +21,6 @@ type MediaItem = {
   eventId: string;
   createdAt: string;
 };
-
-type MediaResponse = { media: MediaItem[] };
-type EventsResponse = { events: EventListItem[] };
 
 function formatEventDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -46,6 +42,8 @@ export default function StudioMediaPage() {
   const [phoneSearch, setPhoneSearch] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [page, setPage] = useState(1);
+  const [fetchStudioEvents] = useLazyGetStudioEventsQuery();
+  const [fetchStudioMedia] = useLazyGetStudioMediaQuery();
 
   const pageSize = viewMode === "grid" ? 16 : 12;
 
@@ -53,38 +51,42 @@ export default function StudioMediaPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      const mediaRes = await fetch("/api/studio/media?scope=studio", { credentials: "include" });
-      if (!mediaRes.ok) {
-        throw new Error("Unable to load media folders");
-      }
-
-      const allEvents: EventListItem[] = [];
-      let page = 1;
-      let hasNext = true;
-
-      while (hasNext) {
-        const eventsRes = await fetch(`/api/studio/events?page=${page}&pageSize=100&filter=all`, { credentials: "include" });
-        if (!eventsRes.ok) {
-          throw new Error("Unable to load media folders");
-        }
-
-        const eventsJson = (await eventsRes.json()) as EventsResponse & { pagination?: { hasNext?: boolean } };
-        allEvents.push(...(eventsJson.events ?? []));
-        hasNext = eventsJson.pagination?.hasNext ?? false;
-        page += 1;
-      }
-
-      const mediaJson = (await mediaRes.json()) as MediaResponse;
-
-      setEvents(allEvents);
-      setMedia(mediaJson.media ?? []);
-    } catch {
-      setError("Unable to load media folders");
-    } finally {
+    const mediaResult = await fetchStudioMedia({ scope: "studio" }, false);
+    if ("error" in mediaResult) {
+      setError(getApiErrorMessage(mediaResult.error, "Unable to load media folders"));
       setLoading(false);
+      return;
     }
-  }, []);
+
+    const mediaJson = mediaResult.data as StudioMediaResponse;
+    const allEvents: EventListItem[] = [];
+    let nextPage = 1;
+    let hasNext = true;
+    let requestError: unknown = null;
+
+    while (hasNext) {
+      const eventsResult = await fetchStudioEvents({ page: nextPage, pageSize: 100, filter: "all" }, false);
+      if ("error" in eventsResult) {
+        requestError = eventsResult.error;
+        break;
+      }
+
+      const eventsJson = eventsResult.data as StudioEventsResponse<EventListItem>;
+      allEvents.push(...(eventsJson.events ?? []));
+      hasNext = eventsJson.pagination?.hasNext ?? false;
+      nextPage += 1;
+    }
+
+    if (requestError) {
+      setError(getApiErrorMessage(requestError, "Unable to load media folders"));
+      setLoading(false);
+      return;
+    }
+
+    setEvents(allEvents);
+    setMedia(mediaJson.media ?? []);
+    setLoading(false);
+  }, [fetchStudioEvents, fetchStudioMedia]);
 
   useEffect(() => {
     if (status === "unauthenticated") {

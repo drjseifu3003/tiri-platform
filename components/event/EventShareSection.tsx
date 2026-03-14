@@ -124,13 +124,18 @@ export function EventShareSection({
 
     if (!payload) return;
 
-    try {
-      await navigator.clipboard.writeText(payload);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
+    const copiedToClipboard = await navigator.clipboard.writeText(payload).then(
+      () => true,
+      () => false
+    );
+
+    if (!copiedToClipboard) {
       setUploadError("Unable to copy to clipboard");
+      return;
     }
+
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   function openSocialPlatform() {

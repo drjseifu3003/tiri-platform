@@ -1,37 +1,25 @@
 ﻿"use client";
 
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useLazyGetStudioEventsQuery } from "@/lib/api/events-api";
+import { useLazyGetInvitationGuestsQuery } from "@/lib/api/guests-api";
+import {
+  useCreateWhatsappBatchMutation,
+  useCreateWhatsappLinkMutation,
+  useSendTelegramBatchMutation,
+} from "@/lib/api/invitations-api";
+import type {
+  InvitationGuest,
+  InvitationGuestsResponse,
+  StudioEventListItem,
+  StudioEventsResponse,
+} from "@/lib/api/types";
 import { useSession } from "@/lib/session-context";
 import { MobileFilterSheet } from "@/components/ui/mobile-filter-sheet";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-type EventListItem = {
-  id: string;
-  title: string;
-};
-
-type InvitationGuest = {
-  id: string;
-  name: string;
-  phone: string | null;
-  invitationCode: string;
-  profile: {
-    telegramChatId: string | null;
-    rsvpStatus: "PENDING" | "ATTENDING" | "NOT_ATTENDING";
-  };
-};
-
-type GuestsResponse = {
-  event: {
-    id: string;
-    title: string;
-  };
-  guests: InvitationGuest[];
-};
-
-type EventsResponse = {
-  events: EventListItem[];
-};
+type EventListItem = Pick<StudioEventListItem, "id" | "title">;
 
 function rsvpBadge(status: InvitationGuest["profile"]["rsvpStatus"]) {
   if (status === "ATTENDING") return "text-emerald-700";
@@ -51,32 +39,40 @@ export default function StudioInvitationsPage() {
   const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [fetchEvents] = useLazyGetStudioEventsQuery();
+  const [fetchGuests] = useLazyGetInvitationGuestsQuery();
+  const [createWhatsappLink] = useCreateWhatsappLinkMutation();
+  const [createWhatsappBatch] = useCreateWhatsappBatchMutation();
+  const [sendTelegramBatch] = useSendTelegramBatchMutation();
 
   const loadEvents = useCallback(async () => {
-    const response = await fetch("/api/studio/events", { credentials: "include" });
-    if (!response.ok) throw new Error("Unable to load events");
+    const result = await fetchEvents({}, false);
+    if ("error" in result) {
+      return { error: result.error };
+    }
 
-    const payload = (await response.json()) as EventsResponse;
+    const payload = result.data as StudioEventsResponse<EventListItem>;
     const items = payload.events ?? [];
     setEvents(items);
     setSelectedEventId((current) => current || items[0]?.id || "");
-  }, []);
+    return { data: items };
+  }, [fetchEvents]);
 
   const loadGuests = useCallback(async (eventId: string) => {
     if (!eventId) {
       setGuests([]);
-      return;
+      return { data: [] as InvitationGuest[] };
     }
 
-    const response = await fetch(`/api/invitations/guests?eventId=${encodeURIComponent(eventId)}`, {
-      credentials: "include",
-    });
+    const result = await fetchGuests({ eventId }, false);
+    if ("error" in result) {
+      return { error: result.error };
+    }
 
-    if (!response.ok) throw new Error("Unable to load invitation guests");
-
-    const payload = (await response.json()) as GuestsResponse;
+    const payload = result.data as InvitationGuestsResponse;
     setGuests(payload.guests ?? []);
-  }, []);
+    return { data: payload.guests ?? [] };
+  }, [fetchGuests]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -92,12 +88,10 @@ export default function StudioInvitationsPage() {
       setLoading(true);
       setError(null);
 
-      try {
-        await loadEvents();
-      } catch {
-        if (!cancelled) setError("Unable to load invitations dashboard.");
-      } finally {
-        if (!cancelled) setLoading(false);
+      const result = await loadEvents();
+      if (!cancelled) {
+        setError(result && "error" in result ? getApiErrorMessage(result.error, "Unable to load invitations dashboard.") : null);
+        setLoading(false);
       }
     };
 
@@ -116,12 +110,10 @@ export default function StudioInvitationsPage() {
     const run = async () => {
       setLoading(true);
       setError(null);
-      try {
-        await loadGuests(selectedEventId);
-      } catch {
-        if (!cancelled) setError("Unable to load invitation guests.");
-      } finally {
-        if (!cancelled) setLoading(false);
+      const result = await loadGuests(selectedEventId);
+      if (!cancelled) {
+        setError(result && "error" in result ? getApiErrorMessage(result.error, "Unable to load invitation guests.") : null);
+        setLoading(false);
       }
     };
 
@@ -144,26 +136,17 @@ export default function StudioInvitationsPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const response = await fetch("/api/invitations/whatsapp-link", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId: selectedEventId, guestId }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to build WhatsApp invitation");
-      }
-
-      const payload = (await response.json()) as { whatsappLink: string; guestName: string };
-      window.open(payload.whatsappLink, "_blank", "noopener,noreferrer");
-      setSuccess(`WhatsApp invitation prepared for ${payload.guestName}.`);
-    } catch {
-      setError("Unable to generate WhatsApp invitation.");
-    } finally {
+    const result = await createWhatsappLink({ eventId: selectedEventId, guestId });
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to generate WhatsApp invitation."));
       setWorking(false);
+      return;
     }
+
+    const payload = result.data;
+    window.open(payload.whatsappLink, "_blank", "noopener,noreferrer");
+    setSuccess(`WhatsApp invitation prepared for ${payload.guestName}.`);
+    setWorking(false);
   }
 
   async function sendBatchWhatsApp() {
@@ -173,37 +156,24 @@ export default function StudioInvitationsPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const response = await fetch("/api/invitations/whatsapp-batch", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId: selectedEventId, guestIds: selectedGuestIds }),
+    const result = await createWhatsappBatch({ eventId: selectedEventId, guestIds: selectedGuestIds });
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to generate WhatsApp batch invitations."));
+      setWorking(false);
+      return;
+    }
+
+    const payload = result.data;
+    payload.results
+      .filter((item) => item.status === "READY" && item.whatsappLink)
+      .forEach((item, index) => {
+        window.setTimeout(() => {
+          window.open(item.whatsappLink!, "_blank", "noopener,noreferrer");
+        }, index * 900);
       });
 
-      if (!response.ok) {
-        throw new Error("Unable to generate WhatsApp batch links");
-      }
-
-      const payload = (await response.json()) as {
-        results: Array<{ whatsappLink: string | null; status: string }>;
-        summary: { ready: number; skipped: number };
-      };
-
-      payload.results
-        .filter((item) => item.status === "READY" && item.whatsappLink)
-        .forEach((item, index) => {
-          window.setTimeout(() => {
-            window.open(item.whatsappLink!, "_blank", "noopener,noreferrer");
-          }, index * 900);
-        });
-
-      setSuccess(`Prepared ${payload.summary.ready} WhatsApp chats. Skipped ${payload.summary.skipped}.`);
-    } catch {
-      setError("Unable to generate WhatsApp batch invitations.");
-    } finally {
-      setWorking(false);
-    }
+    setSuccess(`Prepared ${payload.summary.ready} WhatsApp chats. Skipped ${payload.summary.skipped}.`);
+    setWorking(false);
   }
 
   async function sendBatchTelegram() {
@@ -213,31 +183,24 @@ export default function StudioInvitationsPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const response = await fetch("/api/invitations/telegram/send", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId: selectedEventId, guestIds: selectedGuestIds }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to send Telegram invitations");
-      }
-
-      const payload = (await response.json()) as {
-        summary: { sent: number; skipped: number; failed: number };
-      };
-
-      setSuccess(
-        `Telegram: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed.`
-      );
-      await loadGuests(selectedEventId);
-    } catch {
-      setError("Unable to send Telegram invitations.");
-    } finally {
+    const result = await sendTelegramBatch({ eventId: selectedEventId, guestIds: selectedGuestIds });
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to send Telegram invitations."));
       setWorking(false);
+      return;
     }
+
+    const payload = result.data;
+    setSuccess(
+      `Telegram: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed.`
+    );
+
+    const refreshResult = await loadGuests(selectedEventId);
+    if (refreshResult && "error" in refreshResult) {
+      setError(getApiErrorMessage(refreshResult.error, "Unable to refresh invitation guests."));
+    }
+
+    setWorking(false);
   }
 
   function toggleGuest(guestId: string) {

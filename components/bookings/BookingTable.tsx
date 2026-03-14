@@ -144,8 +144,8 @@ export function BookingTable({
             {bookings.map((booking) => (
               <article
                 key={booking.id}
-                className="rounded-lg border p-3"
-                style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
+                className="rounded-lg border bg-[var(--surface)] p-3 transition hover:bg-zinc-50"
+                style={{ borderColor: "var(--border-subtle)" }}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -204,7 +204,7 @@ export function BookingTable({
               <BookingTableSkeletonRows />
             ) : (
               bookings.map((booking) => (
-                <tr key={booking.id} className="border-t align-middle" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
+                <tr key={booking.id} className="border-t align-middle bg-[var(--surface)] transition hover:bg-zinc-50" style={{ borderColor: "var(--border-subtle)" }}>
                   <td className="px-4 py-3">
                     <p className="font-medium text-zinc-800">{booking.name}</p>
                     <p className="mt-1 text-xs text-zinc-500">Requested {formatCreatedAt(booking.createdAt)}</p>

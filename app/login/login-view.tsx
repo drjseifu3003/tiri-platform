@@ -25,11 +25,9 @@ export function LoginView() {
     event.preventDefault();
     clearError();
 
-    try {
-      await login({ phone, password });
+    const session = await login({ phone, password });
+    if (session) {
       setPassword("");
-    } catch {
-      // handled by session state
     }
   }
 

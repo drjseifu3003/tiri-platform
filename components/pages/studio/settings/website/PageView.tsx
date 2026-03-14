@@ -1,5 +1,9 @@
 ﻿"use client";
 
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useLazyGetStudioEventsQuery } from "@/lib/api/events-api";
+import { useGetWebsiteSettingsQuery, useUpdateWebsiteSettingsMutation } from "@/lib/api/settings-api";
+import type { StudioEventsResponse } from "@/lib/api/types";
 import { useSession } from "@/lib/session-context";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -25,13 +29,6 @@ type StudioEventOption = {
   groomName: string | null;
   eventDate: string;
   location: string | null;
-};
-
-type StudioEventsResponse = {
-  events?: StudioEventOption[];
-  pagination?: {
-    hasNext?: boolean;
-  };
 };
 
 type PackageConfig = {
@@ -151,6 +148,9 @@ export default function StudioWebsiteSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const websiteSettingsQuery = useGetWebsiteSettingsQuery(undefined, { skip: status !== "authenticated" });
+  const [fetchEvents] = useLazyGetStudioEventsQuery();
+  const [updateWebsiteSettings] = useUpdateWebsiteSettingsMutation();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -160,75 +160,57 @@ export default function StudioWebsiteSettingsPage() {
 
     if (status !== "authenticated") return;
 
-    let didCancel = false;
+  }, [router, status]);
 
-    async function initialize() {
-      setLoading(true);
-      setError(null);
+  useEffect(() => {
+    setLoading(websiteSettingsQuery.isLoading || websiteSettingsQuery.isFetching);
+  }, [websiteSettingsQuery.isFetching, websiteSettingsQuery.isLoading]);
 
-      try {
-        let nextFeatured = createDefaultFeaturedEvents();
-        let nextPackages = createDefaultPackages();
-        let nextGallery: string[] = [];
+  useEffect(() => {
+    if (!websiteSettingsQuery.data) return;
 
-        const settingsResponse = await fetch("/api/studio/settings/website", {
-          credentials: "include",
-        });
+    let nextFeatured = createDefaultFeaturedEvents();
+    let nextPackages = createDefaultPackages();
+    let nextGallery: string[] = [];
 
-        if (!settingsResponse.ok) {
-          throw new Error("Unable to load website settings");
-        }
+    const parsed = websiteSettingsQuery.data as WebsiteConfigStorage;
 
-        const parsed = (await settingsResponse.json()) as WebsiteConfigStorage;
-
-        if (Array.isArray(parsed.featuredEvents) && parsed.featuredEvents.length > 0) {
-          nextFeatured = createDefaultFeaturedEvents().map((slot) => {
-            const incoming = parsed.featuredEvents.find((item) => item.id === slot.id);
-            return {
-              ...slot,
-              ...(incoming ?? {}),
-              eventId: typeof incoming?.eventId === "string" ? incoming.eventId : null,
-            };
-          });
-        }
-
-        if (Array.isArray(parsed.packages) && parsed.packages.length > 0) {
-          nextPackages = parsed.packages.map((pkg, index) => ({
-            id: typeof pkg?.id === "string" ? pkg.id : `pkg-${Date.now()}-${index}`,
-            name: typeof pkg?.name === "string" ? pkg.name : "",
-            price: typeof pkg?.price === "string" ? pkg.price : "",
-            description: typeof pkg?.description === "string" ? pkg.description : "",
-            isActive: typeof pkg?.isActive === "boolean" ? pkg.isActive : true,
-            facilities: normalizeFacilities((pkg as { facilities?: unknown } | null)?.facilities),
-          }));
-        }
-
-        if (Array.isArray(parsed.gallery)) {
-          nextGallery = parsed.gallery.filter((value) => typeof value === "string");
-        }
-
-        if (!didCancel) {
-          setFeaturedEvents(nextFeatured);
-          setPackages(nextPackages);
-          setGallery(nextGallery);
-        }
-      } catch {
-        if (!didCancel) {
-          setError("Saved website configuration could not be loaded.");
-        }
-      } finally {
-        if (!didCancel) {
-          setLoading(false);
-        }
-      }
+    if (Array.isArray(parsed.featuredEvents) && parsed.featuredEvents.length > 0) {
+      nextFeatured = createDefaultFeaturedEvents().map((slot) => {
+        const incoming = parsed.featuredEvents.find((item) => item.id === slot.id);
+        return {
+          ...slot,
+          ...(incoming ?? {}),
+          eventId: typeof incoming?.eventId === "string" ? incoming.eventId : null,
+        };
+      });
     }
 
-    void initialize();
+    if (Array.isArray(parsed.packages) && parsed.packages.length > 0) {
+      nextPackages = parsed.packages.map((pkg, index) => ({
+        id: typeof pkg?.id === "string" ? pkg.id : `pkg-${Date.now()}-${index}`,
+        name: typeof pkg?.name === "string" ? pkg.name : "",
+        price: typeof pkg?.price === "string" ? pkg.price : "",
+        description: typeof pkg?.description === "string" ? pkg.description : "",
+        isActive: typeof pkg?.isActive === "boolean" ? pkg.isActive : true,
+        facilities: normalizeFacilities((pkg as { facilities?: unknown } | null)?.facilities),
+      }));
+    }
 
-    return () => {
-      didCancel = true;
-    };
-  }, [router, status]);
+    if (Array.isArray(parsed.gallery)) {
+      nextGallery = parsed.gallery.filter((value) => typeof value === "string");
+    }
+
+    setFeaturedEvents(nextFeatured);
+    setPackages(nextPackages);
+    setGallery(nextGallery);
+    setError(null);
+  }, [websiteSettingsQuery.data]);
+
+  useEffect(() => {
+    if (!websiteSettingsQuery.error) return;
+    setError(getApiErrorMessage(websiteSettingsQuery.error, "Saved website configuration could not be loaded."));
+  }, [websiteSettingsQuery.error]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -239,39 +221,27 @@ export default function StudioWebsiteSettingsPage() {
     async function searchEvents() {
       setFeaturedSearchLoading(true);
 
-      try {
-        const params = new URLSearchParams({
-          page: "1",
-          pageSize: "12",
-          filter: "all",
-        });
+      const trimmedQuery = featuredSearchQuery.trim();
+      const result = await fetchEvents({
+        page: 1,
+        pageSize: 12,
+        filter: "all",
+        search: trimmedQuery.length > 0 ? trimmedQuery : undefined,
+      }, false);
 
-        const trimmedQuery = featuredSearchQuery.trim();
-        if (trimmedQuery.length > 0) {
-          params.set("search", trimmedQuery);
-        }
-
-        const response = await fetch(`/api/studio/events?${params.toString()}`, {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error("Unable to search events");
-        }
-
-        const payload = (await response.json()) as StudioEventsResponse;
-        if (!didCancel) {
-          setFeaturedSearchResults(payload.events ?? []);
-        }
-      } catch {
-        if (!didCancel) {
-          setFeaturedSearchResults([]);
-        }
-      } finally {
-        if (!didCancel) {
-          setFeaturedSearchLoading(false);
-        }
+      if (didCancel) {
+        return;
       }
+
+      if ("error" in result) {
+        setFeaturedSearchResults([]);
+        setFeaturedSearchLoading(false);
+        return;
+      }
+
+      const payload = result.data as StudioEventsResponse<StudioEventOption>;
+      setFeaturedSearchResults(payload.events ?? []);
+      setFeaturedSearchLoading(false);
     }
 
     const timer = setTimeout(() => {
@@ -282,7 +252,7 @@ export default function StudioWebsiteSettingsPage() {
       didCancel = true;
       clearTimeout(timer);
     };
-  }, [featuredSearchQuery, openFeaturedPickerId, status]);
+  }, [featuredSearchQuery, fetchEvents, openFeaturedPickerId, status]);
 
   const packageCount = packages.length;
   const galleryCount = gallery.length;
@@ -298,14 +268,15 @@ export default function StudioWebsiteSettingsPage() {
 
     setError(null);
 
-    try {
-      const dataUrl = await fileToDataUrl(file);
-      setFeaturedEvents((current) =>
-        current.map((item, itemIndex) => (itemIndex === index ? { ...item, photo: dataUrl } : item))
-      );
-    } catch {
+    const dataUrl = await fileToDataUrl(file).then((value) => value, () => null);
+    if (!dataUrl) {
       setError("Unable to upload featured event photo.");
+      return;
     }
+
+    setFeaturedEvents((current) =>
+      current.map((item, itemIndex) => (itemIndex === index ? { ...item, photo: dataUrl } : item))
+    );
   }
 
   async function handleGalleryUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -314,12 +285,13 @@ export default function StudioWebsiteSettingsPage() {
 
     setError(null);
 
-    try {
-      const uploads = await Promise.all(files.map((file) => fileToDataUrl(file)));
-      setGallery((current) => [...uploads, ...current]);
-    } catch {
+    const uploads = await Promise.all(files.map((file) => fileToDataUrl(file).then((value) => value, () => null)));
+    if (uploads.some((item) => !item)) {
       setError("Unable to upload one or more gallery photos.");
+      return;
     }
+
+    setGallery((current) => [...uploads.filter((item): item is string => Boolean(item)), ...current]);
   }
 
   function handleAddPackage() {
@@ -347,32 +319,21 @@ export default function StudioWebsiteSettingsPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const payload: WebsiteConfigStorage = {
-        featuredEvents,
-        packages,
-        gallery,
-      };
+    const payload: WebsiteConfigStorage = {
+      featuredEvents,
+      packages,
+      gallery,
+    };
 
-      const response = await fetch("/api/studio/settings/website", {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to save website configuration");
-      }
-
-      setSuccess("Website configuration saved.");
-    } catch {
-      setError("Unable to save website configuration.");
-    } finally {
+    const result = await updateWebsiteSettings(payload as unknown as Record<string, unknown>);
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to save website configuration."));
       setSaving(false);
+      return;
     }
+
+    setSuccess("Website configuration saved.");
+    setSaving(false);
   }
 
   function updateFeaturedEvent(index: number, patch: Partial<FeaturedEventConfig>) {

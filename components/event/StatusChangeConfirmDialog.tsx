@@ -85,11 +85,8 @@ export function StatusChangeConfirmDialog({
     }
 
     setIsLoading(true);
-    try {
-      await onConfirm(requiresReason ? trimmedReason : undefined);
-    } finally {
-      setIsLoading(false);
-    }
+    await onConfirm(requiresReason ? trimmedReason : undefined);
+    setIsLoading(false);
   }
 
   if (!isOpen) return null;

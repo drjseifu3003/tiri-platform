@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useDeleteStudioMediaMutation } from "@/lib/api/media-api";
 import { FormEvent, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 
@@ -51,6 +53,7 @@ export function MediaUploadDialog({
   const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
   const [localError, setLocalError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deleteStudioMedia] = useDeleteStudioMediaMutation();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -80,6 +83,7 @@ export function MediaUploadDialog({
 
     const xhr = new XMLHttpRequest();
     xhr.withCredentials = true;
+    xhr.responseType = "json";
     xhr.open("POST", "/api/studio/media/upload");
 
     xhr.upload.onprogress = (event) => {
@@ -92,7 +96,7 @@ export function MediaUploadDialog({
       if (xhr.readyState !== XMLHttpRequest.DONE) return;
 
       if (xhr.status >= 200 && xhr.status < 300) {
-        const json = JSON.parse(xhr.responseText) as { media?: { id: string; url: string } };
+        const json = (xhr.response ?? {}) as { media?: { id: string; url: string } };
         setUploadItems((current) =>
           current.map((item) =>
             item.localId === localId
@@ -111,11 +115,9 @@ export function MediaUploadDialog({
       }
 
       let message = "Upload failed.";
-      try {
-        const parsed = JSON.parse(xhr.responseText) as { error?: string };
-        message = parsed.error || message;
-      } catch {
-        message = "Upload failed.";
+      const parsed = xhr.response as { error?: string } | null;
+      if (parsed?.error) {
+        message = parsed.error;
       }
 
       setUploadItems((current) =>
@@ -142,25 +144,16 @@ export function MediaUploadDialog({
 
     setUploadItems((current) => current.map((entry) => (entry.localId === item.localId ? { ...entry, deleting: true } : entry)));
 
-    try {
-      const response = await fetch(`/api/studio/media/${item.mediaId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        setLocalError("Unable to delete uploaded image.");
-        setUploadItems((current) => current.map((entry) => (entry.localId === item.localId ? { ...entry, deleting: false } : entry)));
-        return;
-      }
-
-      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
-      setUploadItems((current) => current.filter((entry) => entry.localId !== item.localId));
-      await onMediaChanged();
-    } catch {
-      setLocalError("Unable to delete uploaded image right now.");
+    const result = await deleteStudioMedia({ mediaId: item.mediaId });
+    if ("error" in result) {
+      setLocalError(getApiErrorMessage(result.error, "Unable to delete uploaded image right now."));
       setUploadItems((current) => current.map((entry) => (entry.localId === item.localId ? { ...entry, deleting: false } : entry)));
+      return;
     }
+
+    if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    setUploadItems((current) => current.filter((entry) => entry.localId !== item.localId));
+    await onMediaChanged();
   }
 
   if (!isOpen) return null;

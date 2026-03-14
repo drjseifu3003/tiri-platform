@@ -1,12 +1,15 @@
 ﻿"use client";
 
+import { useCreateStudioEventMutation, useLazyGetStudioEventsQuery } from "@/lib/api/studio-api";
+import { getApiErrorMessage } from "@/lib/api/base-api";
 import { useSession } from "@/lib/session-context";
-import { PhoneInput } from "@/components/ui/phone-input";
-import Link from "next/link";
+import { CreateEventDialog } from "@/components/pages/studio/events/components/CreateEventDialog";
+import { CreatedEventDialog } from "@/components/pages/studio/events/components/CreatedEventDialog";
+import { EventsTable } from "@/components/pages/studio/events/components/EventsTable";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import { MobileFilterSheet } from "@/components/ui/mobile-filter-sheet";
@@ -172,6 +175,8 @@ export default function StudioEventsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createdEvent, setCreatedEvent] = useState<CreatedEventSummary | null>(null);
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
+  const [fetchStudioEvents] = useLazyGetStudioEventsQuery();
+  const [createStudioEvent] = useCreateStudioEventMutation();
 
   const {
     register,
@@ -229,52 +234,42 @@ export default function StudioEventsPage() {
     setLoading(true);
     setError(null);
 
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        pageSize: String(pageSize),
+    const result = await fetchStudioEvents(
+      {
+        page,
+        pageSize,
         filter: quickFilter,
         dateFilter,
-      });
+        search: search.trim().length > 0 ? search.trim() : undefined,
+        dateFrom: dateFilter === "custom" ? dateFrom.trim() || undefined : undefined,
+        dateTo: dateFilter === "custom" ? dateTo.trim() || undefined : undefined,
+      },
+      false
+    );
 
-      const trimmedSearch = search.trim();
-      if (trimmedSearch.length > 0) {
-        params.set("search", trimmedSearch);
-      }
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to load events"));
+      setLoading(false);
+      return;
+    }
 
-      if (dateFilter === "custom") {
-        const trimmedFrom = dateFrom.trim();
-        const trimmedTo = dateTo.trim();
-        if (trimmedFrom) params.set("dateFrom", trimmedFrom);
-        if (trimmedTo) params.set("dateTo", trimmedTo);
-      }
-
-      const eventsRes = await fetch(`/api/studio/events?${params.toString()}`, { credentials: "include" });
-
-      if (!eventsRes.ok) {
-        throw new Error("Unable to load events");
-      }
-
-      const eventsJson = (await eventsRes.json()) as EventsResponse;
+    const eventsJson = result.data as EventsResponse;
       const serverTotalPages = Math.max(1, eventsJson.pagination?.totalPages ?? 1);
 
-      if (page > serverTotalPages) {
-        setPage(serverTotalPages);
-        return;
-      }
-
-      setEvents(eventsJson.events ?? []);
-      setCheckedInByEvent(eventsJson.checkedInByEvent ?? {});
-      setTotalItems(eventsJson.pagination?.total ?? 0);
-      setTotalPages(serverTotalPages);
-      setHasPrevPage(eventsJson.pagination?.hasPrev ?? false);
-      setHasNextPage(eventsJson.pagination?.hasNext ?? false);
-    } catch {
-      setError("Unable to load events");
-    } finally {
+    if (page > serverTotalPages) {
+      setPage(serverTotalPages);
       setLoading(false);
+      return;
     }
-  }, [page, pageSize, quickFilter, search, dateFilter, dateFrom, dateTo]);
+
+    setEvents(eventsJson.events ?? []);
+    setCheckedInByEvent(eventsJson.checkedInByEvent ?? {});
+    setTotalItems(eventsJson.pagination?.total ?? 0);
+    setTotalPages(serverTotalPages);
+    setHasPrevPage(eventsJson.pagination?.hasPrev ?? false);
+    setHasNextPage(eventsJson.pagination?.hasNext ?? false);
+    setLoading(false);
+  }, [fetchStudioEvents, page, pageSize, quickFilter, search, dateFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -312,50 +307,39 @@ export default function StudioEventsPage() {
     const uniqueSuffix = Date.now().toString().slice(-6);
     const slug = `${baseSlug || "event"}-${uniqueSuffix}`;
 
-    try {
-      const response = await fetch("/api/studio/events", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          brideName: values.brideName?.trim() || undefined,
-          groomName: values.groomName?.trim() || undefined,
-          bridePhone,
-          groomPhone,
-          eventDate: parsedEventDateTime.toISOString(),
-          location: values.location?.trim() || undefined,
-          googleMapAddress,
-          description: values.description?.trim() || undefined,
-          slug,
-          status: "DRAFT",
-          isPublished: false,
-        }),
-      });
+    const result = await createStudioEvent({
+      title,
+      brideName: values.brideName?.trim() || undefined,
+      groomName: values.groomName?.trim() || undefined,
+      bridePhone,
+      groomPhone,
+      eventDate: parsedEventDateTime.toISOString(),
+      location: values.location?.trim() || undefined,
+      googleMapAddress,
+      description: values.description?.trim() || undefined,
+      slug,
+      status: "DRAFT",
+      isPublished: false,
+    });
 
-      if (!response.ok) {
-        setCreateError("Unable to create event. Please check your inputs and try again.");
-        return;
-      }
-
-      const payload = (await response.json()) as { event?: CreatedEventSummary };
-      if (payload.event?.id) {
-        setCreatedEvent({
-          id: payload.event.id,
-          title: payload.event.title,
-          eventDate: payload.event.eventDate,
-        });
-      }
-
-      reset(defaultCreateValues);
-      setIsCreateOpen(false);
-      setPage(1);
-      void loadData();
-    } catch {
-      setCreateError("Unable to create event. Please try again.");
+    if ("error" in result) {
+      setCreateError(getApiErrorMessage(result.error, "Unable to create event. Please try again."));
+      return;
     }
+
+    const payload = result.data as { event?: CreatedEventSummary };
+    if (payload.event?.id) {
+      setCreatedEvent({
+        id: payload.event.id,
+        title: payload.event.title,
+        eventDate: payload.event.eventDate,
+      });
+    }
+
+    reset(defaultCreateValues);
+    setIsCreateOpen(false);
+    setPage(1);
+    void loadData();
   }
 
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -624,403 +608,55 @@ export default function StudioEventsPage() {
         </div>
       </div>
 
-      {isCreateOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border bg-white p-5 shadow-2xl" style={{ borderColor: "var(--border-subtle)" }}>
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Create New Event</h3>
-              <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Add event details to create your event.</p>
-            </div>
+      <CreateEventDialog
+        isOpen={isCreateOpen}
+        createError={createError}
+        isSubmitting={isSubmitting}
+        minEventDate={minEventDate}
+        eventDateTimePreview={eventDateTimePreview}
+        register={register}
+        control={control}
+        errors={createFormErrors}
+        handleSubmit={handleSubmit}
+        onSubmit={handleCreateEventSubmit}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setCreateError(null);
+        }}
+      />
 
-          <form className="space-y-4" onSubmit={handleSubmit(handleCreateEventSubmit)}>
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="block md:col-span-2 md:row-span-2">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Title *</span>
-                <input
-                  {...register("title")}
-                  placeholder="Meron & Dawit Wedding"
-                  className="ui-input"
-                />
-                {createFormErrors.title ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{createFormErrors.title.message}</p> : null}
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Name *</span>
-                <input
-                  {...register("brideName")}
-                  placeholder="Bride full name"
-                  className="ui-input"
-                />
-                {createFormErrors.brideName ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{createFormErrors.brideName.message}</p> : null}
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Name *</span>
-                <input
-                  {...register("groomName")}
-                  placeholder="Groom full name"
-                  className="ui-input"
-                />
-                {createFormErrors.groomName ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{createFormErrors.groomName.message}</p> : null}
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Phone *</span>
-                <Controller
-                  control={control}
-                  name="bridePhone"
-                  render={({ field }) => (
-                    <PhoneInput
-                      value={field.value}
-                      onChange={(value) => field.onChange(value ?? "")}
-                      placeholder="+2519..."
-                      defaultCountry="ET"
-                      className="w-full"
-                      required
-                    />
-                  )}
-                />
-                {createFormErrors.bridePhone ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{createFormErrors.bridePhone.message}</p> : null}
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Phone *</span>
-                <Controller
-                  control={control}
-                  name="groomPhone"
-                  render={({ field }) => (
-                    <PhoneInput
-                      value={field.value}
-                      onChange={(value) => field.onChange(value ?? "")}
-                      placeholder="+2519..."
-                      defaultCountry="ET"
-                      className="w-full"
-                      required
-                    />
-                  )}
-                />
-                {createFormErrors.groomPhone ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{createFormErrors.groomPhone.message}</p> : null}
-              </label>
-
-              <div className="rounded-xl border p-3 md:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <span className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Schedule *</span>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Date</span>
-                    <input
-                      type="date"
-                      {...register("eventDate")}
-                      min={minEventDate}
-                      className="ui-input"
-                    />
-                    {createFormErrors.eventDate ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{createFormErrors.eventDate.message}</p> : null}
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Time</span>
-                    <input
-                      type="time"
-                      {...register("eventTime")}
-                      className="ui-input"
-                    />
-                    {createFormErrors.eventTime ? <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{createFormErrors.eventTime.message}</p> : null}
-                  </label>
-                </div>
-
-                <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {eventDateTimePreview ? `Scheduled for ${eventDateTimePreview}` : "Pick a date and time for the event invitation."}
-                </p>
-              </div>
-
-              <label className="block">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Location</span>
-                <input
-                  {...register("location")}
-                  placeholder="Venue and city"
-                  className="ui-input"
-                />
-              </label>
-
-              <label className="block md:col-span-2">
-                <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map Address</span>
-                <input
-                  {...register("googleMapAddress")}
-                  placeholder="https://maps.google.com/... or share address"
-                  className="ui-input"
-                />
-              </label>
-            </div>
-
-            <label className="block">
-              <span className="mb-1 block text-xs font-medium text-zinc-600">Description</span>
-              <textarea
-                {...register("description")}
-                placeholder="Short event description"
-                className="ui-textarea"
-              />
-            </label>
-
-            {createError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{createError}</p> : null}
-
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateOpen(false);
-                  setCreateError(null);
-                }}
-                className="ui-button-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="ui-button-primary"
-              >
-                {isSubmitting ? "Creating..." : "Create Event"}
-              </button>
-            </div>
-          </form>
-          </div>
-        </div>
-      ) : null}
-
-      {createdEvent ? (
-        <div
-          className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4 transition-opacity duration-200 ${isConfirmVisible ? "opacity-100" : "opacity-0"}`}
-        >
-          <div
-            className={`w-full max-w-md rounded-2xl border bg-white p-6 shadow-2xl transition-all duration-200 ${isConfirmVisible ? "translate-y-0 scale-100" : "translate-y-2 scale-95"}`}
-            style={{ borderColor: "var(--border-subtle)" }}
-          >
-            <div className="mx-auto flex h-12 w-12 items-center justify-center" style={{ color: "var(--success)" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-8 w-8" aria-hidden>
-                <circle cx="12" cy="12" r="9" />
-                <path d="m8.5 12.5 2.4 2.4L15.8 10" />
-              </svg>
-            </div>
-
-            <h3 className="mt-4 text-center text-xl font-semibold" style={{ color: "var(--primary)" }}>Event Created</h3>
-            <p className="mt-2 text-center text-sm" style={{ color: "var(--text-secondary)" }}>
-              {createdEvent.title} has been created successfully.
-            </p>
-            <p className="mt-1 text-center text-xs" style={{ color: "var(--text-tertiary)" }}>
-              {formatEventDate(createdEvent.eventDate)}
-            </p>
-
-            <div className="mt-6 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setCreatedEvent(null)}
-                className="ui-button-secondary"
-              >
-                Stay Here
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  router.push(`/studio/events/${createdEvent.id}`);
-                  setCreatedEvent(null);
-                }}
-                className="ui-button-primary"
-              >
-                Go to Detail
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <CreatedEventDialog
+        createdEvent={createdEvent}
+        isConfirmVisible={isConfirmVisible}
+        formatEventDate={formatEventDate}
+        onClose={() => setCreatedEvent(null)}
+        onGoToDetail={(eventId) => {
+          router.push(`/studio/events/${eventId}`);
+          setCreatedEvent(null);
+        }}
+      />
 
       <div className="mt-2 min-h-0 flex-1">
-        {loading ? (
-          <p className="text-sm text-zinc-600">Loading events...</p>
-        ) : error ? (
-          <p className="text-sm text-red-700">{error}</p>
-        ) : (
-          <div className="ui-table mt-0 rounded-lg flex h-full min-h-0 flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 overflow-auto md:hidden">
-              <div className="grid gap-3 p-3 sm:grid-cols-2">
-                {events.map((event) => {
-                  const totalGuests = event._count.guests;
-                  const status = resolveStatus(event);
-
-                  return (
-                    <article
-                      key={event.id}
-                      className="cursor-pointer rounded-lg border p-3 transition hover:-translate-y-px hover:bg-zinc-50"
-                      style={{ borderColor: "var(--border-subtle)" }}
-                      role="link"
-                      tabIndex={0}
-                      onClick={() => router.push(`/studio/events/${event.id}`)}
-                      onKeyDown={(keyboardEvent) => {
-                        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
-                          keyboardEvent.preventDefault();
-                          router.push(`/studio/events/${event.id}`);
-                        }
-                      }}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-zinc-800">{event.title}</p>
-                          <p className="mt-1 truncate text-xs text-zinc-500">{event.location ?? "No location provided"}</p>
-                        </div>
-                        <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${statusClasses(status)}`}>{statusLabel(status)}</span>
-                      </div>
-
-                      <div className="mt-3 text-sm text-zinc-600">
-                        <p>{[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Pending names"}</p>
-                        <p className="mt-1 text-xs text-zinc-500">{event.bridePhone || "-"} | {event.groomPhone || "-"}</p>
-                        <p className="mt-2">{formatEventDate(event.eventDate)}</p>
-                        <p className="mt-1">{totalGuests} guests · {event._count.media} media</p>
-                      </div>
-
-                      <div className="mt-4">
-                        <Link
-                          href={`/studio/events/${event.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition hover:-translate-y-px"
-                          style={{
-                            borderColor: "var(--border-subtle)",
-                            color: "var(--primary)",
-                            background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%)",
-                          }}
-                          aria-label={`View details for ${event.title}`}
-                          onClick={(mouseEvent) => mouseEvent.stopPropagation()}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-3.5 w-3.5" aria-hidden>
-                            <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z" />
-                            <circle cx="12" cy="12" r="2.5" />
-                          </svg>
-                          <span>Detail</span>
-                        </Link>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="min-h-0 hidden flex-1 overflow-auto md:block">
-              <table className="min-w-full table-fixed text-left text-sm">
-                <colgroup>
-                  <col className="w-[27%]" />
-                  <col className="w-[21%]" />
-                  <col className="w-[18%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[6%]" />
-                </colgroup>
-                <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                <tr>
-                  <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Event</th>
-                  <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Couple</th>
-                  <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Date</th>
-                  <th className="sticky top-0 z-10 px-4 py-3.5 text-center font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Guests</th>
-                  <th className="sticky top-0 z-10 px-4 py-3.5 text-center font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Media</th>
-                  <th className="sticky top-0 z-10 px-4 py-3.5 text-center font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Status</th>
-                  <th className="sticky top-0 z-10 px-4 py-3.5 text-right font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Action</th>
-                </tr>
-                </thead>
-                <tbody>
-                  {events.map((event) => {
-                    const totalGuests = event._count.guests;
-                    const status = resolveStatus(event);
-
-                    return (
-                      <tr
-                        key={event.id}
-                        className="cursor-pointer border-t align-middle transition hover:bg-zinc-50"
-                        style={{ borderColor: "var(--border-subtle)" }}
-                        onClick={() => router.push(`/studio/events/${event.id}`)}
-                      >
-                        <td className="px-4 py-3">
-                          <p className="truncate font-medium text-zinc-800">{event.title}</p>
-                          <p className="mt-1 truncate text-xs text-zinc-500">
-                            {event.location ?? "No location provided"}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-xs font-semibold text-zinc-700">
-                              {initialsForCouple(event)}
-                            </span>
-                            <div className="min-w-0">
-                              <p className="truncate text-zinc-700">{[event.brideName, event.groomName].filter(Boolean).join(" & ") || "Pending names"}</p>
-                              <p className="truncate text-xs text-zinc-500">{event.bridePhone || "-"} | {event.groomPhone || "-"}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-zinc-600">{formatEventDate(event.eventDate)}</td>
-                        <td className="px-4 py-3 text-center">
-                          <p className="font-medium text-zinc-700">{totalGuests}</p>
-                        </td>
-                        <td className="px-4 py-3 text-center text-zinc-700">{event._count.media}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex rounded-full border px-2 py-1 text-xs font-medium ${statusClasses(status)}`}>{statusLabel(status)}</span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <Link
-                            href={`/studio/events/${event.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition hover:-translate-y-px"
-                            style={{
-                              borderColor: "var(--border-subtle)",
-                              color: "var(--primary)",
-                              background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-muted) 100%)",
-                            }}
-                            aria-label={`View details for ${event.title}`}
-                            onClick={(mouseEvent) => mouseEvent.stopPropagation()}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" className="h-3.5 w-3.5" aria-hidden>
-                              <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z" />
-                              <circle cx="12" cy="12" r="2.5" />
-                            </svg>
-                            <span>Detail</span>
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {events.length === 0 ? (
-              <p className="px-4 py-5 text-sm text-zinc-600">No events match your filter/search.</p>
-            ) : null}
-
-            <div className="flex items-center justify-between border-t px-4 py-3 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-              <p>
-                Showing {startItem}-{endItem} of {totalItems}
-              </p>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  disabled={!hasPrevPage || loading}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
-                >
-                  Previous
-                </button>
-                <span className="px-1 text-xs">Page {page} / {Math.max(1, totalPages)}</span>
-                <button
-                  type="button"
-                  onClick={() => setPage((current) => current + 1)}
-                  disabled={!hasNextPage || loading}
-                  className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <EventsTable
+          loading={loading}
+          error={error}
+          events={events}
+          startItem={startItem}
+          endItem={endItem}
+          totalItems={totalItems}
+          page={page}
+          totalPages={totalPages}
+          hasPrevPage={hasPrevPage}
+          hasNextPage={hasNextPage}
+          onPrevPage={() => setPage((current) => Math.max(1, current - 1))}
+          onNextPage={() => setPage((current) => current + 1)}
+          onOpenEvent={(eventId) => router.push(`/studio/events/${eventId}`)}
+          resolveStatus={resolveStatus}
+          statusClasses={statusClasses}
+          statusLabel={statusLabel}
+          formatEventDate={formatEventDate}
+          initialsForCouple={initialsForCouple}
+        />
       </div>
     </main>
   );

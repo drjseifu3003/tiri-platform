@@ -1,5 +1,21 @@
 ﻿"use client";
 
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import {
+  useDeleteInvitationCardMutation,
+  useGetStudioEventDetailQuery,
+  useUpdateStudioEventMutation,
+  useUploadEventAvatarMutation,
+  useUploadInvitationCardMutation,
+} from "@/lib/api/events-api";
+import {
+  useCreateStudioGuestMutation,
+  useCreateStudioGuestsBulkMutation,
+  useDeleteStudioGuestMutation,
+  useUpdateStudioGuestMutation,
+} from "@/lib/api/guests-api";
+import { useCreateWhatsappBatchMutation, useSendTelegramBatchMutation } from "@/lib/api/invitations-api";
+import { useCreateStudioMediaMutation, useDeleteStudioMediaMutation } from "@/lib/api/media-api";
 import { useSession } from "@/lib/session-context";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -9,11 +25,19 @@ import { EventTabs } from "@/components/event/EventTabs";
 import { AddGuestDialog } from "@/components/event/AddGuestDialog";
 import { MediaUploadDialog } from "@/components/event/MediaUploadDialog";
 import { AvatarUploadDialog } from "@/components/event/AvatarUploadDialog";
+import { InviteChannelDialog } from "@/components/pages/studio/events/[eventId]/components/InviteChannelDialog";
+import { GuestEditDialog } from "@/components/pages/studio/events/[eventId]/components/GuestEditDialog";
+import { GuestDeleteDialog } from "@/components/pages/studio/events/[eventId]/components/GuestDeleteDialog";
+import { MediaPreviewDialog } from "@/components/pages/studio/events/[eventId]/components/MediaPreviewDialog";
+import { EventOverviewSection } from "@/components/pages/studio/events/[eventId]/components/EventOverviewSection";
+import { EventGuestsSection } from "@/components/pages/studio/events/[eventId]/components/EventGuestsSection";
+import { EventMediaSection } from "@/components/pages/studio/events/[eventId]/components/EventMediaSection";
+import { EditEventDialog } from "@/components/pages/studio/events/[eventId]/components/EditEventDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Eye, FolderOpen, MoreHorizontal, PencilLine, Send, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { isValidPhoneNumber } from "react-phone-number-input";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type GuestItem = {
   id: string;
@@ -184,14 +208,14 @@ function formatBytes(bytes: number) {
 }
 
 function mediaFileName(url: string) {
-  try {
+  if (URL.canParse(url)) {
     const parsed = new URL(url);
     const fileName = parsed.pathname.split("/").filter(Boolean).pop();
     return fileName || "media-file";
-  } catch {
-    const fileName = url.split("/").filter(Boolean).pop();
-    return fileName || "media-file";
   }
+
+  const fileName = url.split("/").filter(Boolean).pop();
+  return fileName || "media-file";
 }
 
 function EventDetailSkeleton() {
@@ -239,11 +263,27 @@ export default function EventDetailPage() {
   const router = useRouter();
   const params = useParams<{ eventId: string }>();
   const searchParams = useSearchParams();
+  const eventQuery = useGetStudioEventDetailQuery(params?.eventId ?? "", {
+    skip: status !== "authenticated" || !params?.eventId,
+  });
+  
+  const [updateEvent, updateEventState] = useUpdateStudioEventMutation();
+  const [createGuest, createGuestState] = useCreateStudioGuestMutation();
+  const [updateGuest, updateGuestState] = useUpdateStudioGuestMutation();
+  const [deleteGuest, deleteGuestState] = useDeleteStudioGuestMutation();
+  const [createGuestsBulk, createGuestsBulkState] = useCreateStudioGuestsBulkMutation();
+  const [createMedia, createMediaState] = useCreateStudioMediaMutation();
+  const [deleteMedia, deleteMediaState] = useDeleteStudioMediaMutation();
+  const [uploadInvitationCard, uploadInvitationCardState] = useUploadInvitationCardMutation();
+  const [deleteInvitationCard, deleteInvitationCardState] = useDeleteInvitationCardMutation();
+  const [uploadAvatar, uploadAvatarState] = useUploadEventAvatarMutation();
+  const [sendWhatsappBatch, sendWhatsappBatchState] = useCreateWhatsappBatchMutation();
+  const [sendTelegramBatch, sendTelegramBatchState] = useSendTelegramBatchMutation();
 
   const [tab, setTab] = useState<EventTab>("overview");
-  const [event, setEvent] = useState<EventDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const event = (eventQuery.data as EventResponse | undefined)?.event ?? null;
+  const loading = eventQuery.isLoading || eventQuery.isFetching;
+  const error = eventQuery.isError ? getApiErrorMessage(eventQuery.error, "Unable to load event details") : null;
 
   const [singleGuest, setSingleGuest] = useState({
     name: "",
@@ -254,18 +294,18 @@ export default function EventDetailPage() {
   const [bulkGuestText, setBulkGuestText] = useState("");
   const [guestFormError, setGuestFormError] = useState<string | null>(null);
   const [guestFormSuccess, setGuestFormSuccess] = useState<string | null>(null);
-  const [guestSubmitting, setGuestSubmitting] = useState(false);
+  const guestSubmitting = createGuestState.isLoading || createGuestsBulkState.isLoading;
   const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
   const [guestPage, setGuestPage] = useState(1);
   const [guestPageSize] = useState(10);
   const [openGuestMenuId, setOpenGuestMenuId] = useState<string | null>(null);
-  const [inviteSubmitting, setInviteSubmitting] = useState(false);
+  const inviteSubmitting = sendWhatsappBatchState.isLoading || sendTelegramBatchState.isLoading;
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
-  const [guestDeleteLoading, setGuestDeleteLoading] = useState(false);
+  const guestDeleteLoading = deleteGuestState.isLoading;
   const [guestDeleteError, setGuestDeleteError] = useState<string | null>(null);
   const [editingGuest, setEditingGuest] = useState<GuestItem | null>(null);
-  const [guestEditLoading, setGuestEditLoading] = useState(false);
+  const guestEditLoading = updateGuestState.isLoading;
   const [guestEditError, setGuestEditError] = useState<string | null>(null);
   const [guestEditForm, setGuestEditForm] = useState({
     name: "",
@@ -279,7 +319,7 @@ export default function EventDetailPage() {
   const [pendingInviteOpenFirst, setPendingInviteOpenFirst] = useState(false);
 
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editSubmitting, setEditSubmitting] = useState(false);
+  const editSubmitting = updateEventState.isLoading && isEditOpen;
   const [editError, setEditError] = useState<string | null>(null);
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
   const [editFieldErrors, setEditFieldErrors] = useState<{
@@ -290,7 +330,7 @@ export default function EventDetailPage() {
     eventTime?: string;
     googleMapAddress?: string;
   }>({});
-  const [statusUpdating, setStatusUpdating] = useState(false);
+  const statusUpdating = uploadAvatarState.isLoading || (updateEventState.isLoading && !isEditOpen);
   const [statusActionError, setStatusActionError] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     title: "",
@@ -311,7 +351,7 @@ export default function EventDetailPage() {
   const [isMediaUploadDialogOpen, setIsMediaUploadDialogOpen] = useState(false);
   const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
   const [mediaDeleteLoadingId, setMediaDeleteLoadingId] = useState<string | null>(null);
-  const [invitationCardLoading, setInvitationCardLoading] = useState(false);
+  const invitationCardLoading = uploadInvitationCardState.isLoading || deleteInvitationCardState.isLoading;
   const [invitationCardError, setInvitationCardError] = useState<string | null>(null);
   const invitationCardInputRef = useRef<HTMLInputElement>(null);
 
@@ -326,51 +366,17 @@ export default function EventDetailPage() {
   
   const [mediaFormError, setMediaFormError] = useState<string | null>(null);
   const [mediaFormSuccess, setMediaFormSuccess] = useState<string | null>(null);
-  const [mediaSubmitting, setMediaSubmitting] = useState(false);
+  const mediaSubmitting = createMediaState.isLoading;
   const [selectedMediaFolder, setSelectedMediaFolder] = useState<string | null>(null);
   const [mediaViewMode, setMediaViewMode] = useState<"grid" | "list">("list");
   const [previewMediaItem, setPreviewMediaItem] = useState<(MediaItem & { name: string; folder: string }) | null>(null);
-
-  const loadEvent = useCallback(async (showSpinner = true) => {
-    if (!params?.eventId) return;
-
-    if (showSpinner) {
-      setLoading(true);
-    }
-
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/studio/events/${params.eventId}`, {
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Unable to load event");
-      }
-
-      const payload = (await response.json()) as EventResponse;
-      setEvent(payload.event ?? null);
-    } catch {
-      setError("Unable to load event details");
-    } finally {
-      if (showSpinner) {
-        setLoading(false);
-      }
-    }
-  }, [params?.eventId]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/");
       return;
     }
-
-    if (status !== "authenticated") return;
-    if (!params?.eventId) return;
-
-    void loadEvent();
-  }, [loadEvent, params?.eventId, router, status]);
+  }, [router, status]);
 
   useEffect(() => {
     const requestedTab = searchParams.get("tab");
@@ -511,25 +517,17 @@ export default function EventDetailPage() {
       return;
     }
 
-    setInviteSubmitting(true);
     setInviteError(null);
     setInviteSuccess(null);
 
-    try {
-      if (channel === "WHATSAPP") {
-        const response = await fetch("/api/invitations/whatsapp-batch", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventId: event.id, guestIds }),
-        });
+    if (channel === "WHATSAPP") {
+      const result = await sendWhatsappBatch({ eventId: event.id, guestIds });
+      if ("error" in result) {
+        setInviteError(getApiErrorMessage(result.error, "Unable to send invitations right now."));
+        return;
+      }
 
-        if (!response.ok) {
-          setInviteError("Unable to send invitations. Please try again.");
-          return;
-        }
-
-        const payload = (await response.json()) as WhatsAppBatchInviteResponse;
+      const payload = result.data as WhatsAppBatchInviteResponse;
         const readyItems = payload.results.filter((item) => item.status === "READY" && item.whatsappLink);
 
         if (openFirst && readyItems[0]?.whatsappLink) {
@@ -537,68 +535,51 @@ export default function EventDetailPage() {
         }
 
         setInviteSuccess(`WhatsApp invites ready: ${payload.summary.ready}, skipped: ${payload.summary.skipped}.`);
-      } else {
-        const response = await fetch("/api/invitations/telegram/send", {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventId: event.id, guestIds }),
-        });
+    } else {
+      const result = await sendTelegramBatch({ eventId: event.id, guestIds });
+      if ("error" in result) {
+        setInviteError(getApiErrorMessage(result.error, "Unable to send invitations right now."));
+        return;
+      }
 
-        if (!response.ok) {
-          setInviteError("Unable to send Telegram invitations. Please try again.");
+      const payload = result.data as TelegramInviteResponse;
+
+      const unlinkedGuestIds = payload.results
+        .filter(
+          (item) =>
+            item.status === "SKIPPED" &&
+            (item.reason ?? "").toLowerCase().includes("has not started the telegram bot")
+        )
+        .map((item) => item.guestId);
+
+      if (unlinkedGuestIds.length > 0) {
+        const fallbackResult = await sendWhatsappBatch({ eventId: event.id, guestIds: unlinkedGuestIds });
+        if ("error" in fallbackResult) {
+          setInviteError(getApiErrorMessage(fallbackResult.error, "Unable to send invitations right now."));
           return;
         }
 
-        const payload = (await response.json()) as TelegramInviteResponse;
+        const whatsappFallbackPayload = fallbackResult.data as WhatsAppBatchInviteResponse;
 
-        const unlinkedGuestIds = payload.results
-          .filter(
-            (item) =>
-              item.status === "SKIPPED" &&
-              (item.reason ?? "").toLowerCase().includes("has not started the telegram bot")
-          )
-          .map((item) => item.guestId);
+        const fallbackReadyItems = whatsappFallbackPayload.results.filter(
+          (item) => item.status === "READY" && item.whatsappLink
+        );
 
-        if (unlinkedGuestIds.length > 0) {
-          const whatsappFallbackResponse = await fetch("/api/invitations/whatsapp-batch", {
-            method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ eventId: event.id, guestIds: unlinkedGuestIds }),
-          });
-
-          if (!whatsappFallbackResponse.ok) {
-            setInviteSuccess(
-              `Telegram invites: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed. WhatsApp fallback could not be prepared.`
-            );
-          } else {
-            const whatsappFallbackPayload = (await whatsappFallbackResponse.json()) as WhatsAppBatchInviteResponse;
-            const fallbackReadyItems = whatsappFallbackPayload.results.filter(
-              (item) => item.status === "READY" && item.whatsappLink
-            );
-
-            if (openFirst && fallbackReadyItems[0]?.whatsappLink) {
-              window.open(fallbackReadyItems[0].whatsappLink, "_blank", "noopener,noreferrer");
-            }
-
-            setInviteSuccess(
-              `Telegram: ${payload.summary.sent} sent, ${payload.summary.failed} failed. Auto-fallback WhatsApp ready: ${whatsappFallbackPayload.summary.ready}, skipped: ${whatsappFallbackPayload.summary.skipped}.`
-            );
-          }
-        } else {
-          setInviteSuccess(
-            `Telegram invites: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed.`
-          );
+        if (openFirst && fallbackReadyItems[0]?.whatsappLink) {
+          window.open(fallbackReadyItems[0].whatsappLink, "_blank", "noopener,noreferrer");
         }
-      }
 
-      await loadEvent(false);
-    } catch {
-      setInviteError("Unable to send invitations right now.");
-    } finally {
-      setInviteSubmitting(false);
+        setInviteSuccess(
+          `Telegram: ${payload.summary.sent} sent, ${payload.summary.failed} failed. Auto-fallback WhatsApp ready: ${whatsappFallbackPayload.summary.ready}, skipped: ${whatsappFallbackPayload.summary.skipped}.`
+        );
+      } else {
+        setInviteSuccess(
+          `Telegram invites: ${payload.summary.sent} sent, ${payload.summary.skipped} skipped, ${payload.summary.failed} failed.`
+        );
+      }
     }
+
+    await eventQuery.refetch();
   }
 
   function openInviteChannelDialog(guestIds: string[], openFirst = false) {
@@ -716,39 +697,29 @@ export default function EventDetailPage() {
       return;
     }
 
-    setEditSubmitting(true);
+    const result = await updateEvent({
+      eventId: event.id,
+      body: {
+        title: editForm.title.trim(),
+        brideName: editForm.brideName.trim() || null,
+        groomName: editForm.groomName.trim() || null,
+        bridePhone: bridePhone || undefined,
+        groomPhone: groomPhone || undefined,
+        eventDate: parsedEventDate.toISOString(),
+        location: editForm.location.trim() || null,
+        googleMapAddress: editForm.googleMapAddress.trim() || undefined,
+        description: editForm.description.trim() || null,
+      },
+    });
 
-    try {
-      const response = await fetch(`/api/studio/events/${event.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editForm.title.trim(),
-          brideName: editForm.brideName.trim() || null,
-          groomName: editForm.groomName.trim() || null,
-          bridePhone: bridePhone || undefined,
-          groomPhone: groomPhone || undefined,
-          eventDate: parsedEventDate.toISOString(),
-          location: editForm.location.trim() || null,
-          googleMapAddress: editForm.googleMapAddress.trim() || undefined,
-          description: editForm.description.trim() || null,
-        }),
-      });
-
-      if (!response.ok) {
-        setEditError("Unable to update event details.");
-        return;
-      }
-
-      setEditSuccess("Event updated successfully.");
-      setIsEditOpen(false);
-      await loadEvent(false);
-    } catch {
-      setEditError("Unable to update event details right now.");
-    } finally {
-      setEditSubmitting(false);
+    if ("error" in result) {
+      setEditError(getApiErrorMessage(result.error, "Unable to update event details right now."));
+      return;
     }
+
+    setEditSuccess("Event updated successfully.");
+    setIsEditOpen(false);
+    await eventQuery.refetch();
   }
 
   async function handleQuickStatusChange(
@@ -762,30 +733,21 @@ export default function EventDetailPage() {
     }
 
     setStatusActionError(null);
-    setStatusUpdating(true);
 
-    try {
-      const response = await fetch(`/api/studio/events/${event.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: nextStatus,
-          cancellationReason: nextStatus === "CANCELLED" ? cancellationReason : undefined,
-        }),
-      });
+    const result = await updateEvent({
+      eventId: event.id,
+      body: {
+        status: nextStatus,
+        cancellationReason: nextStatus === "CANCELLED" ? cancellationReason : undefined,
+      },
+    });
 
-      if (!response.ok) {
-        setStatusActionError("Unable to update event status.");
-        return;
-      }
-
-      await loadEvent(false);
-    } catch {
-      setStatusActionError("Unable to update event status right now.");
-    } finally {
-      setStatusUpdating(false);
+    if ("error" in result) {
+      setStatusActionError(getApiErrorMessage(result.error, "Unable to update event status right now."));
+      return;
     }
+
+    await eventQuery.refetch();
   }
 
   async function handleAddGuestDialog(guestData: { name: string; phone: string; email: string; category: GuestCategory }): Promise<boolean> {
@@ -816,64 +778,26 @@ export default function EventDetailPage() {
       return false;
     }
 
-    setGuestSubmitting(true);
+    const result = await createGuest({
+      eventId: event.id,
+      name,
+      phone: phone || undefined,
+      email: email || undefined,
+      category: guestData.category,
+      invitationCode: buildInvitationCode("gst"),
+    });
 
-    try {
-      const response = await fetch("/api/studio/guests", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: event.id,
-          name,
-          phone: phone || undefined,
-          email: email || undefined,
-          category: guestData.category,
-          invitationCode: buildInvitationCode("gst"),
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setAddGuestError(payload?.error || "Unable to add guest.");
-        return false;
-      }
-
-      const payload = (await response.json().catch(() => null)) as { guest?: GuestItem } | null;
-      const createdGuest = payload?.guest;
-
-      if (createdGuest) {
-        setEvent((current) => {
-          if (!current) return current;
-
-          return {
-            ...current,
-            guests: [
-              {
-                ...createdGuest,
-                invitationStatus: "NOT_SENT",
-                invitationChannel: null,
-                invitationSentAt: null,
-              },
-              ...current.guests,
-            ],
-          };
-        });
-      }
-
-      setIsAddGuestDialogOpen(false);
-      if (!createdGuest) {
-        await loadEvent(false);
-      }
-      setGuestFormSuccess("Guest added successfully.");
-      setTimeout(() => setGuestFormSuccess(null), 3000);
-      return true;
-    } catch {
-      setAddGuestError("Unable to add guest right now.");
+    if ("error" in result) {
+      setAddGuestError(getApiErrorMessage(result.error, "Unable to add guest right now."));
       return false;
-    } finally {
-      setGuestSubmitting(false);
     }
+
+    setIsAddGuestDialogOpen(false);
+    await eventQuery.refetch();
+
+    setGuestFormSuccess("Guest added successfully.");
+    setTimeout(() => setGuestFormSuccess(null), 3000);
+    return true;
   }
 
   function openGuestEditDialog(guest: GuestItem) {
@@ -931,36 +855,25 @@ export default function EventDetailPage() {
       return;
     }
 
-    setGuestEditLoading(true);
+    const result = await updateGuest({
+      guestId: editingGuest.id,
+      body: {
+        name,
+        phone: phone || null,
+        email: email || null,
+        category: guestEditForm.category,
+      },
+    });
 
-    try {
-      const response = await fetch(`/api/studio/guests/${editingGuest.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          phone: phone || null,
-          email: email || null,
-          category: guestEditForm.category,
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setGuestEditError(payload?.error || "Unable to update guest.");
-        return;
-      }
-
-      closeGuestEditDialog();
-      setGuestFormSuccess("Guest updated successfully.");
-      setTimeout(() => setGuestFormSuccess(null), 3000);
-      await loadEvent(false);
-    } catch {
-      setGuestEditError("Unable to update guest right now.");
-    } finally {
-      setGuestEditLoading(false);
+    if ("error" in result) {
+      setGuestEditError(getApiErrorMessage(result.error, "Unable to update guest right now."));
+      return;
     }
+
+    closeGuestEditDialog();
+    setGuestFormSuccess("Guest updated successfully.");
+    setTimeout(() => setGuestFormSuccess(null), 3000);
+    await eventQuery.refetch();
   }
 
   async function handleGuestDelete() {
@@ -971,68 +884,43 @@ export default function EventDetailPage() {
     }
 
     setGuestDeleteError(null);
-    setGuestDeleteLoading(true);
 
-    try {
-      const response = await fetch(`/api/studio/guests/${guestToDelete.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setGuestDeleteError(payload?.error || "Unable to delete guest.");
-        return;
-      }
-
-      setGuestToDelete(null);
-      setGuestFormSuccess("Guest removed successfully.");
-      setTimeout(() => setGuestFormSuccess(null), 3000);
-      await loadEvent(false);
-    } catch {
-      setGuestDeleteError("Unable to delete guest right now.");
-    } finally {
-      setGuestDeleteLoading(false);
+    const result = await deleteGuest({ guestId: guestToDelete.id });
+    if ("error" in result) {
+      setGuestDeleteError(getApiErrorMessage(result.error, "Unable to delete guest right now."));
+      return;
     }
+
+    setGuestToDelete(null);
+    setGuestFormSuccess("Guest removed successfully.");
+    setTimeout(() => setGuestFormSuccess(null), 3000);
+    await eventQuery.refetch();
   }
 
   async function handleMediaUploadDialog(data: { type: MediaType; groupLabel: string; files: File[] }): Promise<boolean> {
     if (!event) return false;
 
     setMediaUploadError(null);
-    setMediaSubmitting(true);
 
-    try {
-      for (const file of data.files) {
-        const formData = new FormData();
-        formData.append("eventId", event.id);
-        formData.append("type", data.type);
-        formData.append("groupLabel", data.groupLabel);
-        formData.append("file", file);
+    for (const file of data.files) {
+      const formData = new FormData();
+      formData.append("eventId", event.id);
+      formData.append("type", data.type);
+      formData.append("groupLabel", data.groupLabel);
+      formData.append("file", file);
 
-        const response = await fetch("/api/studio/media", {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          setMediaUploadError("Unable to upload media.");
-          return false;
-        }
+      const result = await createMedia(formData);
+      if ("error" in result) {
+        setMediaUploadError(getApiErrorMessage(result.error, "Unable to upload media right now."));
+        return false;
       }
-
-      setIsMediaUploadDialogOpen(false);
-      await loadEvent(false);
-      setMediaFormSuccess(`${data.files.length} media file${data.files.length === 1 ? "" : "s"} uploaded successfully.`);
-      setTimeout(() => setMediaFormSuccess(null), 3000);
-      return true;
-    } catch {
-      setMediaUploadError("Unable to upload media right now.");
-      return false;
-    } finally {
-      setMediaSubmitting(false);
     }
+
+    setIsMediaUploadDialogOpen(false);
+    await eventQuery.refetch();
+    setMediaFormSuccess(`${data.files.length} media file${data.files.length === 1 ? "" : "s"} uploaded successfully.`);
+    setTimeout(() => setMediaFormSuccess(null), 3000);
+    return true;
   }
 
   async function handleDeleteMedia(mediaId: string) {
@@ -1043,29 +931,21 @@ export default function EventDetailPage() {
     setMediaUploadError(null);
     setMediaDeleteLoadingId(mediaId);
 
-    try {
-      const response = await fetch(`/api/studio/media/${mediaId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        setMediaUploadError("Unable to delete media.");
-        return;
-      }
-
-      if (previewMediaItem?.id === mediaId) {
-        setPreviewMediaItem(null);
-      }
-
-      await loadEvent(false);
-      setMediaFormSuccess("Media deleted successfully.");
-      setTimeout(() => setMediaFormSuccess(null), 3000);
-    } catch {
-      setMediaUploadError("Unable to delete media right now.");
-    } finally {
+    const result = await deleteMedia({ mediaId });
+    if ("error" in result) {
+      setMediaUploadError(getApiErrorMessage(result.error, "Unable to delete media right now."));
       setMediaDeleteLoadingId(null);
+      return;
     }
+
+    if (previewMediaItem?.id === mediaId) {
+      setPreviewMediaItem(null);
+    }
+
+    await eventQuery.refetch();
+    setMediaFormSuccess("Media deleted successfully.");
+    setTimeout(() => setMediaFormSuccess(null), 3000);
+    setMediaDeleteLoadingId(null);
   }
 
   async function handleInvitationCardUpload(file: File) {
@@ -1076,34 +956,24 @@ export default function EventDetailPage() {
     }
 
     setInvitationCardError(null);
-    setInvitationCardLoading(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-      const response = await fetch(`/api/studio/events/${event.id}/invitation-card`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setInvitationCardError(payload?.error || "Unable to upload invitation card.");
-        return;
-      }
-
-      await loadEvent(false);
-      setMediaFormSuccess("Invitation card uploaded successfully.");
-      setTimeout(() => setMediaFormSuccess(null), 3000);
-    } catch {
-      setInvitationCardError("Unable to upload invitation card right now.");
-    } finally {
-      setInvitationCardLoading(false);
+    const result = await uploadInvitationCard({ eventId: event.id, body: formData });
+    if ("error" in result) {
+      setInvitationCardError(getApiErrorMessage(result.error, "Unable to upload invitation card right now."));
       if (invitationCardInputRef.current) {
         invitationCardInputRef.current.value = "";
       }
+      return;
+    }
+
+    await eventQuery.refetch();
+    setMediaFormSuccess("Invitation card uploaded successfully.");
+    setTimeout(() => setMediaFormSuccess(null), 3000);
+    if (invitationCardInputRef.current) {
+      invitationCardInputRef.current.value = "";
     }
   }
 
@@ -1115,28 +985,16 @@ export default function EventDetailPage() {
     }
 
     setInvitationCardError(null);
-    setInvitationCardLoading(true);
 
-    try {
-      const response = await fetch(`/api/studio/events/${event.id}/invitation-card`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setInvitationCardError(payload?.error || "Unable to remove invitation card.");
-        return;
-      }
-
-      await loadEvent(false);
-      setMediaFormSuccess("Invitation card removed successfully.");
-      setTimeout(() => setMediaFormSuccess(null), 3000);
-    } catch {
-      setInvitationCardError("Unable to remove invitation card right now.");
-    } finally {
-      setInvitationCardLoading(false);
+    const result = await deleteInvitationCard({ eventId: event.id });
+    if ("error" in result) {
+      setInvitationCardError(getApiErrorMessage(result.error, "Unable to remove invitation card right now."));
+      return;
     }
+
+    await eventQuery.refetch();
+    setMediaFormSuccess("Invitation card removed successfully.");
+    setTimeout(() => setMediaFormSuccess(null), 3000);
   }
 
   async function handleAvatarUpload(file: File) {
@@ -1147,30 +1005,18 @@ export default function EventDetailPage() {
     }
 
     setAvatarUploadError(null);
-    setStatusUpdating(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-      const response = await fetch(`/api/studio/events/${event.id}/avatar`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        setAvatarUploadError("Unable to upload avatar.");
-        return;
-      }
-
-      setIsAvatarUploadDialogOpen(false);
-      await loadEvent(false);
-    } catch {
-      setAvatarUploadError("Unable to upload avatar right now.");
-    } finally {
-      setStatusUpdating(false);
+    const result = await uploadAvatar({ eventId: event.id, body: formData });
+    if ("error" in result) {
+      setAvatarUploadError(getApiErrorMessage(result.error, "Unable to upload avatar right now."));
+      return;
     }
+
+    setIsAvatarUploadDialogOpen(false);
+    await eventQuery.refetch();
   }
 
   async function handleSingleGuestSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -1193,36 +1039,23 @@ export default function EventDetailPage() {
       return;
     }
 
-    setGuestSubmitting(true);
+    const result = await createGuest({
+      eventId: event.id,
+      name,
+      phone: phone || undefined,
+      email: email || undefined,
+      category: singleGuest.category,
+      invitationCode: buildInvitationCode("gst"),
+    });
 
-    try {
-      const response = await fetch("/api/studio/guests", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: event.id,
-          name,
-          phone: phone || undefined,
-          email: email || undefined,
-          category: singleGuest.category,
-          invitationCode: buildInvitationCode("gst"),
-        }),
-      });
-
-      if (!response.ok) {
-        setGuestFormError("Unable to add guest. Please check values and try again.");
-        return;
-      }
-
-      setSingleGuest({ name: "", phone: "", email: "", category: "GENERAL" });
-      setGuestFormSuccess("Guest added successfully.");
-      await loadEvent(false);
-    } catch {
-      setGuestFormError("Unable to add guest right now.");
-    } finally {
-      setGuestSubmitting(false);
+    if ("error" in result) {
+      setGuestFormError(getApiErrorMessage(result.error, "Unable to add guest right now."));
+      return;
     }
+
+    setSingleGuest({ name: "", phone: "", email: "", category: "GENERAL" });
+    setGuestFormSuccess("Guest added successfully.");
+    await eventQuery.refetch();
   }
 
   async function handleBulkGuestSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -1262,32 +1095,19 @@ export default function EventDetailPage() {
       return;
     }
 
-    setGuestSubmitting(true);
+    const result = await createGuestsBulk({
+      eventId: event.id,
+      guests,
+    });
 
-    try {
-      const response = await fetch("/api/studio/guests/bulk", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: event.id,
-          guests,
-        }),
-      });
-
-      if (!response.ok) {
-        setGuestFormError("Bulk guest import failed. Verify each line format.");
-        return;
-      }
-
-      setBulkGuestText("");
-      setGuestFormSuccess(`${guests.length} guests added.`);
-      await loadEvent(false);
-    } catch {
-      setGuestFormError("Bulk guest import failed right now.");
-    } finally {
-      setGuestSubmitting(false);
+    if ("error" in result) {
+      setGuestFormError(getApiErrorMessage(result.error, "Bulk guest import failed right now."));
+      return;
     }
+
+    setBulkGuestText("");
+    setGuestFormSuccess(`${guests.length} guests added.`);
+    await eventQuery.refetch();
   }
 
   async function handleMediaUploadSubmit(formEvent: FormEvent<HTMLFormElement>) {
@@ -1305,34 +1125,21 @@ export default function EventDetailPage() {
       return;
     }
 
-    setMediaSubmitting(true);
+    const result = await createMedia({
+      eventId: event.id,
+      type: mediaForm.type,
+      url,
+      groupLabel: groupLabel || undefined,
+    });
 
-    try {
-      const response = await fetch("/api/studio/media", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId: event.id,
-          type: mediaForm.type,
-          url,
-          groupLabel: groupLabel || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        setMediaFormError("Unable to upload media. Please check values and try again.");
-        return;
-      }
-
-      setMediaForm({ type: "IMAGE", url: "", groupLabel: "" });
-      setMediaFormSuccess("Media uploaded successfully.");
-      await loadEvent(false);
-    } catch {
-      setMediaFormError("Unable to upload media right now.");
-    } finally {
-      setMediaSubmitting(false);
+    if ("error" in result) {
+      setMediaFormError(getApiErrorMessage(result.error, "Unable to upload media right now."));
+      return;
     }
+
+    setMediaForm({ type: "IMAGE", url: "", groupLabel: "" });
+    setMediaFormSuccess("Media uploaded successfully.");
+    await eventQuery.refetch();
   }
 
   if (status === "idle" || status === "loading" || status === "unauthenticated") {
@@ -1409,930 +1216,101 @@ export default function EventDetailPage() {
           </div>
 
           {tab === "overview" ? (
-            <section className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="ui-panel">
-                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Event Overview</h3>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Bride Name</p>
-                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
-                      {event.brideName || "-"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Groom Name</p>
-                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.groomName || "-"}</p>
-                  </div>
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Total Guests</p>
-                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.guests.length} guest{event.guests.length !== 1 ? "s" : ""}</p>
-                  </div>
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Bride Phone</p>
-                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.bridePhone || "-"}</p>
-                  </div>
-                  <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Groom Phone</p>
-                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.groomPhone || "-"}</p>
-                  </div>
-                  <div className="rounded-lg border p-3 sm:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Location</p>
-                    <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.location || "No location provided"}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="ui-panel">
-                <h3 className="text-sm font-semibold" style={{ color: "var(--primary)" }}>Event Location</h3>
-                <p className="mt-3 break-all text-sm" style={{ color: "var(--text-secondary)" }}>{event.googleMapAddress || "Not provided"}</p>
-                {event.googleMapAddress ? (
-                  <a
-                    href={event.googleMapAddress}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-4 inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-white transition hover:opacity-90"
-                    style={{ background: "linear-gradient(to right, var(--primary), var(--primary-light))" }}
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Open in Google Maps
-                  </a>
-                ) : null}
-                {event.description ? (
-                  <p className="mt-4 text-sm" style={{ color: "var(--text-secondary)" }}>{event.description}</p>
-                ) : null}
-
-                <div className="mt-5 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
-                      Invitation Card
-                    </p>
-                    <div className="flex items-center gap-2">
-                      {event.invitationCardUrl ? (
-                        <>
-                          <a
-                            href={event.invitationCardUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                            style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
-                            title="Open invitation card"
-                            aria-label="Open invitation card"
-                          >
-                            <ExternalLink size={14} />
-                          </a>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void handleDeleteInvitationCard();
-                            }}
-                            disabled={invitationCardLoading || isCompletedEvent}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
-                            style={{ borderColor: "var(--error)", color: "var(--error)", background: "var(--surface)" }}
-                            title="Delete invitation card"
-                            aria-label="Delete invitation card"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={() => invitationCardInputRef.current?.click()}
-                        disabled={invitationCardLoading || isCompletedEvent}
-                        className="ui-button-secondary h-8 px-3 text-xs"
-                      >
-                        {event.invitationCardUrl ? "Replace" : "Upload"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <input
-                    ref={invitationCardInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(eventChange) => {
-                      const file = eventChange.target.files?.[0];
-                      if (!file) return;
-                      if (isCompletedEvent) {
-                        setInvitationCardError(immutableMessage);
-                        return;
-                      }
-                      void handleInvitationCardUpload(file);
-                    }}
-                  />
-
-                  {event.invitationCardUrl ? (
-                    <div className="mt-3 overflow-hidden rounded-lg border" style={{ borderColor: "var(--border-subtle)" }}>
-                      <img src={event.invitationCardUrl} alt="Invitation card" className="h-44 w-full object-cover" />
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                      No invitation card uploaded.
-                    </p>
-                  )}
-
-                  {invitationCardError ? (
-                    <p className="mt-2 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>
-                      {invitationCardError}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </section>
+            <EventOverviewSection
+              event={event}
+              invitationCardInputRef={invitationCardInputRef}
+              invitationCardLoading={invitationCardLoading}
+              invitationCardError={invitationCardError}
+              isCompletedEvent={isCompletedEvent}
+              immutableMessage={immutableMessage}
+              onInvitationCardUpload={(file) => {
+                void handleInvitationCardUpload(file);
+              }}
+              onInvitationCardDelete={() => {
+                void handleDeleteInvitationCard();
+              }}
+              setInvitationCardError={setInvitationCardError}
+            />
           ) : null}
 
           {tab === "guests" ? (
-            <section className="mt-5 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Guest List</h3>
-                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {event?.guests.length || 0} guest{event?.guests.length !== 1 ? "s" : ""} invited
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAddGuestDialogOpen(true)}
-                  disabled={isCompletedEvent}
-                  className="ui-button-primary h-10"
-                >
-                  Add Guest
-                </button>
-              </div>
-
-              {guestFormError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{guestFormError}</p> : null}
-              {guestFormSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{guestFormSuccess}</p> : null}
-              {inviteError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{inviteError}</p> : null}
-              {inviteSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{inviteSuccess}</p> : null}
-
-              <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                  <div className="flex items-center gap-3">
-                    <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
-                      <input
-                        type="checkbox"
-                        checked={allGuestsSelected}
-                        onChange={(changeEvent) => toggleSelectAllGuests(changeEvent.target.checked)}
-                        disabled={isCompletedEvent}
-                        className="h-4 w-4 rounded border"
-                        style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
-                      />
-                      Select all
-                    </label>
-                    <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{selectedCount} selected</span>
-                  </div>
-
-                  {selectedCount > 0 ? (
-                    <button
-                      type="button"
-                      disabled={selectedCount === 0 || inviteSubmitting || isCompletedEvent}
-                      onClick={() => {
-                        openInviteChannelDialog(selectedGuestIds);
-                      }}
-                      className="ui-button-primary h-9 px-3 text-sm"
-                    >
-                      {inviteSubmitting ? "Sending..." : `Send Invite (${selectedCount})`}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              <div className="ui-table rounded-lg flex min-h-0 flex-col overflow-hidden">
-                <div className="min-h-0 flex-1 overflow-y-auto md:hidden">
-                  <div className="grid gap-3 p-3">
-                    {paginatedGuests.map((guest) => (
-                      <article key={`${guest.id}-mobile`} className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                        <div className="flex items-start justify-between gap-2">
-                          <label className="inline-flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
-                            <input
-                              type="checkbox"
-                              checked={selectedGuestIds.includes(guest.id)}
-                              onChange={(changeEvent) => toggleGuestSelection(guest.id, changeEvent.target.checked)}
-                              disabled={isCompletedEvent}
-                              className="h-4 w-4 rounded border"
-                              style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
-                            />
-                            <span className="font-medium">{guest.name}</span>
-                          </label>
-                          <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-xs font-medium ${guest.invitationStatus === "SENT" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-zinc-100 text-zinc-700"}`}>
-                            {guest.invitationStatus === "SENT" ? "Invite sent" : "Not sent"}
-                          </span>
-                        </div>
-
-                        <div className="mt-3 space-y-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                          <p>Category: {labelForCategory(guest.category)}</p>
-                          <p>Phone: {guest.phone || "-"}</p>
-                          <p>Email: {guest.email || "-"}</p>
-                          <p>Sent via: {labelForInviteChannel(guest.invitationChannel)}</p>
-                          <p>Sent at: {guest.invitationSentAt ? formatDateTime(guest.invitationSentAt) : "-"}</p>
-                        </div>
-
-                        <div className="mt-4 flex justify-end">
-                          <Popover
-                            open={openGuestMenuId === guest.id}
-                            onOpenChange={(open) => setOpenGuestMenuId(open ? guest.id : null)}
-                          >
-                            <PopoverTrigger asChild>
-                              <button
-                                type="button"
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                                style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-secondary)" }}
-                                aria-label="Open guest actions"
-                              >
-                                <MoreHorizontal size={15} />
-                              </button>
-                            </PopoverTrigger>
-                            <PopoverContent align="end" className="w-44 p-1" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenGuestMenuId(null);
-                                  setGuestFormError(null);
-                                  setGuestFormSuccess(null);
-                                  openGuestEditDialog(guest);
-                                }}
-                                disabled={isCompletedEvent}
-                                className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenGuestMenuId(null);
-                                  openInviteChannelDialog([guest.id]);
-                                }}
-                                disabled={inviteSubmitting || isCompletedEvent}
-                                className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium disabled:opacity-60"
-                                style={{ color: "var(--primary)" }}
-                              >
-                                Send invite
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOpenGuestMenuId(null);
-                                  setGuestDeleteError(null);
-                                  setGuestToDelete(guest);
-                                }}
-                                disabled={isCompletedEvent}
-                                className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium"
-                                style={{ color: "#b32543" }}
-                              >
-                                Delete
-                              </button>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="min-h-0 hidden flex-1 overflow-x-auto overflow-y-auto md:block">
-                  <table className="min-w-[1100px] text-left text-sm">
-                    <colgroup>
-                      <col className="w-[72px]" />
-                      <col className="w-[220px]" />
-                      <col className="w-[150px]" />
-                      <col className="w-[170px]" />
-                      <col className="w-[260px]" />
-                      <col className="w-[150px]" />
-                      <col className="w-[130px]" />
-                      <col className="w-[170px]" />
-                      <col className="w-[120px]" />
-                    </colgroup>
-                    <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                      <tr>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Select</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Name</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Category</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Phone</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Email</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Invite Status</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Sent Via</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Sent At</th>
-                        <th className="sticky top-0 z-10 px-4 py-3.5 text-right font-semibold text-xs uppercase tracking-wide" style={{ background: "var(--surface-muted)" }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedGuests.map((guest) => (
-                        <tr key={guest.id} className="border-t align-middle transition" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selectedGuestIds.includes(guest.id)}
-                              onChange={(changeEvent) => toggleGuestSelection(guest.id, changeEvent.target.checked)}
-                              disabled={isCompletedEvent}
-                              className="h-4 w-4 rounded border"
-                              style={{ borderColor: "var(--border-subtle)", accentColor: "var(--primary)" }}
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <p className="font-medium" style={{ color: "var(--text-primary)" }}>{guest.name}</p>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{labelForCategory(guest.category)}</td>
-                          <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{guest.phone || "-"}</td>
-                          <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{guest.email || "-"}</td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-xs font-medium ${guest.invitationStatus === "SENT" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-zinc-200 bg-zinc-100 text-zinc-700"}`}>
-                              {guest.invitationStatus === "SENT" ? "Invite sent" : "Not sent"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className={`inline-flex whitespace-nowrap rounded-full border px-2 py-1 text-xs font-medium ${channelPillClasses(guest.invitationChannel)}`}>
-                              {labelForInviteChannel(guest.invitationChannel)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap" style={{ color: "var(--text-secondary)" }}>{guest.invitationSentAt ? formatDateTime(guest.invitationSentAt) : "-"}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end">
-                              <Popover
-                                open={openGuestMenuId === guest.id}
-                                onOpenChange={(open) => setOpenGuestMenuId(open ? guest.id : null)}
-                              >
-                                <PopoverTrigger asChild>
-                                  <button
-                                    type="button"
-                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface)", color: "var(--text-secondary)" }}
-                                    aria-label="Open guest actions"
-                                  >
-                                    <MoreHorizontal size={15} />
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent align="end" className="w-44 p-1" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenGuestMenuId(null);
-                                      openGuestEditDialog(guest);
-                                    }}
-                                    disabled={isCompletedEvent}
-                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-muted)]"
-                                    style={{ color: "var(--text-primary)" }}
-                                  >
-                                    <PencilLine size={14} />
-                                    Edit
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    disabled={inviteSubmitting || isCompletedEvent}
-                                    onClick={() => {
-                                      setOpenGuestMenuId(null);
-                                      openInviteChannelDialog([guest.id], true);
-                                    }}
-                                    className="mt-0.5 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-muted)] disabled:cursor-not-allowed disabled:opacity-60"
-                                    style={{ color: "var(--secondary)" }}
-                                  >
-                                    <Send size={14} />
-                                    Invite
-                                  </button>
-
-                                  <div className="my-1 border-t" style={{ borderColor: "var(--border-subtle)" }} />
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenGuestMenuId(null);
-                                      setGuestDeleteError(null);
-                                      setGuestToDelete(guest);
-                                    }}
-                                    disabled={isCompletedEvent}
-                                    className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm font-medium transition hover:bg-[var(--surface-muted)]"
-                                    style={{ color: "#b32543" }}
-                                  >
-                                    <Trash2 size={14} />
-                                    Delete
-                                  </button>
-                                </PopoverContent>
-                              </Popover>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                {event.guests.length === 0 ? <p className="px-4 py-5 text-sm" style={{ color: "var(--text-secondary)" }}>No guests added yet.</p> : null}
-
-                {event.guests.length > 0 ? (
-                  <div className="flex items-center justify-between border-t px-4 py-3 text-sm" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                    <p>
-                      Showing {guestTotalItems === 0 ? 0 : guestStartIndex + 1}-{Math.min(guestStartIndex + guestPageSize, guestTotalItems)} of {guestTotalItems}
-                    </p>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setGuestPage((current) => Math.max(1, current - 1))}
-                        disabled={clampedGuestPage <= 1}
-                        className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
-                      >
-                        Previous
-                      </button>
-                      <span className="px-1 text-xs">Page {clampedGuestPage} / {guestTotalPages}</span>
-                      <button
-                        type="button"
-                        onClick={() => setGuestPage((current) => Math.min(guestTotalPages, current + 1))}
-                        disabled={clampedGuestPage >= guestTotalPages}
-                        className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </section>
+            <EventGuestsSection
+              guests={event.guests}
+              paginatedGuests={paginatedGuests}
+              selectedGuestIds={selectedGuestIds}
+              allGuestsSelected={allGuestsSelected}
+              selectedCount={selectedCount}
+              inviteSubmitting={inviteSubmitting}
+              isCompletedEvent={isCompletedEvent}
+              guestFormError={guestFormError}
+              guestFormSuccess={guestFormSuccess}
+              inviteError={inviteError}
+              inviteSuccess={inviteSuccess}
+              openGuestMenuId={openGuestMenuId}
+              guestTotalItems={guestTotalItems}
+              guestStartIndex={guestStartIndex}
+              guestPageSize={guestPageSize}
+              clampedGuestPage={clampedGuestPage}
+              guestTotalPages={guestTotalPages}
+              labelForCategory={labelForCategory}
+              labelForInviteChannel={labelForInviteChannel}
+              channelPillClasses={channelPillClasses}
+              formatDateTime={formatDateTime}
+              onAddGuest={() => setIsAddGuestDialogOpen(true)}
+              onToggleSelectAll={toggleSelectAllGuests}
+              onOpenInviteDialog={openInviteChannelDialog}
+              onToggleGuestSelection={toggleGuestSelection}
+              onOpenGuestMenu={setOpenGuestMenuId}
+              onOpenGuestEdit={openGuestEditDialog}
+              onRequestGuestDelete={(guest) => {
+                setGuestDeleteError(null);
+                setGuestToDelete(guest);
+              }}
+              onPrevPage={() => setGuestPage((current) => Math.max(1, current - 1))}
+              onNextPage={() => setGuestPage((current) => Math.min(guestTotalPages, current + 1))}
+              clearGuestMessages={() => {
+                setGuestFormError(null);
+                setGuestFormSuccess(null);
+              }}
+            />
           ) : null}
 
           {tab === "media" ? (
-            <section className="mt-5 space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Media Gallery</h3>
-                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {event?.media.length || 0} file{event?.media.length !== 1 ? "s" : ""} uploaded
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMediaUploadDialogOpen(true);
-                    }}
-                    className="ui-button-primary h-10"
-                  >
-                    Upload Media
-                  </button>
-                </div>
-              </div>
-
-              {mediaFormError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{mediaFormError}</p> : null}
-              {mediaFormSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{mediaFormSuccess}</p> : null}
-
-              {mediaBrowserItems.length === 0 ? (
-                <p className="rounded-lg border px-4 py-5 text-sm text-zinc-600" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                  No folders or files uploaded yet.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                    <div className="flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
-                      <span style={{ color: "var(--text-secondary)" }}>Path:</span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedMediaFolder(null)}
-                        className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
-                        style={{
-                          borderColor: selectedMediaFolder ? "var(--border-subtle)" : "var(--primary)",
-                          background: selectedMediaFolder ? "var(--surface)" : "var(--primary)",
-                          color: selectedMediaFolder ? "var(--text-primary)" : "white",
-                        }}
-                      >
-                        My Drive
-                      </button>
-                      {selectedMediaFolder ? <span className="text-xs" style={{ color: "var(--text-secondary)" }}>/ {selectedMediaFolder}</span> : null}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {selectedMediaFolder ? (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMediaFolder(null)}
-                          className="rounded-md border px-2.5 py-1.5 text-xs font-medium"
-                          style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
-                        >
-                          Back to folders
-                        </button>
-                      ) : null}
-                      <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                        <button
-                          type="button"
-                          onClick={() => setMediaViewMode("list")}
-                          className="rounded px-2.5 py-1 text-xs font-medium"
-                          style={{ color: mediaViewMode === "list" ? "white" : "var(--text-primary)", background: mediaViewMode === "list" ? "var(--primary)" : "transparent" }}
-                        >
-                          List
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setMediaViewMode("grid")}
-                          className="rounded px-2.5 py-1 text-xs font-medium"
-                          style={{ color: mediaViewMode === "grid" ? "white" : "var(--text-primary)", background: mediaViewMode === "grid" ? "var(--primary)" : "transparent" }}
-                        >
-                          Grid
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {mediaViewMode === "list" ? (
-                    <div className="ui-table overflow-hidden">
-                      <div className="grid gap-3 p-3 md:hidden">
-                        {mediaBrowserItems.map((item) => (
-                          <article key={`${item.id}-mobile`} className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                            <p className="font-medium break-all" style={{ color: "var(--text-primary)" }}>{item.kind === "folder" ? item.name : item.file.name}</p>
-                            <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                              {item.kind === "folder" ? `Folder (${item.fileCount})` : item.file.type === "IMAGE" ? "Photo" : "Video"}
-                            </p>
-                            <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                              {item.kind === "folder" ? (item.lastModified ? formatDateTime(item.lastModified) : "-") : formatDateTime(item.file.createdAt)}
-                            </p>
-                            <div className="mt-4 flex flex-wrap items-center gap-2">
-                              {item.kind === "folder" ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedMediaFolder(item.name)}
-                                  className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium"
-                                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                >
-                                  Open folder
-                                </button>
-                              ) : (
-                                <>
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewMediaItem(item.file)}
-                                    className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium"
-                                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                  >
-                                    Preview
-                                  </button>
-                                  <a
-                                    href={item.file.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium"
-                                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                  >
-                                    Open
-                                  </a>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      void handleDeleteMedia(item.file.id);
-                                    }}
-                                    disabled={mediaDeleteLoadingId === item.file.id || isCompletedEvent}
-                                    className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium disabled:opacity-60"
-                                    style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-
-                      <div className="hidden overflow-x-auto md:block">
-                        <table className="min-w-full text-left text-sm">
-                          <thead style={{ background: "var(--surface-muted)", color: "var(--text-secondary)" }}>
-                            <tr>
-                              <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Name</th>
-                              <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Type</th>
-                              <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wide">Modified</th>
-                              <th className="px-4 py-3 text-right font-semibold text-xs uppercase tracking-wide">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {mediaBrowserItems.map((item) => (
-                              <tr key={item.id} className="border-t" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                                <td className="px-4 py-3">
-                                  {item.kind === "folder" ? (
-                                    <button type="button" onClick={() => setSelectedMediaFolder(item.name)} className="flex items-center gap-2 text-left text-zinc-700 hover:underline">
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" style={{ color: "var(--primary)" }} aria-hidden>
-                                        <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                                      </svg>
-                                      <span>{item.name}</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => setPreviewMediaItem(item.file)}
-                                      className="flex items-center gap-2 text-left hover:underline"
-                                      style={{ color: "var(--text-primary)" }}
-                                    >
-                                      {item.file.type === "VIDEO" ? (
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" style={{ color: "var(--text-secondary)" }} aria-hidden>
-                                          <rect x="3" y="5" width="14" height="14" rx="2" />
-                                          <path d="m17 10 4-2v8l-4-2z" />
-                                        </svg>
-                                      ) : (
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" style={{ color: "var(--text-secondary)" }} aria-hidden>
-                                          <rect x="3" y="4" width="18" height="16" rx="2" />
-                                          <circle cx="9" cy="10" r="1.5" />
-                                          <path d="m7 17 4-4 3 3 3-4 3 5" />
-                                        </svg>
-                                      )}
-                                      <span className="break-all">{item.file.name}</span>
-                                    </button>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{item.kind === "folder" ? `Folder (${item.fileCount})` : item.file.type === "IMAGE" ? "Photo" : "Video"}</td>
-                                <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{item.kind === "folder" ? (item.lastModified ? formatDateTime(item.lastModified) : "-") : formatDateTime(item.file.createdAt)}</td>
-                                <td className="px-4 py-3 text-right">
-                                  {item.kind === "folder" ? (
-                                    <button
-                                      type="button"
-                                      onClick={() => setSelectedMediaFolder(item.name)}
-                                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                      aria-label="Open folder"
-                                      title="Open folder"
-                                    >
-                                      <FolderOpen size={14} />
-                                    </button>
-                                  ) : (
-                                    <div className="inline-flex items-center gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => setPreviewMediaItem(item.file)}
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                                        style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                        aria-label="Preview media"
-                                        title="Preview"
-                                      >
-                                        <Eye size={14} />
-                                      </button>
-                                      <a
-                                        href={item.file.url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                                        style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                        aria-label="Open media in new tab"
-                                        title="Open"
-                                      >
-                                        <ExternalLink size={14} />
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          void handleDeleteMedia(item.file.id);
-                                        }}
-                                        disabled={mediaDeleteLoadingId === item.file.id || isCompletedEvent}
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
-                                        style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
-                                        aria-label="Delete media"
-                                        title="Delete"
-                                      >
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {mediaBrowserItems.map((item) => (
-                        <div key={item.id} className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface)" }}>
-                          {item.kind === "folder" ? (
-                            <button type="button" onClick={() => setSelectedMediaFolder(item.name)} className="w-full text-left">
-                              <div className="flex items-center gap-2">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" style={{ color: "var(--primary)" }} aria-hidden>
-                                  <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-                                </svg>
-                                <p className="truncate text-sm font-medium text-zinc-700">{item.name}</p>
-                              </div>
-                              <p className="mt-3 text-xs text-zinc-500">{item.fileCount} file{item.fileCount !== 1 ? "s" : ""}</p>
-                              <p className="mt-1 text-xs text-zinc-500">{item.lastModified ? formatDateTime(item.lastModified) : "-"}</p>
-                            </button>
-                          ) : (
-                            <div>
-                              <button type="button" onClick={() => setPreviewMediaItem(item.file)} className="block w-full">
-                                <div className="flex h-32 w-full items-center justify-center overflow-hidden rounded-md border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                                  {item.file.type === "IMAGE" ? (
-                                    <img src={item.file.url} alt={item.file.name} className="h-full w-full object-cover" />
-                                  ) : (
-                                    <video src={item.file.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
-                                  )}
-                                </div>
-                              </button>
-                              <p className="mt-2 truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{item.file.name}</p>
-                              <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>{formatDateTime(item.file.createdAt)}</p>
-                              <div className="mt-2 flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewMediaItem(item.file)}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                  aria-label="Preview media"
-                                  title="Preview"
-                                >
-                                  <Eye size={14} />
-                                </button>
-                                <a
-                                  href={item.file.url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                                  style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                                  aria-label="Open media in new tab"
-                                  title="Open"
-                                >
-                                  <ExternalLink size={14} />
-                                </a>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    void handleDeleteMedia(item.file.id);
-                                  }}
-                                  disabled={mediaDeleteLoadingId === item.file.id || isCompletedEvent}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
-                                  style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
-                                  aria-label="Delete media"
-                                  title="Delete"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
+            <EventMediaSection
+              mediaCount={event.media.length}
+              mediaFormError={mediaFormError}
+              mediaFormSuccess={mediaFormSuccess}
+              mediaBrowserItems={mediaBrowserItems}
+              selectedMediaFolder={selectedMediaFolder}
+              mediaViewMode={mediaViewMode}
+              isCompletedEvent={isCompletedEvent}
+              mediaDeleteLoadingId={mediaDeleteLoadingId}
+              formatDateTime={formatDateTime}
+              onUploadMedia={() => setIsMediaUploadDialogOpen(true)}
+              onBackToFolders={() => setSelectedMediaFolder(null)}
+              onSetMediaViewMode={setMediaViewMode}
+              onOpenFolder={setSelectedMediaFolder}
+              onPreviewMedia={setPreviewMediaItem}
+              onDeleteMedia={(mediaId) => {
+                void handleDeleteMedia(mediaId);
+              }}
+            />
           ) : null}
 
-          {isEditOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-              <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="mb-6 flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>Edit Event</h3>
-                    <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Update details, schedule, and event status.</p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsEditOpen(false)}
-                    className="h-8 w-8 cursor-pointer border-[var(--border-subtle)] bg-[var(--surface)] px-0 text-[var(--primary)] hover:bg-[var(--surface-muted)]"
-                    aria-label="Close edit dialog"
-                  >
-                    <span aria-hidden className="text-lg leading-none" style={{ color: "var(--primary)" }}>
-                      x
-                    </span>
-                  </Button>
-                </div>
-
-                <form className="space-y-4" onSubmit={handleEventEditSubmit}>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="block md:col-span-2 md:row-span-2">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Title *</span>
-                      <input
-                        value={editForm.title}
-                        onChange={(event) => {
-                          setEditForm((current) => ({ ...current, title: event.target.value }));
-                          setEditFieldErrors((current) => ({ ...current, title: undefined }));
-                        }}
-                        className="ui-input"
-                        required
-                      />
-                      {editFieldErrors.title ? (
-                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.title}</p>
-                      ) : null}
-                    </label>
-
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Name</span>
-                      <input value={editForm.brideName} onChange={(event) => setEditForm((current) => ({ ...current, brideName: event.target.value }))} className="ui-input" />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Name</span>
-                      <input value={editForm.groomName} onChange={(event) => setEditForm((current) => ({ ...current, groomName: event.target.value }))} className="ui-input" />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Bride Phone</span>
-                      <PhoneInput
-                        value={editForm.bridePhone}
-                        onChange={(value) => {
-                          setEditForm((current) => ({ ...current, bridePhone: value ?? "" }));
-                          setEditFieldErrors((current) => ({ ...current, bridePhone: undefined }));
-                        }}
-                        defaultCountry="ET"
-                        className="w-full"
-                      />
-                      {editFieldErrors.bridePhone ? (
-                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.bridePhone}</p>
-                      ) : null}
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Groom Phone</span>
-                      <PhoneInput
-                        value={editForm.groomPhone}
-                        onChange={(value) => {
-                          setEditForm((current) => ({ ...current, groomPhone: value ?? "" }));
-                          setEditFieldErrors((current) => ({ ...current, groomPhone: undefined }));
-                        }}
-                        defaultCountry="ET"
-                        className="w-full"
-                      />
-                      {editFieldErrors.groomPhone ? (
-                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.groomPhone}</p>
-                      ) : null}
-                    </label>
-
-                    <div className="rounded-xl border p-3 md:col-span-2" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <span className="block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Event Schedule *</span>
-                        <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>Local time</span>
-                      </div>
-
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <label className="block">
-                          <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Date</span>
-                          <input
-                            type="date"
-                            value={editForm.eventDate}
-                            min={minEventDate}
-                            onChange={(event) => {
-                              setEditForm((current) => ({ ...current, eventDate: event.target.value }));
-                              setEditFieldErrors((current) => ({ ...current, eventDate: undefined }));
-                            }}
-                            className="ui-input"
-                            required
-                          />
-                          {editFieldErrors.eventDate ? (
-                            <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.eventDate}</p>
-                          ) : null}
-                        </label>
-
-                        <label className="block">
-                          <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Time</span>
-                          <input
-                            type="time"
-                            value={editForm.eventTime}
-                            onChange={(event) => {
-                              setEditForm((current) => ({ ...current, eventTime: event.target.value }));
-                              setEditFieldErrors((current) => ({ ...current, eventTime: undefined }));
-                            }}
-                            className="ui-input"
-                            required
-                          />
-                          {editFieldErrors.eventTime ? (
-                            <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.eventTime}</p>
-                          ) : null}
-                        </label>
-                      </div>
-
-                      <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                        {editSchedulePreview ? `Scheduled for ${editSchedulePreview}` : "Pick a valid date and time."}
-                      </p>
-                    </div>
-
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Location</span>
-                      <input value={editForm.location} onChange={(event) => setEditForm((current) => ({ ...current, location: event.target.value }))} className="ui-input" />
-                    </label>
-                    <label className="block">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Google Map Address</span>
-                      <input
-                        value={editForm.googleMapAddress}
-                        onChange={(event) => {
-                          setEditForm((current) => ({ ...current, googleMapAddress: event.target.value }));
-                          setEditFieldErrors((current) => ({ ...current, googleMapAddress: undefined }));
-                        }}
-                        className="ui-input"
-                      />
-                      {editFieldErrors.googleMapAddress ? (
-                        <p className="mt-1 text-xs" style={{ color: "var(--error)" }}>{editFieldErrors.googleMapAddress}</p>
-                      ) : null}
-                    </label>
-                    <label className="block md:col-span-2">
-                      <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Description</span>
-                      <textarea value={editForm.description} onChange={(event) => setEditForm((current) => ({ ...current, description: event.target.value }))} className="ui-textarea" />
-                    </label>
-                  </div>
-
-                  {editError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{editError}</p> : null}
-                  {editSuccess ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--success-light)", color: "var(--success)" }}>{editSuccess}</p> : null}
-
-                  <div className="mt-6 flex flex-wrap justify-end gap-3">
-                    <button type="button" onClick={() => setIsEditOpen(false)} className="ui-button-secondary">Cancel</button>
-                    <button type="submit" disabled={editSubmitting} className="ui-button-primary">{editSubmitting ? "Saving..." : "Save changes"}</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          ) : null}
+          <EditEventDialog
+            isOpen={isEditOpen}
+            editForm={editForm}
+            editFieldErrors={editFieldErrors}
+            editSchedulePreview={editSchedulePreview}
+            minEventDate={minEventDate}
+            editError={editError}
+            editSuccess={editSuccess}
+            editSubmitting={editSubmitting}
+            onClose={() => setIsEditOpen(false)}
+            onSubmit={handleEventEditSubmit}
+            onChange={setEditForm}
+            onFieldErrorsChange={setEditFieldErrors}
+          />
 
           <AddGuestDialog
             isOpen={isAddGuestDialogOpen}
@@ -2348,7 +1326,7 @@ export default function EventDetailPage() {
             onClose={() => setIsMediaUploadDialogOpen(false)}
             eventId={event.id}
             onMediaChanged={async () => {
-              await loadEvent(false);
+              await eventQuery.refetch();
             }}
             isLoading={mediaSubmitting}
             error={mediaUploadError || undefined}
@@ -2368,233 +1346,53 @@ export default function EventDetailPage() {
             error={avatarUploadError || undefined}
           />
 
-          {previewMediaItem ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-              <div className="w-full max-w-4xl rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="mb-5 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold" style={{ color: "var(--primary)" }}>{previewMediaItem.name}</p>
-                    <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>{previewMediaItem.folder}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={previewMediaItem.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface-muted)" }}
-                      aria-label="Open media in new tab"
-                      title="Open"
-                    >
-                      <ExternalLink size={14} />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleDeleteMedia(previewMediaItem.id);
-                      }}
-                      disabled={mediaDeleteLoadingId === previewMediaItem.id}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
-                      style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
-                      aria-label="Delete media"
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewMediaItem(null)}
-                      className="inline-flex h-8 items-center rounded-md border px-2.5 text-xs font-medium"
-                      style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
+          <MediaPreviewDialog
+            item={previewMediaItem}
+            isDeleting={mediaDeleteLoadingId === previewMediaItem?.id}
+            onClose={() => setPreviewMediaItem(null)}
+            onDelete={(mediaId) => {
+              void handleDeleteMedia(mediaId);
+            }}
+          />
 
-                <div className="flex max-h-[72vh] items-center justify-center overflow-hidden rounded-lg border" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-                  {previewMediaItem.type === "IMAGE" ? (
-                    <img src={previewMediaItem.url} alt={previewMediaItem.name} className="max-h-[72vh] w-auto max-w-full object-contain" />
-                  ) : (
-                    <video src={previewMediaItem.url} controls className="max-h-[72vh] w-full bg-black object-contain" />
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <InviteChannelDialog
+            isOpen={isInviteChannelDialogOpen}
+            pendingInviteGuestIds={pendingInviteGuestIds}
+            onCancel={() => {
+              setIsInviteChannelDialogOpen(false);
+              setPendingInviteGuestIds([]);
+              setPendingInviteOpenFirst(false);
+            }}
+            onConfirm={(channel) => {
+              void confirmInviteChannel(channel);
+            }}
+          />
 
-          {isInviteChannelDialogOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-              <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
-                <h3 className="text-lg font-semibold" style={{ color: "var(--primary)" }}>Choose Invite Method</h3>
-                <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                  Send invitation for {pendingInviteGuestIds.length} guest{pendingInviteGuestIds.length !== 1 ? "s" : ""} using:
-                </p>
-                <p className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                  Telegram will auto-fallback to WhatsApp for guests who have not started the bot.
-                </p>
+          <GuestEditDialog
+            isOpen={Boolean(editingGuest)}
+            isLoading={guestEditLoading}
+            error={guestEditError}
+            guestEditForm={guestEditForm}
+            onChange={setGuestEditForm}
+            onClose={closeGuestEditDialog}
+            onSubmit={handleGuestEditSubmit}
+          />
 
-                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void confirmInviteChannel("WHATSAPP");
-                    }}
-                    className="rounded-md border px-3 py-2 text-sm font-medium transition hover:opacity-90"
-                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
-                  >
-                    WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void confirmInviteChannel("TELEGRAM");
-                    }}
-                    className="rounded-md border px-3 py-2 text-sm font-medium transition hover:opacity-90"
-                    style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)", color: "var(--text-primary)" }}
-                  >
-                    Telegram
-                  </button>
-                </div>
-
-                <div className="mt-5 flex justify-end border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsInviteChannelDialogOpen(false);
-                      setPendingInviteGuestIds([]);
-                      setPendingInviteOpenFirst(false);
-                    }}
-                    className="ui-button-secondary"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {editingGuest ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-              <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="mb-5">
-                  <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Edit Guest</h3>
-                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Update guest details and category.</p>
-                </div>
-
-                <form className="space-y-3" onSubmit={handleGuestEditSubmit}>
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Guest Name *</span>
-                    <input
-                      value={guestEditForm.name}
-                      onChange={(event) => setGuestEditForm((current) => ({ ...current, name: event.target.value }))}
-                      className="ui-input"
-                      required
-                      disabled={guestEditLoading}
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Phone</span>
-                    <PhoneInput
-                      value={guestEditForm.phone}
-                      onChange={(value) => setGuestEditForm((current) => ({ ...current, phone: value ?? "" }))}
-                      defaultCountry="ET"
-                      className="w-full"
-                      disabled={guestEditLoading}
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Email</span>
-                    <input
-                      type="email"
-                      value={guestEditForm.email}
-                      onChange={(event) => setGuestEditForm((current) => ({ ...current, email: event.target.value }))}
-                      className="ui-input"
-                      disabled={guestEditLoading}
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="mb-1 block text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Category</span>
-                    <select
-                      value={guestEditForm.category}
-                      onChange={(event) =>
-                        setGuestEditForm((current) => ({
-                          ...current,
-                          category: event.target.value as GuestCategory,
-                        }))
-                      }
-                      className="ui-select"
-                      disabled={guestEditLoading}
-                    >
-                      <option value="GENERAL">General Guest</option>
-                      <option value="BRIDE_GUEST">Bride Guest</option>
-                      <option value="GROOM_GUEST">Groom Guest</option>
-                    </select>
-                  </label>
-
-                  {guestEditError ? <p className="rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{guestEditError}</p> : null}
-
-                  <div className="flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
-                    <button type="button" className="ui-button-secondary" onClick={closeGuestEditDialog} disabled={guestEditLoading}>
-                      Cancel
-                    </button>
-                    <button type="submit" className="ui-button-primary" disabled={guestEditLoading}>
-                      {guestEditLoading ? "Saving..." : "Save Changes"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          ) : null}
-
-          {guestToDelete ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-              <div className="w-full max-w-md rounded-2xl border bg-white p-6" style={{ borderColor: "var(--border-subtle)" }}>
-                <div className="mb-5">
-                  <h3 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Delete Guest</h3>
-                  <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-                    Are you sure you want to remove {guestToDelete.name} from this event?
-                  </p>
-                </div>
-
-                <div className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#f6b1be", background: "#fff0f4", color: "#b32543" }}>
-                  This action cannot be undone.
-                </div>
-
-                {guestDeleteError ? <p className="mt-3 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>{guestDeleteError}</p> : null}
-
-                <div className="mt-4 flex justify-end gap-2 border-t pt-4" style={{ borderColor: "var(--border-subtle)" }}>
-                  <button
-                    type="button"
-                    className="ui-button-secondary"
-                    onClick={() => {
-                      if (guestDeleteLoading) return;
-                      setGuestToDelete(null);
-                      setGuestDeleteError(null);
-                    }}
-                    disabled={guestDeleteLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60"
-                    style={{ borderColor: "#f6b1be", color: "#b32543", background: "#fff0f4" }}
-                    onClick={() => void handleGuestDelete()}
-                    disabled={guestDeleteLoading}
-                  >
-                    {guestDeleteLoading ? "Deleting..." : "Delete Guest"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
+          <GuestDeleteDialog
+            guestName={guestToDelete?.name ?? null}
+            error={guestDeleteError}
+            isLoading={guestDeleteLoading}
+            onCancel={() => {
+              if (guestDeleteLoading) return;
+              setGuestToDelete(null);
+              setGuestDeleteError(null);
+            }}
+            onConfirm={() => {
+              void handleGuestDelete();
+            }}
+          />
         </>
       )}
     </main>
   );
 }
-

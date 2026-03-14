@@ -76,11 +76,7 @@ export function AvatarUploadDialog({
 
   const handleSubmit = async () => {
     if (!selectedFile) return;
-    try {
-      await onSubmit(selectedFile);
-    } catch {
-      setUploadError("Failed to upload avatar");
-    }
+    await onSubmit(selectedFile);
   };
 
   if (!isOpen) return null;

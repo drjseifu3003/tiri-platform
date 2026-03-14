@@ -3,6 +3,8 @@
 import { NeoBarChart, NeoDonutChart } from "@/components/insights/NeoChart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MobileFilterSheet } from "@/components/ui/mobile-filter-sheet";
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useLazyGetStudioInsightsQuery } from "@/lib/api/insights-api";
 import { useSession } from "@/lib/session-context";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -215,6 +217,7 @@ export default function DataInsightsPage() {
 
   const [generalData, setGeneralData] = useState<GeneralInsightsResponse | null>(null);
   const [anniversaryData, setAnniversaryData] = useState<AnniversaryInsightsResponse | null>(null);
+  const [fetchInsights] = useLazyGetStudioInsightsQuery();
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -248,38 +251,25 @@ export default function DataInsightsPage() {
       }
       setError(null);
 
-      try {
-        const params = new URLSearchParams({
-          mode: "general",
-          year: String(selectedYear),
-          granularity: chartGranularity,
-          month: String(selectedMonth),
-        });
+      const result = await fetchInsights({
+        mode: "general",
+        year: selectedYear,
+        granularity: chartGranularity,
+        month: selectedMonth,
+      }, false);
 
-        const response = await fetch(`/api/studio/insights?${params.toString()}`, {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error("Unable to load insights");
-        }
-
-        const payload = (await response.json()) as GeneralInsightsResponse;
-        if (!cancelled) {
-          setGeneralData(payload);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("Unable to load insights.");
+      if (!cancelled) {
+        if ("data" in result) {
+          setGeneralData(result.data as GeneralInsightsResponse);
+        } else {
+          setError(getApiErrorMessage(result.error, "Unable to load insights."));
           if (!generalData) {
             setGeneralData(null);
           }
         }
-      } finally {
-        if (!cancelled) {
-          setLoadingGeneral(false);
-          setLoadingGeneralGraphs(false);
-        }
+
+        setLoadingGeneral(false);
+        setLoadingGeneralGraphs(false);
       }
     }
 
@@ -288,7 +278,7 @@ export default function DataInsightsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, chartGranularity, selectedMonth, selectedYear, status]);
+  }, [activeTab, chartGranularity, fetchInsights, generalData, selectedMonth, selectedYear, status]);
 
   useEffect(() => {
     if (!generalData?.availableYears?.length) return;
@@ -306,49 +296,26 @@ export default function DataInsightsPage() {
       setLoadingAnniversary(true);
       setError(null);
 
-      try {
-        const params = new URLSearchParams({
-          mode: "anniversary",
-          page: String(anniversaryPage),
-          pageSize: String(anniversaryPageSize),
-          range: anniversaryRange,
-          milestone: anniversaryMilestone,
-        });
+      const result = await fetchInsights({
+        mode: "anniversary",
+        page: anniversaryPage,
+        pageSize: anniversaryPageSize,
+        range: anniversaryRange,
+        milestone: anniversaryMilestone,
+        search: anniversarySearch.trim() || undefined,
+        dateFrom: anniversaryRange === "custom" ? anniversaryDateFrom.trim() || undefined : undefined,
+        dateTo: anniversaryRange === "custom" ? anniversaryDateTo.trim() || undefined : undefined,
+      }, false);
 
-        if (anniversarySearch.trim()) {
-          params.set("search", anniversarySearch.trim());
-        }
-
-        if (anniversaryRange === "custom") {
-          if (anniversaryDateFrom.trim()) {
-            params.set("dateFrom", anniversaryDateFrom.trim());
-          }
-          if (anniversaryDateTo.trim()) {
-            params.set("dateTo", anniversaryDateTo.trim());
-          }
-        }
-
-        const response = await fetch(`/api/studio/insights?${params.toString()}`, {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error("Unable to load anniversary insights");
-        }
-
-        const payload = (await response.json()) as AnniversaryInsightsResponse;
-        if (!cancelled) {
-          setAnniversaryData(payload);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("Unable to load anniversary insights.");
+      if (!cancelled) {
+        if ("data" in result) {
+          setAnniversaryData(result.data as AnniversaryInsightsResponse);
+        } else {
+          setError(getApiErrorMessage(result.error, "Unable to load anniversary insights."));
           setAnniversaryData(null);
         }
-      } finally {
-        if (!cancelled) {
-          setLoadingAnniversary(false);
-        }
+
+        setLoadingAnniversary(false);
       }
     }
 
@@ -366,6 +333,7 @@ export default function DataInsightsPage() {
     anniversaryRange,
     anniversarySearch,
     status,
+    fetchInsights,
   ]);
 
   useEffect(() => {

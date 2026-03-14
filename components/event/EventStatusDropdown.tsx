@@ -56,13 +56,8 @@ export function EventStatusDropdown({
 
   async function handleConfirmStatusChange(cancellationReason?: string) {
     if (confirmStatus) {
-      try {
-        await onStatusChange(confirmStatus, cancellationReason);
-        setConfirmStatus(null);
-      } catch (error) {
-        console.error("Status change failed:", error);
-        setConfirmStatus(null);
-      }
+      await onStatusChange(confirmStatus, cancellationReason);
+      setConfirmStatus(null);
     }
   }
 

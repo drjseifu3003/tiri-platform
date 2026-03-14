@@ -1,26 +1,13 @@
 ﻿"use client";
 
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useGetAccountSettingsQuery, useUpdateAccountSettingsMutation, useUploadAccountLogoMutation } from "@/lib/api/settings-api";
+import type { AccountSettingsResponse } from "@/lib/api/types";
 import { useSession } from "@/lib/session-context";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-
-type AccountSettingsResponse = {
-  user: {
-    id: string;
-    phone: string;
-    role: "ADMIN" | "STAFF";
-  };
-  studio: {
-    id: string;
-    name: string;
-    email: string | null;
-    phone: string;
-    logoUrl: string | null;
-    primaryColor: string | null;
-  } | null;
-};
 
 export default function StudioAccountSettingsPage() {
   const { status, refresh } = useSession();
@@ -39,6 +26,9 @@ export default function StudioAccountSettingsPage() {
     studioName: "",
     studioLogoUrl: "",
   });
+  const accountSettingsQuery = useGetAccountSettingsQuery(undefined, { skip: status !== "authenticated" });
+  const [updateAccountSettings] = useUpdateAccountSettingsMutation();
+  const [uploadAccountLogo] = useUploadAccountLogoMutation();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -48,45 +38,30 @@ export default function StudioAccountSettingsPage() {
 
     if (status !== "authenticated") return;
 
-    let cancelled = false;
-
-    async function loadSettings() {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch("/api/studio/settings/account", {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error("Unable to load account settings");
-        }
-
-        const data = (await response.json()) as AccountSettingsResponse;
-
-        if (cancelled) return;
-
-        setRole(data.user.role);
-        setFormData({
-          currentPassword: "",
-          newPassword: "",
-          studioName: data.studio?.name ?? "",
-          studioLogoUrl: data.studio?.logoUrl ?? "",
-        });
-      } catch {
-        if (!cancelled) setError("Unable to load account settings");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void loadSettings();
-
-    return () => {
-      cancelled = true;
-    };
   }, [router, status]);
+
+  useEffect(() => {
+    setLoading(accountSettingsQuery.isLoading || accountSettingsQuery.isFetching);
+  }, [accountSettingsQuery.isFetching, accountSettingsQuery.isLoading]);
+
+  useEffect(() => {
+    if (!accountSettingsQuery.data) return;
+
+    const data = accountSettingsQuery.data as AccountSettingsResponse;
+    setRole(data.user.role);
+    setFormData({
+      currentPassword: "",
+      newPassword: "",
+      studioName: data.studio?.name ?? "",
+      studioLogoUrl: data.studio?.logoUrl ?? "",
+    });
+    setError(null);
+  }, [accountSettingsQuery.data]);
+
+  useEffect(() => {
+    if (!accountSettingsQuery.error) return;
+    setError(getApiErrorMessage(accountSettingsQuery.error, "Unable to load account settings"));
+  }, [accountSettingsQuery.error]);
 
   async function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -104,34 +79,21 @@ export default function StudioAccountSettingsPage() {
       payload.studioLogoUrl = formData.studioLogoUrl.trim() || null;
     }
 
-    try {
-      const response = await fetch("/api/studio/settings/account", {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        setError(body?.error ?? "Unable to save account settings");
-        return;
-      }
-
-      setFormData((current) => ({
-        ...current,
-        currentPassword: "",
-        newPassword: "",
-      }));
-      await refresh();
-      setSuccess("Account settings updated successfully.");
-    } catch {
-      setError("Unable to save account settings");
-    } finally {
+    const result = await updateAccountSettings(payload);
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to save account settings"));
       setSaving(false);
+      return;
     }
+
+    setFormData((current) => ({
+      ...current,
+      currentPassword: "",
+      newPassword: "",
+    }));
+    await refresh();
+    setSuccess("Account settings updated successfully.");
+    setSaving(false);
   }
 
   async function handleLogoUpload(file: File) {
@@ -139,30 +101,19 @@ export default function StudioAccountSettingsPage() {
     setError(null);
     setSuccess(null);
 
-    try {
-      const body = new FormData();
-      body.append("file", file);
+    const body = new FormData();
+    body.append("file", file);
 
-      const response = await fetch("/api/studio/settings/account/logo", {
-        method: "POST",
-        credentials: "include",
-        body,
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        setError(payload?.error ?? "Unable to upload logo");
-        return;
-      }
-
-      const payload = (await response.json()) as { url: string };
-      setFormData((current) => ({ ...current, studioLogoUrl: payload.url }));
-      setSuccess("Logo uploaded. Save settings to apply it.");
-    } catch {
-      setError("Unable to upload logo");
-    } finally {
+    const result = await uploadAccountLogo(body);
+    if ("error" in result) {
+      setError(getApiErrorMessage(result.error, "Unable to upload logo"));
       setUploadingLogo(false);
+      return;
     }
+
+    setFormData((current) => ({ ...current, studioLogoUrl: result.data.url }));
+    setSuccess("Logo uploaded. Save settings to apply it.");
+    setUploadingLogo(false);
   }
 
   return (

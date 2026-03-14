@@ -1,5 +1,13 @@
 ﻿"use client";
 
+import {
+  useCreateTeamMemberMutation,
+  useDeleteTeamMemberMutation,
+  useGetTeamSettingsQuery,
+  useUpdateTeamMemberMutation,
+} from "@/lib/api/settings-api";
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import type { TeamMember, TeamResponse, TeamRole } from "@/lib/api/types";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSession } from "@/lib/session-context";
@@ -8,20 +16,6 @@ import Link from "next/link";
 import { MobileFilterSheet } from "@/components/ui/mobile-filter-sheet";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-
-type TeamRole = "EDITOR" | "CUSTOMER_SERVICE" | "EVENT_PLANNER" | "PHOTO_CREW";
-
-type TeamMember = {
-  id: string;
-  phone: string;
-  role: "ADMIN" | "STAFF";
-  teamRole: TeamRole;
-  createdAt: string;
-};
-
-type TeamResponse = {
-  members: TeamMember[];
-};
 
 const teamRoleOptions: Array<{ value: TeamRole; label: string }> = [
   { value: "EDITOR", label: "Editor" },
@@ -73,27 +67,12 @@ export default function StudioTeamSettingsPage() {
     phone: "",
     teamRole: "EVENT_PLANNER" as TeamRole,
   });
+  const teamSettingsQuery = useGetTeamSettingsQuery(undefined, { skip: status !== "authenticated" });
+  const [createTeamMember] = useCreateTeamMemberMutation();
+  const [updateTeamMember] = useUpdateTeamMemberMutation();
+  const [deleteTeamMember] = useDeleteTeamMemberMutation();
 
   const isAdmin = session?.user.role === "ADMIN";
-
-  const loadMembers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/studio/settings/team", { credentials: "include" });
-      if (!response.ok) {
-        throw new Error("Unable to load team members");
-      }
-
-      const data = (await response.json()) as TeamResponse;
-      setMembers(data.members ?? []);
-    } catch {
-      setError("Unable to load team members");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -102,8 +81,23 @@ export default function StudioTeamSettingsPage() {
     }
 
     if (status !== "authenticated") return;
-    void loadMembers();
-  }, [loadMembers, router, status]);
+  }, [router, status]);
+
+  useEffect(() => {
+    setLoading(teamSettingsQuery.isLoading || teamSettingsQuery.isFetching);
+  }, [teamSettingsQuery.isFetching, teamSettingsQuery.isLoading]);
+
+  useEffect(() => {
+    if (!teamSettingsQuery.data) return;
+    const data = teamSettingsQuery.data as TeamResponse;
+    setMembers(data.members ?? []);
+    setError(null);
+  }, [teamSettingsQuery.data]);
+
+  useEffect(() => {
+    if (!teamSettingsQuery.error) return;
+    setError(getApiErrorMessage(teamSettingsQuery.error, "Unable to load team members"));
+  }, [teamSettingsQuery.error]);
 
   const filteredMembers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -141,34 +135,23 @@ export default function StudioTeamSettingsPage() {
       return;
     }
 
-    try {
-      const response = await fetch("/api/studio/settings/team", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: formData.phone.trim(),
-          password: formData.password,
-          teamRole: formData.teamRole,
-        }),
-      });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        setActionError(body?.error ?? "Unable to add team member");
-        return;
-      }
-
-      setFormData({ phone: "", password: "", teamRole: "EVENT_PLANNER" });
-      setShowAddPassword(false);
-      setIsAddDialogOpen(false);
-      setSuccess("Team member added successfully.");
-      await loadMembers();
-    } catch {
-      setActionError("Unable to add team member");
-    } finally {
+    const result = await createTeamMember({
+      phone: formData.phone.trim(),
+      password: formData.password,
+      teamRole: formData.teamRole,
+    });
+    if ("error" in result) {
+      setActionError(getApiErrorMessage(result.error, "Unable to add team member"));
       setCreateLoading(false);
+      return;
     }
+
+    setFormData({ phone: "", password: "", teamRole: "EVENT_PLANNER" });
+    setShowAddPassword(false);
+    setIsAddDialogOpen(false);
+    setSuccess("Team member added successfully.");
+    void teamSettingsQuery.refetch();
+    setCreateLoading(false);
   }
 
   function openEditDialog(member: TeamMember) {
@@ -209,28 +192,17 @@ export default function StudioTeamSettingsPage() {
       teamRole: editFormData.teamRole,
     };
 
-    try {
-      const response = await fetch(`/api/studio/settings/team/${editingMember.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        setActionError(body?.error ?? "Unable to update team member");
-        return;
-      }
-
-      closeEditDialog();
-      setSuccess("Team member updated.");
-      await loadMembers();
-    } catch {
-      setActionError("Unable to update team member");
-    } finally {
+    const result = await updateTeamMember({ userId: editingMember.id, body: payload });
+    if ("error" in result) {
+      setActionError(getApiErrorMessage(result.error, "Unable to update team member"));
       setEditLoading(false);
+      return;
     }
+
+    closeEditDialog();
+    setSuccess("Team member updated.");
+    void teamSettingsQuery.refetch();
+    setEditLoading(false);
   }
 
   function openResetDialog(member: TeamMember) {
@@ -266,27 +238,16 @@ export default function StudioTeamSettingsPage() {
     setActionError(null);
     setSuccess(null);
 
-    try {
-      const response = await fetch(`/api/studio/settings/team/${resetDialogMember.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: resetPassword }),
-      });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        setActionError(body?.error ?? "Unable to reset password");
-        return;
-      }
-
-      setSuccess("Password reset successfully.");
-      closeResetDialog();
-    } catch {
-      setActionError("Unable to reset password");
-    } finally {
+    const result = await updateTeamMember({ userId: resetDialogMember.id, body: { password: resetPassword } });
+    if ("error" in result) {
+      setActionError(getApiErrorMessage(result.error, "Unable to reset password"));
       setResetForMemberId(null);
+      return;
     }
+
+    setSuccess("Password reset successfully.");
+    closeResetDialog();
+    setResetForMemberId(null);
   }
 
   function openDeleteDialog(member: TeamMember) {
@@ -322,26 +283,17 @@ export default function StudioTeamSettingsPage() {
 
     setDeleteForMemberId(deleteDialogMember.id);
 
-    try {
-      const response = await fetch(`/api/studio/settings/team/${deleteDialogMember.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        setActionError(body?.error ?? "Unable to remove team member");
-        return;
-      }
-
-      setSuccess("Team member removed.");
-      closeDeleteDialog();
-      await loadMembers();
-    } catch {
-      setActionError("Unable to remove team member");
-    } finally {
+    const result = await deleteTeamMember({ userId: deleteDialogMember.id });
+    if ("error" in result) {
+      setActionError(getApiErrorMessage(result.error, "Unable to remove team member"));
       setDeleteForMemberId(null);
+      return;
     }
+
+    setSuccess("Team member removed.");
+    closeDeleteDialog();
+    void teamSettingsQuery.refetch();
+    setDeleteForMemberId(null);
   }
 
   return (

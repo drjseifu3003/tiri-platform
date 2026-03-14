@@ -4,6 +4,8 @@ import { BookingFiltersBar } from "@/components/bookings/BookingFiltersBar";
 import { BookingStatsCards } from "@/components/bookings/BookingStatsCards";
 import { BookingTable } from "@/components/bookings/BookingTable";
 import { ActionResponse, BookingFilter, BookingRequestItem, BookingResponse } from "@/components/bookings/types";
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useLazyGetStudioBookingsQuery, useStudioBookingActionMutation } from "@/lib/api/studio-api";
 import { useSession } from "@/lib/session-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -29,6 +31,8 @@ export default function StudioBookingsPage() {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<BookingFilter>("all");
+  const [fetchStudioBookings] = useLazyGetStudioBookingsQuery();
+  const [triggerBookingAction] = useStudioBookingActionMutation();
 
   const hasActiveFilters = search.trim().length > 0 || filter !== "all";
 
@@ -50,46 +54,32 @@ export default function StudioBookingsPage() {
         setInitialLoading(true);
       }
 
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          pageSize: String(pageSize),
+      const result = await fetchStudioBookings(
+        {
+          page,
+          pageSize,
           filter,
-        });
+          search: search.trim().length > 0 ? search.trim() : undefined,
+        },
+        false
+      );
 
-        if (search.trim().length > 0) {
-          params.set("search", search.trim());
-        }
-
-        const response = await fetch(`/api/studio/bookings?${params.toString()}`, {
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          throw new Error("Unable to load booking requests");
-        }
-
-        const payload = (await response.json()) as BookingResponse;
-
-        if (!cancelled) {
+      if (!cancelled) {
+        if ("data" in result) {
+          const payload = result.data as BookingResponse;
           setBookings(payload.bookings ?? []);
           setStats(payload.stats ?? { total: 0, new: 0, handled: 0, cancelled: 0 });
           setTotalPages(payload.pagination?.totalPages ?? 1);
           setTotalItems(payload.pagination?.total ?? 0);
-          setHasLoadedOnce(true);
-        }
-      } catch {
-        if (!cancelled) {
+        } else {
           setBookings([]);
           setTotalItems(0);
           setTotalPages(1);
-          setHasLoadedOnce(true);
         }
-      } finally {
-        if (!cancelled) {
-          setInitialLoading(false);
-          setTableLoading(false);
-        }
+
+        setHasLoadedOnce(true);
+        setInitialLoading(false);
+        setTableLoading(false);
       }
     }
 
@@ -108,59 +98,45 @@ export default function StudioBookingsPage() {
     setActionError(null);
     setActionSuccess(null);
 
-    try {
-      const response = await fetch(`/api/studio/bookings/${bookingId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({ action }),
-      });
+    const actionResult = await triggerBookingAction({ bookingId, action });
+    if ("error" in actionResult) {
+      setActionError(getApiErrorMessage(actionResult.error, "Unable to apply booking action."));
+      setLoadingActionId(null);
+      return;
+    }
 
-      const payload = (await response.json().catch(() => null)) as ActionResponse | null;
+    const payload = actionResult.data as ActionResponse;
 
-      if (!response.ok) {
-        throw new Error(payload?.error ?? "Unable to apply booking action.");
-      }
+    if (action === "accept") {
+      setActionSuccess(payload?.event?.title ? `${payload.event.title} was created and the booking was marked as handled.` : "Booking converted to event.");
+    } else {
+      setActionSuccess("Booking marked as cancelled.");
+    }
 
-      if (action === "accept") {
-        setActionSuccess(payload?.event?.title ? `${payload.event.title} was created and the booking was marked as handled.` : "Booking converted to event.");
-      } else {
-        setActionSuccess("Booking marked as cancelled.");
-      }
+    setTableLoading(true);
 
-      setTableLoading(true);
-
-      const params = new URLSearchParams({
-        page: String(page),
-        pageSize: String(pageSize),
+    const refreshedResult = await fetchStudioBookings(
+      {
+        page,
+        pageSize,
         filter,
-      });
+        search: search.trim().length > 0 ? search.trim() : undefined,
+      },
+      false
+    );
 
-      if (search.trim().length > 0) {
-        params.set("search", search.trim());
-      }
-
-      const refreshResponse = await fetch(`/api/studio/bookings?${params.toString()}`, {
-        credentials: "include",
-      });
-
-      if (!refreshResponse.ok) {
-        throw new Error("Updated, but failed to refresh booking list.");
-      }
-
-      const refreshedPayload = (await refreshResponse.json()) as BookingResponse;
+    if ("data" in refreshedResult) {
+      const refreshedPayload = refreshedResult.data as BookingResponse;
       setBookings(refreshedPayload.bookings ?? []);
       setStats(refreshedPayload.stats ?? { total: 0, new: 0, handled: 0, cancelled: 0 });
       setTotalPages(refreshedPayload.pagination?.totalPages ?? 1);
       setTotalItems(refreshedPayload.pagination?.total ?? 0);
-    } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to apply booking action.");
-    } finally {
-      setTableLoading(false);
-      setLoadingActionId(null);
+    } else {
+      setActionError(getApiErrorMessage(refreshedResult.error, "Unable to refresh bookings."));
     }
+
+    setTableLoading(false);
+    setLoadingActionId(null);
   }
 
   const disableActions = useMemo(() => loadingActionId !== null || tableLoading, [loadingActionId, tableLoading]);

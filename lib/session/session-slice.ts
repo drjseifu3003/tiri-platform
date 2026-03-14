@@ -79,6 +79,11 @@ const sessionSlice = createSlice({
     clearSessionError(state) {
       state.error = null;
     },
+    markUnauthenticated(state) {
+      state.status = "unauthenticated";
+      state.data = null;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -127,5 +132,5 @@ const sessionSlice = createSlice({
   },
 });
 
-export const { clearSessionError } = sessionSlice.actions;
+export const { clearSessionError, markUnauthenticated } = sessionSlice.actions;
 export const sessionReducer = sessionSlice.reducer;

@@ -1,15 +1,21 @@
 ﻿"use client";
 
+import { getApiErrorMessage } from "@/lib/api/base-api";
+import { useLazyGetStudioEventsQuery } from "@/lib/api/events-api";
+import {
+  useCreateStudioGuestMutation,
+  useDeleteStudioGuestMutation,
+  useLazyGetStudioGuestsQuery,
+  useUpdateStudioGuestMutation,
+} from "@/lib/api/guests-api";
+import type { StudioEventListItem, StudioEventsResponse } from "@/lib/api/types";
 import { useSession } from "@/lib/session-context";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { MobileFilterSheet } from "@/components/ui/mobile-filter-sheet";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
-type EventListItem = {
-  id: string;
-  title: string;
-};
+type EventListItem = Pick<StudioEventListItem, "id" | "title">;
 
 type GuestItem = {
   id: string;
@@ -29,7 +35,6 @@ type GuestItem = {
 };
 
 type GuestsResponse = { guests: GuestItem[] };
-type EventsResponse = { events: EventListItem[] };
 
 function generateInvitationCode(name: string) {
   const base = name.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 5) || "GUEST";
@@ -59,32 +64,40 @@ export default function StudioGuestsPage() {
     category: "GENERAL" as "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST",
     invitationCode: "",
   });
+  const [fetchGuests] = useLazyGetStudioGuestsQuery();
+  const [fetchEvents] = useLazyGetStudioEventsQuery();
+  const [createGuest] = useCreateStudioGuestMutation();
+  const [updateGuest] = useUpdateStudioGuestMutation();
+  const [deleteGuest] = useDeleteStudioGuestMutation();
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    try {
-      const [guestsRes, eventsRes] = await Promise.all([
-        fetch("/api/studio/guests?scope=studio", { credentials: "include" }),
-        fetch("/api/studio/events", { credentials: "include" }),
-      ]);
+    const [guestsResult, eventsResult] = await Promise.all([
+      fetchGuests({ scope: "studio" }, false),
+      fetchEvents({}, false),
+    ]);
 
-      if (!guestsRes.ok || !eventsRes.ok) {
-        throw new Error("Unable to load guests");
-      }
-
-      const guestsJson = (await guestsRes.json()) as GuestsResponse;
-      const eventsJson = (await eventsRes.json()) as EventsResponse;
-
-      setGuests(guestsJson.guests ?? []);
-      setEvents(eventsJson.events ?? []);
-    } catch {
-      setError("Unable to load guests");
-    } finally {
+    if ("error" in guestsResult) {
+      setError(getApiErrorMessage(guestsResult.error, "Unable to load guests"));
       setLoading(false);
+      return;
     }
-  }, []);
+
+    if ("error" in eventsResult) {
+      setError(getApiErrorMessage(eventsResult.error, "Unable to load guests"));
+      setLoading(false);
+      return;
+    }
+
+    const guestsJson = guestsResult.data as GuestsResponse;
+    const eventsJson = eventsResult.data as StudioEventsResponse<EventListItem>;
+
+    setGuests(guestsJson.guests ?? []);
+    setEvents(eventsJson.events ?? []);
+    setLoading(false);
+  }, [fetchEvents, fetchGuests]);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -139,65 +152,46 @@ export default function StudioGuestsPage() {
       return;
     }
 
-    try {
-      const response = await fetch("/api/studio/guests", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          name,
-          phone: formData.phone.trim() || undefined,
-          email: formData.email.trim() || undefined,
-          category: formData.category,
-          invitationCode,
-        }),
-      });
+    const result = await createGuest({
+      eventId,
+      name,
+      phone: formData.phone.trim() || undefined,
+      email: formData.email.trim() || undefined,
+      category: formData.category,
+      invitationCode,
+    });
 
-      if (!response.ok) {
-        setActionError("Unable to add guest. Invitation code may already exist.");
-        return;
-      }
-
-      setFormData({
-        eventId: "",
-        name: "",
-        phone: "",
-        email: "",
-        category: "GENERAL",
-        invitationCode: "",
-      });
-      setSuccess("Guest added successfully.");
-      await loadData();
-    } catch {
-      setActionError("Unable to add guest.");
-    } finally {
+    if ("error" in result) {
+      setActionError(getApiErrorMessage(result.error, "Unable to add guest."));
       setCreateLoading(false);
+      return;
     }
+
+    setFormData({
+      eventId: "",
+      name: "",
+      phone: "",
+      email: "",
+      category: "GENERAL",
+      invitationCode: "",
+    });
+    setSuccess("Guest added successfully.");
+    await loadData();
+    setCreateLoading(false);
   }
 
   async function handleToggleCheckIn(guest: GuestItem) {
     setActionError(null);
     setSuccess(null);
 
-    try {
-      const response = await fetch(`/api/studio/guests/${guest.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkedIn: !guest.checkedIn }),
-      });
-
-      if (!response.ok) {
-        setActionError("Unable to update guest check-in status.");
-        return;
-      }
-
-      setSuccess(`Guest ${guest.checkedIn ? "marked as not checked-in" : "checked-in"}.`);
-      await loadData();
-    } catch {
-      setActionError("Unable to update guest check-in status.");
+    const result = await updateGuest({ guestId: guest.id, body: { checkedIn: !guest.checkedIn } });
+    if ("error" in result) {
+      setActionError(getApiErrorMessage(result.error, "Unable to update guest check-in status."));
+      return;
     }
+
+    setSuccess(`Guest ${guest.checkedIn ? "marked as not checked-in" : "checked-in"}.`);
+    await loadData();
   }
 
   async function handleDeleteGuest(guest: GuestItem) {
@@ -207,22 +201,14 @@ export default function StudioGuestsPage() {
     const confirmed = window.confirm(`Delete guest \"${guest.name}\"?`);
     if (!confirmed) return;
 
-    try {
-      const response = await fetch(`/api/studio/guests/${guest.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        setActionError("Unable to delete guest.");
-        return;
-      }
-
-      setSuccess("Guest deleted.");
-      await loadData();
-    } catch {
-      setActionError("Unable to delete guest.");
+    const result = await deleteGuest({ guestId: guest.id });
+    if ("error" in result) {
+      setActionError(getApiErrorMessage(result.error, "Unable to delete guest."));
+      return;
     }
+
+    setSuccess("Guest deleted.");
+    await loadData();
   }
 
   return (
