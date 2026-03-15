@@ -28,6 +28,8 @@ type CreateEventDialogProps = {
   onClose: () => void;
 };
 
+
+
 export function CreateEventDialog({
   isOpen,
   createError,
