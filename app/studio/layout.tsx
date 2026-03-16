@@ -199,7 +199,8 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg text-xs font-semibold">
               {session?.studio?.logoUrl ? (
                 <img
-                  src={session.studio.logoUrl}
+                  // src={session.studio.logoUrl}
+                  src={'/crown.png'}
                   alt={`${session?.studio?.name ?? "Studio"} logo`}
                   className="h-full w-full object-cover"
                 />
