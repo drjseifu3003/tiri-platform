@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
               : filter === "archived"
                 ? { status: "ARCHIVED" as const }
                 : filter === "published"
-                  ? { status: { in: ["SCHEDULED", "LIVE"] as const } }
+                  ? { status: { in: ["SCHEDULED", "LIVE"] as EventStatus[] } }
                   : {}),
     ...dateWhere,
   };

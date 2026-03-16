@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kebkab Events Studio",
-  description: "Kebkab event operations platform for studio teams",
+  title: "Kebkab Events",
+  description: "Kebkab event orthodox event planning.",
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",

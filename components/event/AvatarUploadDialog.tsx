@@ -24,7 +24,7 @@ export function AvatarUploadDialog({
 }: AvatarUploadDialogProps) {
   const [preview, setPreview] = useState<string | null>(currentAvatarUrl || null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(error);
+  const [uploadError, setUploadError] = useState<string | null>(error ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (file: File) => {

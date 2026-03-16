@@ -53,27 +53,26 @@ function inferCountryFromValue(value: string): RPNInput.Country | undefined {
 
 const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
   React.forwardRef<React.ElementRef<typeof RPNInput.default>, PhoneInputProps>(
-    ({ className, onChange, defaultCountry, country: controlledCountry, onCountryChange, ...props }, ref) => {
+    ({ className, onChange, defaultCountry, onCountryChange, ...props }, ref) => {
       const fallbackCountry = defaultCountry ?? "ET";
       const [autoCountry, setAutoCountry] = React.useState<RPNInput.Country | undefined>(fallbackCountry);
 
       const handleCountryChange = React.useCallback((nextCountry?: RPNInput.Country) => {
         onCountryChange?.(nextCountry);
-        if (!controlledCountry && nextCountry) {
+        if (nextCountry) {
           setAutoCountry(nextCountry);
         }
-      }, [controlledCountry, onCountryChange]);
+      }, [onCountryChange]);
 
       const handleValueChange = React.useCallback((value: RPNInput.Value | undefined) => {
         const normalized = value ?? "";
         onChange?.(normalized);
 
-        if (controlledCountry) return;
         const inferred = inferCountryFromValue(normalized);
         if (inferred) {
           setAutoCountry(inferred);
         }
-      }, [controlledCountry, onChange]);
+      }, [onChange]);
 
       return (
         <RPNInput.default
@@ -84,7 +83,7 @@ const PhoneInput: React.ForwardRefExoticComponent<PhoneInputProps> =
           inputComponent={InputComponent}
           international
           defaultCountry={fallbackCountry}
-          country={controlledCountry ?? autoCountry}
+          country={autoCountry}
           onCountryChange={handleCountryChange}
           onChange={handleValueChange}
           {...props}
