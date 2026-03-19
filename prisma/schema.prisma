@@ -114,6 +114,10 @@ model Event {
   title           String
   brideName       String?
   groomName       String?
+  brideNameAm     String?
+  groomNameAm     String?
+  brideNameAr     String?
+  groomNameAr     String?
 
   bridePhone      String?
   groomPhone      String?
@@ -121,10 +125,35 @@ model Event {
   coupleAccessToken String  @unique @default(uuid())
 
   eventDate       DateTime
+  eventTimeEn     String?
+  eventTimeAm     String?
+  eventTimeAr     String?
+  venue           String?
+  venueAddress    String?
+  venueMapLink    String?
   location        String?
   googleMapAddress String
   description     String?
   coverImage      String?
+  couplePhotoUrl  String?
+  galleryImages   String?   // comma-separated URLs
+
+  greetingTitle   String?
+  greetingTitleAm String?
+  greetingTitleAr String?
+  messageBody     String?
+  messageBodyAm   String?
+  messageBodyAr   String?
+
+  templateType    String?   // "religion" | "culture" | "both"
+  religion        String?   // "orthodox" | "muslim" | "protestant" | "catholic"
+  culture         String?   // "habesha" | "oromo" | "tigrai" | "somali" | "diaspora"
+
+  telegramChannel     String?
+  telegramChannelName String?
+
+  scripture       String?
+  scriptureRef    String?
 
   slug            String    @unique
   subdomain       String?   @unique

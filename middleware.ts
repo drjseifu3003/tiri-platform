@@ -12,6 +12,24 @@ function isPublicApiPath(pathname: string) {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get('host');
+
+  // Subdomain extraction logic
+  let subdomain = null;
+  if (host) {
+    const parts = host.split('.');
+    if (parts.length > 2) {
+      subdomain = parts[0];
+    }
+  }
+
+  // Ignore root domain and www
+  if (subdomain && subdomain !== 'www' && subdomain !== 'yourplatform') {
+    // Only rewrite for non-API, non-static, non-studio paths
+    if (!pathname.startsWith('/api/') && !pathname.startsWith('/studio/')) {
+      return NextResponse.rewrite(new URL(`/wedding/${subdomain}`, request.url));
+    }
+  }
 
   if (pathname.startsWith("/api/") && isPublicApiPath(pathname)) {
     return NextResponse.next();
@@ -31,5 +49,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/studio/:path*"],
+  matcher: ["/((?!_next|static|favicon.ico).*)"],
 };

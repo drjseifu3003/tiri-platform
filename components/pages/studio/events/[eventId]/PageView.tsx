@@ -38,6 +38,7 @@ import { Trash2 } from "lucide-react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { InvitationTab } from "@/components/event/InvitationTab";
 
 type GuestItem = {
   id: string;
@@ -81,7 +82,7 @@ type EventDetail = {
 
 type EventResponse = { event: EventDetail };
 
-type EventTab = "overview" | "guests" | "media";
+type EventTab = "overview" | "guests" | "media" | "invitation";
 
 type GuestCategory = "GENERAL" | "BRIDE_GUEST" | "GROOM_GUEST";
 type MediaType = "IMAGE" | "VIDEO";
@@ -1293,6 +1294,16 @@ export default function EventDetailPage() {
               onPreviewMedia={setPreviewMediaItem}
               onDeleteMedia={(mediaId) => {
                 void handleDeleteMedia(mediaId);
+              }}
+            />
+          ) : null}
+
+          {tab === "invitation" ? (
+            <InvitationTab
+              event={event}
+              onSave={async (updated) => {
+                await updateEvent({ eventId: event.id, body: updated });
+                await eventQuery.refetch();
               }}
             />
           ) : null}
