@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
 
 // ─── CULTURE TEMPLATE: Somali Ethiopian ──────────────────────────────────────
 // Visual identity: culture only — Somali flag sky blue + white, star motif,
@@ -237,7 +236,6 @@ export default function SomaliTemplate({ data }: { data: InviteData }) {
         {data.venueMapLink&&(<a href={data.venueMapLink} target="_blank" rel="noreferrer" className="so-mapbtn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Open in Google Maps</a>)}
 
         {/* RSVP */}
-        <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#C5973A" bgColor="#1A5276" textColor="#F8FAFC"/>
         <div className="so-rsvp">
           {rsvp.submitted?(<div style={{textAlign:"center",padding:"18px 0"}}><p style={{fontFamily:"'Lora',serif",fontSize:"1.1rem",fontStyle:"italic",color:DBLUE,marginBottom:6}}>Mahadsanid!</p><p style={{fontSize:"9px",letterSpacing:".18em",textTransform:"uppercase",color:"rgba(26,82,118,.42)"}}>Your RSVP has been received</p></div>):(
             <>

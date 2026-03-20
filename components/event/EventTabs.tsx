@@ -1,25 +1,19 @@
 "use client";
 
-type EventTab = "overview" | "guests" | "media" | "invitation";
+type EventTab = "overview" | "invitation";
 
 interface EventTabsProps {
   activeTab: EventTab;
   onTabChange: (tab: EventTab) => void;
-  guestCount?: number;
-  mediaCount?: number;
 }
 
 const TABS = [
   { id: "overview" as EventTab, label: "Overview" },
-  { id: "guests" as EventTab, label: "Guests" },
-  { id: "media" as EventTab, label: "Media" },
   { id: "invitation" as EventTab, label: "Invitation" },
 ];
 
-export function EventTabs({ activeTab, onTabChange, guestCount = 0, mediaCount = 0 }: EventTabsProps) {
+export function EventTabs({ activeTab, onTabChange }: EventTabsProps) {
   function getTabLabel(tab: EventTab): string {
-    if (tab === "guests") return `Guests${guestCount > 0 ? ` (${guestCount})` : ""}`;
-    if (tab === "media") return `Media${mediaCount > 0 ? ` (${mediaCount})` : ""}`;
     if (tab === "invitation") return "Invitation";
     return TABS.find((t) => t.id === tab)?.label || "";
   }

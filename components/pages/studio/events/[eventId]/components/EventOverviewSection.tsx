@@ -33,34 +33,15 @@ type EventDetail = {
   location: string | null;
   googleMapAddress: string;
   description: string | null;
-  invitationCardUrl: string | null;
-  guests: GuestItem[];
-  media: MediaItem[];
 };
 
 type EventOverviewSectionProps = {
   event: EventDetail;
-  invitationCardInputRef: RefObject<HTMLInputElement | null>;
-  invitationCardLoading: boolean;
-  invitationCardError: string | null;
-  isCompletedEvent: boolean;
-  immutableMessage: string;
-  onInvitationCardUpload: (file: File) => void;
-  onInvitationCardDelete: () => void;
-  setInvitationCardError: (value: string | null) => void;
 };
 
 export function EventOverviewSection({
   event,
-  invitationCardInputRef,
-  invitationCardLoading,
-  invitationCardError,
-  isCompletedEvent,
-  immutableMessage,
-  onInvitationCardUpload,
-  onInvitationCardDelete,
-  setInvitationCardError,
-}: EventOverviewSectionProps) {
+}: Omit<EventOverviewSectionProps, 'onInvitationCardUpload' | 'onInvitationCardDelete'>) {
   return (
     <section className="mt-5 grid gap-4 md:grid-cols-2">
       <div className="ui-panel">
@@ -73,10 +54,6 @@ export function EventOverviewSection({
           <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
             <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Groom Name</p>
             <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.groomName || "-"}</p>
-          </div>
-          <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-            <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Total Guests</p>
-            <p className="mt-1 text-sm font-medium" style={{ color: "var(--text-primary)" }}>{event.guests.length} guest{event.guests.length !== 1 ? "s" : ""}</p>
           </div>
           <div className="rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
             <p className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>Bride Phone</p>
@@ -114,82 +91,6 @@ export function EventOverviewSection({
         {event.description ? (
           <p className="mt-4 text-sm" style={{ color: "var(--text-secondary)" }}>{event.description}</p>
         ) : null}
-
-        <div className="mt-5 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)", background: "var(--surface-muted)" }}>
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
-              Invitation Card
-            </p>
-            <div className="flex items-center gap-2">
-              {event.invitationCardUrl ? (
-                <>
-                  <a
-                    href={event.invitationCardUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border"
-                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)", background: "var(--surface)" }}
-                    title="Open invitation card"
-                    aria-label="Open invitation card"
-                  >
-                    <ExternalLink size={14} />
-                  </a>
-                  <button
-                    type="button"
-                    onClick={onInvitationCardDelete}
-                    disabled={invitationCardLoading || isCompletedEvent}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border disabled:opacity-60"
-                    style={{ borderColor: "var(--error)", color: "var(--error)", background: "var(--surface)" }}
-                    title="Delete invitation card"
-                    aria-label="Delete invitation card"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => invitationCardInputRef.current?.click()}
-                disabled={invitationCardLoading || isCompletedEvent}
-                className="ui-button-secondary h-8 px-3 text-xs"
-              >
-                {event.invitationCardUrl ? "Replace" : "Upload"}
-              </button>
-            </div>
-          </div>
-
-          <input
-            ref={invitationCardInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(eventChange) => {
-              const file = eventChange.target.files?.[0];
-              if (!file) return;
-              if (isCompletedEvent) {
-                setInvitationCardError(immutableMessage);
-                return;
-              }
-              onInvitationCardUpload(file);
-            }}
-          />
-
-          {event.invitationCardUrl ? (
-            <div className="mt-3 overflow-hidden rounded-lg border" style={{ borderColor: "var(--border-subtle)" }}>
-              <img src={event.invitationCardUrl} alt="Invitation card" className="h-44 w-full object-cover" />
-            </div>
-          ) : (
-            <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-              No invitation card uploaded.
-            </p>
-          )}
-
-          {invitationCardError ? (
-            <p className="mt-2 rounded-lg px-3 py-2 text-sm" style={{ background: "var(--error-light)", color: "var(--error)" }}>
-              {invitationCardError}
-            </p>
-          ) : null}
-        </div>
       </div>
     </section>
   );

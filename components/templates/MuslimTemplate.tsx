@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, getHijriDate } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
+// ...existing code...
 
 // ─── RELIGION TEMPLATE: Muslim / Nikah ───────────────────────────────────────
 // Visual identity: faith only — Bismillah, Hijri date, Islamic geometric border,
@@ -289,7 +289,7 @@ export default function MuslimTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#D4AF37" bgColor="#0B1F14" textColor="#F8F2E3"/>
+        {/* WeddingGallery removed */}
         <div className="ms-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"20px 0"}}>

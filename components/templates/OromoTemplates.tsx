@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, getCalendarDays } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
+// ...existing code...
 
 // ─── CULTURE TEMPLATE: Oromo ──────────────────────────────────────────────────
 // Visual identity: culture only — Oromo flag colors (green/red/white),
@@ -297,7 +297,7 @@ export default function OromoTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#D4A017" bgColor="#1A4023" textColor="#F5F0E8"/>
+        {/* WeddingGallery removed */}
         <div className="or2-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"18px 0"}}>

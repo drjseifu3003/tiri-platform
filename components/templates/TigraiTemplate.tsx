@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, getCalendarDays, getEthiopianDate } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
+// ...existing code...
 
 // ─── CULTURE TEMPLATE: Tigrai ─────────────────────────────────────────────────
 // Visual identity: culture only — Axum obelisk silhouette, ancient stone feel,
@@ -252,7 +252,7 @@ export default function TigraiTemplate({ data }: { data: InviteData }) {
         {data.venueMapLink&&(<a href={data.venueMapLink} target="_blank" rel="noreferrer" className="ti-mapbtn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Open in Google Maps</a>)}
 
         {/* RSVP */}
-        <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#C09020" bgColor="#7B1D1D" textColor="#F0E8D8"/>
+        {/* WeddingGallery removed */}
         <div className="ti-rsvp">
           {rsvp.submitted?(<div style={{textAlign:"center",padding:"18px 0"}}><p style={{fontFamily:"'Noto Serif Ethiopic',serif",fontSize:"1.05rem",color:RED,marginBottom:6}}>ብዙሕ ኣመስጊንካ!</p><p style={{fontSize:"8.5px",letterSpacing:".18em",textTransform:"uppercase",color:"rgba(123,29,29,.42)"}}>Your RSVP has been received</p></div>):(
             <>

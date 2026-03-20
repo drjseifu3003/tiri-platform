@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, useLang, getCalendarDays, getEthiopianDate } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
+// ...existing code...
 
 // ─── CULTURE TEMPLATE: Habesha (Amhara / Tigrinya) ───────────────────────────
 // Visual identity: culture only — tibeb woven border, terracotta + ochre palette,
@@ -300,7 +300,7 @@ export default function HasbeshaTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#D4891A" bgColor="#5A2B0C" textColor="#F4E8D0"/>
+        {/* WeddingGallery removed */}
           <div className="hb-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"18px 0"}}>

@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, useLang, getEthiopianDate } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
+// ...existing code...
 
 // ─── RELIGION TEMPLATE: Orthodox Tewahedo ────────────────────────────────────
 // Visual identity: faith only — Ethiopian cross, wine + aged gold, Geez calendar,
@@ -284,7 +284,7 @@ export default function OrthodoxTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#C9942A" bgColor="#2B0812" textColor="#F4ECD8"/>
+        {/* WeddingGallery removed */}
         <div className="or-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"20px 0"}}>

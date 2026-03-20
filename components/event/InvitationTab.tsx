@@ -8,7 +8,6 @@ import MuslimTemplate     from "@/components/templates/MuslimTemplate";
 import HabeshaTemplate    from "@/components/templates/HabeshaTemplate";
 import DiasporaTemplate   from "@/components/templates/DiasporaTemplate";
 import CatholicTemplate   from "@/components/templates/CatholicTemplate";
-import CalendarTemplate   from "@/components/templates/CalendarTemplate";
 
 // ─── Template registry ────────────────────────────────────────────────────────
 const TEMPLATES = [
@@ -59,13 +58,7 @@ const TEMPLATES = [
     desc: "Bilingual · WhatsApp share · Modern minimal",
     component: DiasporaTemplate,
     card: { bg: "#1C3A28", accent: "#1A7A3C", nameColor: "#F7F5F0", phrase: "Save the Date", phraseLang: "en", deco: "flower" },
-  },
-  {
-    key: "calendar",   name: "Calendar",            tag: "Culture",
-    desc: "Calendar grid · Warm earth · Meskel flower",
-    component: CalendarTemplate,
-    card: { bg: "#6B4C2A", accent: "#D4891A", nameColor: "#F5E6C8", phrase: "ቀንዎን ያስቀምጡ", phraseLang: "eth", deco: "flower" },
-  },
+  }
 ];
 
 const NAV = [
@@ -640,16 +633,7 @@ export function InvitationTab({ event, onSave }: { event: any; onSave: (u: any) 
                     preview
                   />
                 </div>
-                <div style={S.group}>
-                  <p style={S.groupTitle}>Background Music</p>
-                  <FileUpload
-                    label="Audio file (guests tap 🔊 to play)"
-                    hint="MP3 or AAC — keep under 5MB for fast loading"
-                    accept="audio/*"
-                    value={form.audioUrl}
-                    onChange={(url) => upd("audioUrl", url)}
-                  />
-                </div>
+                {/* Background Music upload removed */}
               </div>
             )}
 
@@ -686,7 +670,7 @@ export function InvitationTab({ event, onSave }: { event: any; onSave: (u: any) 
                   <div style={S.wrap}>
                     <label style={S.label}>Google Maps Link</label>
                     <input style={S.input} onFocus={focus} onBlur={blur} placeholder="https://maps.google.com/?q=…" value={form.venueMapLink} onChange={e=>upd("venueMapLink",e.target.value)}/>
-                    <p style={S.hint}>Guests tap "Open in Google Maps" button on the invitation</p>
+                    {/* Google Maps guest hint removed */}
                   </div>
                 </div>
               </div>
@@ -787,47 +771,7 @@ export function InvitationTab({ event, onSave }: { event: any; onSave: (u: any) 
               </div>
             )}
 
-            {/* ══ GALLERY ══ */}
-            {section === "gallery" && (
-              <div>
-                <p style={{ fontSize:12, color:"#A09890", marginBottom:18, lineHeight:1.65 }}>
-                  Upload photos to show a gallery on the invitation. Guests browse here and join your Telegram channel to download all images.
-                </p>
-
-                {form.galleryImages.map((src: string, i: number) => (
-                  <GalleryImageUpload key={i} src={src} index={i} onChange={updImg} onRemove={rmImg}/>
-                ))}
-
-                <button
-                  onClick={addImg}
-                  style={{
-                    display:"flex", alignItems:"center", justifyContent:"center", gap:7,
-                    width:"100%", padding:11, background:"transparent",
-                    border:"1.5px dashed #D5CCC4", borderRadius:8,
-                    color:"#A09890", fontSize:13, fontWeight:500, cursor:"pointer",
-                    transition:"all .15s", marginBottom:28,
-                  }}
-                  onMouseEnter={e=>{e.currentTarget.style.borderColor="#8C6040";e.currentTarget.style.color="#8C6040";}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#D5CCC4";e.currentTarget.style.color="#A09890";}}
-                >
-                  <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
-                  Add Photo
-                </button>
-
-                <div style={{ paddingTop:20, borderTop:"1px solid #EDE8E1" }}>
-                  <p style={S.groupTitle}>Telegram Channel</p>
-                  <div style={S.wrap}>
-                    <label style={S.label}>Channel URL</label>
-                    <input style={S.input} onFocus={focus} onBlur={blur} placeholder="https://t.me/fikerab_fenan_wedding" value={form.telegramChannel} onChange={e=>upd("telegramChannel",e.target.value)}/>
-                  </div>
-                  <div style={S.wrap}>
-                    <label style={S.label}>Channel Display Name</label>
-                    <input style={S.input} onFocus={focus} onBlur={blur} placeholder="@fikerab_fenan_wedding" value={form.telegramChannelName} onChange={e=>upd("telegramChannelName",e.target.value)}/>
-                    <p style={S.hint}>A "Join Channel" button on the gallery lets guests get all wedding photos & videos</p>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Gallery/media section removed */}
 
           </div>
         </div>

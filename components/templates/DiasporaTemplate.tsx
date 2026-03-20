@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, useLang, getCalendarDays } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
+// ...existing code...
 
 // ─── CULTURE TEMPLATE: Ethiopian Diaspora ────────────────────────────────────
 // Visual identity: modern minimal for Ethiopians abroad — clean Swiss grid,
@@ -257,7 +257,7 @@ export default function DiasporaTemplate({ data }: { data: InviteData }) {
           </button>
 
           {/* RSVP */}
-          <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#1A7A3C" bgColor="#1C1C1E" textColor="#F7F5F0"/>
+          {/* WeddingGallery removed */}
           <div className="ds-rsvp">
             {rsvp.submitted?(<div style={{textAlign:"center",padding:"18px 0"}}><p style={{fontFamily:"'Instrument Serif',serif",fontSize:"1.3rem",fontStyle:"italic",color:CHAR,marginBottom:6}}>Thank You!</p><p style={{fontFamily:"'Noto Serif Ethiopic',serif",fontSize:"12px",color:"rgba(26,107,60,.5)"}}>አስቀድሞ እናመሰግናለን!</p></div>):(
               <>

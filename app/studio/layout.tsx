@@ -17,7 +17,6 @@ export default function StudioLayout({ children }: { children: React.ReactNode }
       { label: "Overview", href: "/studio/dashboard" },
       { label: "Events", href: "/studio/events" },
       { label: "Bookings", href: "/studio/bookings" },
-      { label: "Media", href: "/studio/media" },
       { label: "Data Insight", href: "/studio/insights" },
       { label: "Settings", href: "/studio/settings/account" },
     ],

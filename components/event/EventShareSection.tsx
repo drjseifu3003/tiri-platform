@@ -221,67 +221,7 @@ export function EventShareSection({
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
-              Media (Optional)
-            </label>
-            <div className="rounded-lg border-2 border-dashed p-6 text-center" style={{ borderColor: "var(--border-subtle)" }}>
-              {uploadPreview ? (
-                <div className="space-y-3">
-                  <div className="mx-auto h-32 w-32 overflow-hidden rounded-lg">
-                    {uploadKind === "IMAGE" ? (
-                      <img src={uploadPreview} alt="Preview" className="h-full w-full object-cover" />
-                    ) : (
-                      <video src={uploadPreview} className="h-full w-full object-cover" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{uploadFile?.name}</p>
-                    <p className="text-xs text-slate-600">
-                      {(uploadFile!.size / 1024 / 1024).toFixed(1)} MB
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setUploadFile(null);
-                      setUploadKind(null);
-                      if (uploadPreview) {
-                        URL.revokeObjectURL(uploadPreview);
-                      }
-                      setUploadPreview(null);
-                    }}
-                    className="text-sm font-medium"
-                    style={{ color: "var(--primary)" }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    onChange={handleUploadChange}
-                    accept="image/*,video/*"
-                    className="hidden"
-                    id="media-upload"
-                  />
-                  <label htmlFor="media-upload" className="cursor-pointer">
-                    <svg className="mx-auto h-8 w-8" style={{ color: "var(--text-tertiary)" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="mt-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>Click to upload media</p>
-                    <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>or drag and drop</p>
-                  </label>
-                </div>
-              )}
-            </div>
-            {uploadError && (
-              <p className="mt-2 text-sm" style={{ color: "var(--error)" }}>{uploadError}</p>
-            )}
-            <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-              {socialMediaRequirement(platform, uploadKind)}
-            </p>
-          </div>
+          {/* Media upload section removed */}
         </div>
 
         <div className="flex justify-end gap-2 border-t px-6 py-4" style={{ borderColor: "var(--border-subtle)" }}>

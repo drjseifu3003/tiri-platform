@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP } from "@/lib/hooks";
-import WeddingGallery from "@/components/templates/WeddingGallery";
+// ...existing code...
 
 // ─── RELIGION TEMPLATE: Catholic ─────────────────────────────────────────────
 // Faith identity only: deep navy + gold, Latin Missa, rosary bead dividers,
@@ -275,7 +275,7 @@ export default function CatholicTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        <WeddingGallery images={data.galleryImages??[]} telegramChannel={data.telegramChannel} telegramName={data.telegramChannelName} coupleNames={`${data.groomName} & ${data.brideName}`} accentColor="#B8963E" bgColor="#0E1B3A" textColor="#F6F0E4"/>
+        {/* WeddingGallery removed */}
         <div className="ca-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"20px 0"}}>
