@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
-import { InviteData } from "@/lib/types";
+import { InviteData } from "@/lib//types";
 import { useCountdown, useRSVP } from "@/lib/hooks";
 
 // ─── CULTURE TEMPLATE: Somali Ethiopian ──────────────────────────────────────
@@ -43,9 +43,12 @@ export default function SomaliTemplate({ data }: { data: InviteData }) {
         .so-flag{height:14px;background:${BLUE};display:flex;align-items:center;justify-content:center;}
         .so-flag svg{opacity:.65;}
         /* hero */
-        .so-hero{position:relative;height:64vh;min-height:400px;}
+        .so-hero{position:relative;height:92vh;min-height:400px;}
         .so-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-        .so-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(65,137,199,.15) 0%,rgba(26,82,118,.45) 60%,${DBLUE} 100%);}
+        .so-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,82,118,.82) 0%,rgba(26,82,118,.2) 28%,rgba(26,82,118,.12) 50%,rgba(26,82,118,.62) 74%,#1A5276 100%);z-index:1;}
+        .so-vig{position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.55);pointer-events:none;z-index:3;}
+        .so-pat{position:absolute;inset:0;pointer-events:none;opacity:.045;background-image:radial-gradient(circle,rgba(65,137,199,1) 1.5px,transparent 1.5px);background-size:24px 24px;z-index:2;}
+        .so-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;} 100%);}
         /* Somali star watermark */
         .so-star-wm{position:absolute;top:16px;left:50%;transform:translateX(-50%);opacity:.18;pointer-events:none;}
         /* names band */
@@ -124,6 +127,12 @@ export default function SomaliTemplate({ data }: { data: InviteData }) {
         .so-foot-nm{font-family:'Lora',serif;font-size:1rem;font-style:italic;color:rgba(255,255,255,.55);}
         .so-foot-v{font-family:'Nunito',sans-serif;font-size:8.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-top:5px;}
         .so-audio{position:fixed;bottom:22px;right:16px;z-index:100;width:42px;height:42px;border-radius:50%;background:${BLUE};border:none;color:#fff;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.3);}
+
+        @keyframes name-glow {
+          0%,100% { text-shadow: 0 2px 20px rgba(248,250,252,.85); }
+          50%      { text-shadow: 0 2px 40px rgba(248,250,252,.85), 0 0 80px rgba(248,250,252,.35); }
+        }
+        .so-nm { animation: name-glow 3.5s ease-in-out infinite; }
       `}</style>
 
       <div className={`so so-in${ready?" go":""}`}>
@@ -139,6 +148,8 @@ export default function SomaliTemplate({ data }: { data: InviteData }) {
         <div className="so-hero">
           <img src={data.couplePhotoUrl} alt=""/>
           <div className="so-ov"/>
+          {/* <div className="so-pat" style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",position:absolute;inset:0;pointer-events:none;opacity:.045;background-image:radial-gradient(circle,rgba(65,137,199,1) 1.5px,transparent 1.5px);background-size:24px 24px;}}/> */}
+          <div className="so-vig" style={{position:"absolute",inset:0,boxShadow:"inset 0 0 120px rgba(0,0,0,0.55)",pointerEvents:"none",zIndex:3}}/>
           <svg className="so-star-wm" viewBox="0 0 48 48" width="36" height="36" fill="#fff"><polygon points="24,2 28,16 42,16 31,25 35,40 24,31 13,40 17,25 6,16 20,16"/></svg>
         </div>
 

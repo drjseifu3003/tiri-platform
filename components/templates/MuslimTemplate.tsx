@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, getHijriDate } from "@/lib/hooks";
-// ...existing code...
 
 // ─── RELIGION TEMPLATE: Muslim / Nikah ───────────────────────────────────────
 // Visual identity: faith only — Bismillah, Hijri date, Islamic geometric border,
@@ -46,9 +45,12 @@ export default function MuslimTemplate({ data }: { data: InviteData }) {
         .ms-bism-ar{font-family:'Amiri',serif;font-size:2.3rem;color:#D4AF37;direction:rtl;line-height:1.5;}
         .ms-bism-en{font-family:'Noto Kufi Arabic',sans-serif;font-size:10px;font-style:italic;color:rgba(248,242,227,.38);margin-top:5px;letter-spacing:.04em;}
         /* hero */
-        .ms-hero{position:relative;height:65vh;min-height:415px;}
+        .ms-hero{position:relative;height:92vh;min-height:415px;}
         .ms-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-        .ms-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,31,20,.18) 0%,rgba(11,31,20,.5) 58%,#0B1F14 100%);}
+        .ms-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,31,20,.85) 0%,rgba(11,31,20,.22) 32%,rgba(11,31,20,.15) 52%,rgba(11,31,20,.65) 75%,#0B1F14 100%);z-index:1;}
+        .ms-vig{position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.55);pointer-events:none;z-index:3;}
+        .ms-pat{position:absolute;inset:0;pointer-events:none;opacity:.05;background-image:repeating-linear-gradient(45deg,rgba(212,175,55,1) 0,rgba(212,175,55,1) 1px,transparent 0,transparent 50%);background-size:28px 28px;z-index:2;}
+        .ms-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;}
         .ms-frame{position:absolute;inset:12px;border:1px solid rgba(212,175,55,.3);pointer-events:none;}
         .ms-frame::before{content:'';position:absolute;top:-1px;left:-1px;width:30px;height:30px;border-top:2.5px solid #D4AF37;border-left:2.5px solid #D4AF37;opacity:.7;}
         .ms-frame::after{content:'';position:absolute;bottom:-1px;right:-1px;width:30px;height:30px;border-bottom:2.5px solid #D4AF37;border-right:2.5px solid #D4AF37;opacity:.7;}
@@ -128,6 +130,12 @@ export default function MuslimTemplate({ data }: { data: InviteData }) {
         .ms-geo-bot{height:10px;background:repeating-linear-gradient(90deg,rgba(212,175,55,.45) 0,rgba(212,175,55,.45) 1px,transparent 1px,transparent 12px);}
         /* audio */
         .ms-audio{position:fixed;bottom:22px;right:16px;z-index:100;width:42px;height:42px;border-radius:50%;background:#D4AF37;border:none;color:#0B1F14;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.4);}
+
+        @keyframes name-glow {
+          0%,100% { text-shadow: 0 2px 20px rgba(237,216,122,.8); }
+          50%      { text-shadow: 0 2px 40px rgba(237,216,122,.8), 0 0 80px rgba(237,216,122,.8); }
+        }
+        .ms-nm-ar { animation: name-glow 3.5s ease-in-out infinite; }
       `}</style>
 
       <div className={`ms ms-in${ready?" go":""}`}>
@@ -152,6 +160,8 @@ export default function MuslimTemplate({ data }: { data: InviteData }) {
         <div className="ms-hero">
           <img src={data.couplePhotoUrl} alt=""/>
           <div className="ms-ov"/>
+          {/* <div className="ms-pat" style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",position:absolute;inset:0;pointer-events:none;opacity:.05;background-image:repeating-linear-gradient(45deg,rgba(212,175,55,1) 0,rgba(212,175,55,1) 1px,transparent 0,transparent 50%);background-size:28px 28px;}}/> */}
+          <div className="ms-vig" style={{position:"absolute",inset:0,boxShadow:"inset 0 0 120px rgba(0,0,0,0.55)",pointerEvents:"none",zIndex:3}}/>
           <div className="ms-frame"/>
           <div className="ms-nm">
             <p className="ms-nm-ar">{data.groomNameAr??data.groomName}</p>
@@ -289,7 +299,6 @@ export default function MuslimTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        {/* WeddingGallery removed */}
         <div className="ms-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"20px 0"}}>

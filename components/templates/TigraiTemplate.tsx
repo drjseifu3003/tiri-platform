@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, getCalendarDays, getEthiopianDate } from "@/lib/hooks";
-// ...existing code...
 
 // ─── CULTURE TEMPLATE: Tigrai ─────────────────────────────────────────────────
 // Visual identity: culture only — Axum obelisk silhouette, ancient stone feel,
@@ -10,12 +9,12 @@ import { useCountdown, useRSVP, getCalendarDays, getEthiopianDate } from "@/lib/
 // NO religious symbols — religion-agnostic.
 
 const DEFAULT_PROGRAM = [
-  { time: "9:00 ጠዋት",  timeEn: "9:00 AM",  timeAm: "9:00 ጠዋት",  titleTi: "ሰርሓት",          title: "Wedding Ceremony",    desc: "Exchange of vows" },
-  { time: "11:00 ጠዋት", timeEn: "11:00 AM", timeAm: "11:00 ጠዋት", titleTi: "ስእሊ ምሕዛዝ",      title: "Photo Session",       desc: "Family & couple portraits" },
-  { time: "12:00 ቀን",  timeEn: "12:00 PM", timeAm: "12:00 ቀን",  titleTi: "ዓቢ ምግቢ",        title: "Grand Feast",         desc: "Traditional Tigrai banquet" },
-  { time: "2:00 ቀን",   timeEn: "2:00 PM",  timeAm: "2:00 ቀን",   titleTi: "ናይ ሓዳር ሽርሒ",    title: "Unity Ritual",        desc: "Traditional feeding ceremony" },
-  { time: "4:00 ቀን",   timeEn: "4:00 PM",  timeAm: "4:00 ቀን",   titleTi: "ሙዚቃን ምዝናይን",    title: "Music & Dancing",     desc: "Traditional Tigrai music" },
-  { time: "6:00 ቀን",   timeEn: "6:00 PM",  timeAm: "6:00 ቀን",   titleTi: "ናይ ቤተሰብ ናይ ሓዳር",title: "Family Blessing",     desc: "Closing blessings from elders" },
+  { time:"9:00 ጠዋት",  timeEn:"9:00 AM",  titleTi:"ሰርሓት",          title:"Wedding Ceremony",    desc:"Exchange of vows" },
+  { time:"11:00 ጠዋት", timeEn:"11:00 AM", titleTi:"ስእሊ ምሕዛዝ",      title:"Photo Session",       desc:"Family & couple portraits" },
+  { time:"12:00 ቀን",  timeEn:"12:00 PM", titleTi:"ዓቢ ምግቢ",        title:"Grand Feast",         desc:"Traditional Tigrai banquet" },
+  { time:"2:00 ቀን",   timeEn:"2:00 PM",  titleTi:"ናይ ሓዳር ሽርሒ",    title:"Unity Ritual",        desc:"Traditional feeding ceremony" },
+  { time:"4:00 ቀን",   timeEn:"4:00 PM",  titleTi:"ሙዚቃን ምዝናይን",    title:"Music & Dancing",     desc:"Traditional Tigrai music" },
+  { time:"6:00 ቀን",   timeEn:"6:00 PM",  titleTi:"ናይ ቤተሰብ ናይ ሓዳር",title:"Family Blessing",     desc:"Closing blessings from elders" },
 ];
 
 export default function TigraiTemplate({ data }: { data: InviteData }) {
@@ -53,9 +52,12 @@ export default function TigraiTemplate({ data }: { data: InviteData }) {
         .ti-stripe-g{flex:1;background:${GOLD};}
         .ti-stripe-r{flex:1;background:${RED};}
         /* hero */
-        .ti-hero{position:relative;height:64vh;min-height:400px;}
+        .ti-hero{position:relative;height:92vh;min-height:400px;}
         .ti-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-        .ti-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(123,29,29,.15) 0%,rgba(123,29,29,.42) 58%,${RED} 100%);}
+        .ti-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(61,14,14,.85) 0%,rgba(15,31,61,.22) 28%,rgba(15,31,61,.12) 50%,rgba(61,14,14,.62) 74%,#3D0E0E 100%);z-index:1;}
+        .ti-vig{position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.55);pointer-events:none;z-index:3;}
+        .ti-pat{position:absolute;inset:0;pointer-events:none;opacity:.04;background-image:repeating-linear-gradient(0deg,rgba(192,144,32,1) 0px,rgba(192,144,32,1) 1px,transparent 1px,transparent 28px);z-index:2;}
+        .ti-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;} 100%);}
         /* obelisk silhouette top of photo */
         .ti-obelisk{position:absolute;top:14px;left:50%;transform:translateX(-50%);opacity:.18;pointer-events:none;}
         /* names band */
@@ -138,6 +140,12 @@ export default function TigraiTemplate({ data }: { data: InviteData }) {
         .ti-foot-v{font-family:'Libre Baskerville',sans-serif;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:rgba(251,233,176,.25);margin-top:5px;}
         .ti-ctrl{position:fixed;top:13px;right:13px;display:flex;gap:8px;z-index:100;}
         .ti-btn{background:rgba(123,29,29,.9);border:1px solid rgba(192,144,32,.4);color:${GOLD};font-family:'Libre Baskerville',sans-serif;font-size:10px;letter-spacing:.1em;padding:7px 10px;cursor:pointer;backdrop-filter:blur(5px);}
+
+        @keyframes name-glow {
+          0%,100% { text-shadow: 0 2px 20px rgba(251,233,176,.85); }
+          50%      { text-shadow: 0 2px 40px rgba(251,233,176,.85), 0 0 80px rgba(251,233,176,.35); }
+        }
+        .ti-nm-ti { animation: name-glow 3.5s ease-in-out infinite; }
       `}</style>
 
       <div className={`ti ti-in${ready?" go":""}`}>
@@ -152,6 +160,8 @@ export default function TigraiTemplate({ data }: { data: InviteData }) {
         <div className="ti-hero">
           <img src={data.couplePhotoUrl} alt=""/>
           <div className="ti-ov"/>
+          {/* <div className="ti-pat" style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",position:absolute;inset:0;pointer-events:none;opacity:.04;background-image:repeating-linear-gradient(0deg,rgba(192,144,32,1) 0px,rgba(192,144,32,1) 1px,transparent 1px,transparent 28px);}}/> */}
+          <div className="ti-vig" style={{position:"absolute",inset:0,boxShadow:"inset 0 0 120px rgba(0,0,0,0.55)",pointerEvents:"none",zIndex:3}}/>
           {/* Axum obelisk silhouette */}
           <svg className="ti-obelisk" viewBox="0 0 40 120" width="28" height="84" fill="#fff">
             <polygon points="20,0 24,20 22,20 22,110 18,110 18,20 16,20"/>
@@ -232,7 +242,7 @@ export default function TigraiTemplate({ data }: { data: InviteData }) {
           {prog.map(item=>(
             <div key={item.time} className="ti-pi">
               <div className="ti-pt">
-                <p className="ti-pt-ti">{item.timeAm??item.time}</p>
+                <p className="ti-pt-ti">{item.time}</p>
                 <p className="ti-pt-en">{item.timeEn??item.time}</p>
               </div>
               <div className="ti-pb">
@@ -252,7 +262,6 @@ export default function TigraiTemplate({ data }: { data: InviteData }) {
         {data.venueMapLink&&(<a href={data.venueMapLink} target="_blank" rel="noreferrer" className="ti-mapbtn"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>Open in Google Maps</a>)}
 
         {/* RSVP */}
-        {/* WeddingGallery removed */}
         <div className="ti-rsvp">
           {rsvp.submitted?(<div style={{textAlign:"center",padding:"18px 0"}}><p style={{fontFamily:"'Noto Serif Ethiopic',serif",fontSize:"1.05rem",color:RED,marginBottom:6}}>ብዙሕ ኣመስጊንካ!</p><p style={{fontSize:"8.5px",letterSpacing:".18em",textTransform:"uppercase",color:"rgba(123,29,29,.42)"}}>Your RSVP has been received</p></div>):(
             <>

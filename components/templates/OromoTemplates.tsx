@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, getCalendarDays } from "@/lib/hooks";
-// ...existing code...
 
 // ─── CULTURE TEMPLATE: Oromo ──────────────────────────────────────────────────
 // Visual identity: culture only — Oromo flag colors (green/red/white),
@@ -11,12 +10,12 @@ import { useCountdown, useRSVP, getCalendarDays } from "@/lib/hooks";
 // NO religious symbols — religion-agnostic.
 
 const DEFAULT_PROGRAM = [
-  { time: "9:00 AM",  timeEn: "9:00 AM",  timeOr: "Ganama 9",  titleOr: "Sirna Fuudhaa",     title: "Wedding Ceremony",    desc: "Exchange of vows" },
-  { time: "11:00 AM", timeEn: "11:00 AM", timeOr: "Ganama 11", titleOr: "Suuraa Fuudhuu",    title: "Photo Session",       desc: "Family portraits" },
-  { time: "12:00 PM", timeEn: "12:00 PM", timeOr: "Guyyaa 12", titleOr: "Ayyaana Sirna",     title: "Reception Feast",     desc: "Oromo traditional feast" },
-  { time: "2:00 PM",  timeEn: "2:00 PM",  timeOr: "Guyyaa 2",  titleOr: "Nyaata Afaan",      title: "Traditional Meal",    desc: "Marqaa, himbasha & more" },
-  { time: "4:00 PM",  timeEn: "4:00 PM",  timeOr: "Guyyaa 4",  titleOr: "Sirbaa fi Taphataa",title: "Music & Dance",       desc: "Oromo music & celebration" },
-  { time: "6:00 PM",  timeEn: "6:00 PM",  timeOr: "Galgala 6", titleOr: "Dubbii fi Eebbaa",  title: "Speeches & Blessing", desc: "Family tributes & blessing" },
+  { time:"9:00 AM",  timeOr:"Ganama 9",  titleOr:"Sirna Fuudhaa",     title:"Wedding Ceremony",    desc:"Exchange of vows" },
+  { time:"11:00 AM", timeOr:"Ganama 11", titleOr:"Suuraa Fuudhuu",    title:"Photo Session",       desc:"Family portraits" },
+  { time:"12:00 PM", timeOr:"Guyyaa 12", titleOr:"Ayyaana Sirna",     title:"Reception Feast",     desc:"Oromo traditional feast" },
+  { time:"2:00 PM",  timeOr:"Guyyaa 2",  titleOr:"Nyaata Afaan",      title:"Traditional Meal",    desc:"Marqaa, himbasha & more" },
+  { time:"4:00 PM",  timeOr:"Guyyaa 4",  titleOr:"Sirbaa fi Taphataa",title:"Music & Dance",       desc:"Oromo music & celebration" },
+  { time:"6:00 PM",  timeOr:"Galgala 6", titleOr:"Dubbii fi Eebbaa",  title:"Speeches & Blessing", desc:"Family tributes & blessing" },
 ];
 
 export default function OromoTemplate({ data }: { data: InviteData }) {
@@ -57,9 +56,12 @@ export default function OromoTemplate({ data }: { data: InviteData }) {
         .or2-flag-r{flex:1;background:${RED};}
         .or2-flag-w{flex:1;background:#fff;}
         /* hero */
-        .or2-hero{position:relative;height:64vh;min-height:400px;}
+        .or2-hero{position:relative;height:92vh;min-height:400px;}
         .or2-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-        .or2-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,64,35,.15) 0%,rgba(26,64,35,.45) 60%,${FOREST} 100%);}
+        .or2-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,64,35,.82) 0%,rgba(26,64,35,.2) 28%,rgba(26,64,35,.12) 50%,rgba(26,64,35,.62) 74%,#1A4023 100%);z-index:1;}
+        .or2-vig{position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.55);pointer-events:none;z-index:3;}
+        .or2-pat{position:absolute;inset:0;pointer-events:none;opacity:.055;background-image:repeating-linear-gradient(60deg,rgba(212,160,23,1) 0px,rgba(212,160,23,1) 2px,transparent 2px,transparent 22px);z-index:2;}
+        .or2-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;} 100%);}
         /* green band names */
         .or2-band{background:${FOREST};padding:26px 22px 20px;text-align:center;position:relative;}
         .or2-band::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:${GOLD};}
@@ -140,6 +142,12 @@ export default function OromoTemplate({ data }: { data: InviteData }) {
         .or2-foot-v{font-family:'Nunito',sans-serif;font-size:8.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.25);margin-top:5px;}
         /* audio btn */
         .or2-audio{position:fixed;top:14px;right:14px;z-index:100;background:rgba(26,64,35,.9);border:1px solid rgba(212,160,23,.4);color:${GOLD};font-family:'Nunito',sans-serif;font-size:10px;font-weight:600;letter-spacing:.1em;padding:7px 10px;cursor:pointer;backdrop-filter:blur(5px);}
+
+        @keyframes name-glow {
+          0%,100% { text-shadow: 0 2px 20px rgba(212,160,23,.85); }
+          50%      { text-shadow: 0 2px 40px rgba(212,160,23,.85), 0 0 80px rgba(212,160,23,.35); }
+        }
+        .or2-nm { animation: name-glow 3.5s ease-in-out infinite; }
       `}</style>
 
       <div className={`or2 or2-in${ready?" go":""}`}>
@@ -153,6 +161,8 @@ export default function OromoTemplate({ data }: { data: InviteData }) {
         <div className="or2-hero">
           <img src={data.couplePhotoUrl} alt=""/>
           <div className="or2-ov"/>
+          {/* <div className="or2-pat" style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",position:absolute;inset:0;pointer-events:none;opacity:.055;background-image:repeating-linear-gradient(60deg,rgba(212,160,23,1) 0px,rgba(212,160,23,1) 2px,transparent 2px,transparent 22px);}}/> */}
+          <div className="or2-vig" style={{position:"absolute",inset:0,boxShadow:"inset 0 0 120px rgba(0,0,0,0.55)",pointerEvents:"none",zIndex:3}}/>
         </div>
 
         {/* Green names band */}
@@ -262,7 +272,7 @@ export default function OromoTemplate({ data }: { data: InviteData }) {
             <div key={item.time} className="or2-pi">
               <div className="or2-pt">
                 <p className="or2-pt-or">{(item as any).timeOr??item.time}</p>
-                <p className="or2-pt-en">{item.timeEn??item.time}</p>
+                <p className="or2-pt-en">{item.time}</p>
               </div>
               <div className="or2-pb">
                 <div className="or2-pdot"/>
@@ -297,7 +307,6 @@ export default function OromoTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        {/* WeddingGallery removed */}
         <div className="or2-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"18px 0"}}>

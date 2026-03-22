@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP, useLang, getCalendarDays, getEthiopianDate } from "@/lib/hooks";
-// ...existing code...
 
 // ─── CULTURE TEMPLATE: Habesha (Amhara / Tigrinya) ───────────────────────────
 // Visual identity: culture only — tibeb woven border, terracotta + ochre palette,
@@ -11,13 +10,13 @@ import { useCountdown, useRSVP, useLang, getCalendarDays, getEthiopianDate } fro
 // NO religious symbols, NO cross, NO bismillah — religion-agnostic.
 
 const DEFAULT_PROGRAM = [
-  { time: "9:00 ጠዋት",  timeEn: "9:00 AM",  timeAm: "9:00 ጠዋት",  titleAm: "ሠርግ ሥነ-ስርዓት",    title: "Wedding Ceremony",    desc: "Exchange of vows & rings" },
-  { time: "11:00 ጠዋት", timeEn: "11:00 AM", timeAm: "11:00 ጠዋት", titleAm: "ፎቶ ግሮፒ",          title: "Photo Session",       desc: "Family & couple portraits" },
-  { time: "12:00 ቀን",  timeEn: "12:00 PM", timeAm: "12:00 ቀን",  titleAm: "ግብዣ",              title: "Reception & Feast",   desc: "Traditional injera banquet" },
-  { time: "2:00 ቀን",   timeEn: "2:00 PM",  timeAm: "2:00 ቀን",   titleAm: "ጉርሻ ሥነ-ስርዓት",     title: "Gursha Ceremony",     desc: "Unity feeding ritual" },
-  { time: "3:30 ቀን",   timeEn: "3:30 PM",  timeAm: "3:30 ቀን",   titleAm: "እስኪስታ",            title: "Eskista Dance",       desc: "Traditional Ethiopian dance" },
-  { time: "5:00 ቀን",   timeEn: "5:00 PM",  timeAm: "5:00 ቀን",   titleAm: "ንግግሮችና ቶስት",      title: "Speeches & Toasts",   desc: "Family tributes" },
-  { time: "7:00 ቀን",   timeEn: "7:00 PM",  timeAm: "7:00 ቀን",   titleAm: "ሙዚቃና ደስታ",        title: "Music & Celebration", desc: "Evening celebration" },
+  { time:"9:00 ጠዋት",  timeEn:"9:00 AM",  titleAm:"ሠርግ ሥነ-ስርዓት",    title:"Wedding Ceremony",    desc:"Exchange of vows & rings" },
+  { time:"11:00 ጠዋት", timeEn:"11:00 AM", titleAm:"ፎቶ ግሮፒ",          title:"Photo Session",       desc:"Family & couple portraits" },
+  { time:"12:00 ቀን",  timeEn:"12:00 PM", titleAm:"ግብዣ",              title:"Reception & Feast",   desc:"Traditional injera banquet" },
+  { time:"2:00 ቀን",   timeEn:"2:00 PM",  titleAm:"ጉርሻ ሥነ-ስርዓት",     title:"Gursha Ceremony",     desc:"Unity feeding ritual" },
+  { time:"3:30 ቀን",   timeEn:"3:30 PM",  titleAm:"እስኪስታ",            title:"Eskista Dance",       desc:"Traditional Ethiopian dance" },
+  { time:"5:00 ቀን",   timeEn:"5:00 PM",  titleAm:"ንግግሮችና ቶስት",      title:"Speeches & Toasts",   desc:"Family tributes" },
+  { time:"7:00 ቀን",   timeEn:"7:00 PM",  titleAm:"ሙዚቃና ደስታ",        title:"Music & Celebration", desc:"Evening celebration" },
 ];
 
 export default function HasbeshaTemplate({ data }: { data: InviteData }) {
@@ -56,9 +55,12 @@ export default function HasbeshaTemplate({ data }: { data: InviteData }) {
         /* tibeb accent stripe */
         .hb-tibeb2{height:5px;background:repeating-linear-gradient(90deg,#D4891A 0,#D4891A 8px,#5A2B0C 8px,#5A2B0C 16px);}
         /* hero */
-        .hb-hero{position:relative;height:64vh;min-height:400px;}
+        .hb-hero{position:relative;height:92vh;min-height:400px;}
         .hb-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-        .hb-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(90,43,12,.12) 0%,rgba(90,43,12,.4) 62%,#5A2B0C 100%);}
+        .hb-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(90,43,12,.82) 0%,rgba(90,43,12,.2) 28%,rgba(90,43,12,.12) 50%,rgba(90,43,12,.62) 74%,#5A2B0C 100%);z-index:1;}
+        .hb-vig{position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.55);pointer-events:none;z-index:3;}
+        .hb-pat{position:absolute;inset:0;pointer-events:none;opacity:.055;background-image:repeating-linear-gradient(60deg,rgba(212,137,26,1) 0px,rgba(212,137,26,1) 2px,transparent 2px,transparent 20px);z-index:2;}
+        .hb-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;}
         /* warm names band */
         .hb-band{background:#5A2B0C;padding:26px 22px 20px;text-align:center;}
         .hb-nm-am{font-family:'Noto Serif Ethiopic',serif;font-size:clamp(1.65rem,7.5vw,2.6rem);font-weight:500;color:#E8A020;line-height:1.25;}
@@ -142,6 +144,12 @@ export default function HasbeshaTemplate({ data }: { data: InviteData }) {
         /* controls */
         .hb-ctrl{position:fixed;top:13px;right:13px;display:flex;gap:8px;z-index:100;}
         .hb-btn{background:rgba(90,43,12,.9);border:1px solid rgba(212,137,26,.4);color:#D4891A;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:500;letter-spacing:.1em;padding:7px 10px;cursor:pointer;backdrop-filter:blur(5px);}
+
+        @keyframes name-glow {
+          0%,100% { text-shadow: 0 2px 20px rgba(232,160,32,.85); }
+          50%      { text-shadow: 0 2px 40px rgba(232,160,32,.85), 0 0 80px rgba(232,160,32,.35); }
+        }
+        .hb-nm-am { animation: name-glow 3.5s ease-in-out infinite; }
       `}</style>
 
       <div className={`hb hb-in${ready?" go":""}`}>
@@ -158,6 +166,8 @@ export default function HasbeshaTemplate({ data }: { data: InviteData }) {
         <div className="hb-hero">
           <img src={data.couplePhotoUrl} alt=""/>
           <div className="hb-ov"/>
+          {/* <div className="hb-pat" style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",position:absolute;inset:0;pointer-events:none;opacity:.055;background-image:repeating-linear-gradient(60deg,rgba(212,137,26,1) 0px,rgba(212,137,26,1) 2px,transparent 2px,transparent 20px);}}/> */}
+          <div className="hb-vig" style={{position:"absolute",inset:0,boxShadow:"inset 0 0 120px rgba(0,0,0,0.55)",pointerEvents:"none",zIndex:3}}/>
         </div>
 
         {/* Warm names band */}
@@ -264,7 +274,7 @@ export default function HasbeshaTemplate({ data }: { data: InviteData }) {
           {prog.map(item=>(
             <div key={item.time} className="hb-pi">
               <div className="hb-pt">
-                <p className="hb-pt-am">{item.timeAm??item.time}</p>
+                <p className="hb-pt-am">{item.time}</p>
                 <p className="hb-pt-en">{item.timeEn??item.time}</p>
               </div>
               <div className="hb-pb">
@@ -300,7 +310,6 @@ export default function HasbeshaTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        {/* WeddingGallery removed */}
           <div className="hb-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"18px 0"}}>

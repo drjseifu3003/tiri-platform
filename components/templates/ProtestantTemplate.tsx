@@ -2,7 +2,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP } from "@/lib/hooks";
-// ...existing code...
 
 // ─── RELIGION TEMPLATE: Protestant / Evangelical ─────────────────────────────
 // Faith identity only: scripture verse, Latin cross, stark black + off-white,
@@ -43,9 +42,12 @@ export default function ProtestantTemplate({ data }: { data: InviteData }) {
         .pt-in.go{opacity:1;}
         .pt-red{height:3px;background:#B91C1C;}
         /* hero */
-        .pt-hero{position:relative;height:68vh;min-height:430px;}
+        .pt-hero{position:relative;height:92vh;min-height:430px;}
         .pt-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-        .pt-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,12,12,.08) 0%,rgba(12,12,12,.55) 65%,#0C0C0C 100%);}
+        .pt-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,10,.88) 0%,rgba(10,10,10,.2) 30%,rgba(10,10,10,.12) 50%,rgba(10,10,10,.68) 75%,#0C0C0C 100%);z-index:1;}
+        .pt-vig{position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.55);pointer-events:none;z-index:3;}
+        .pt-pat{position:absolute;inset:0;pointer-events:none;opacity:.04;background-image:linear-gradient(rgba(185,28,28,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(185,28,28,.5) 1px,transparent 1px);background-size:80px 80px;z-index:2;}
+        .pt-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;}
         /* cross watermark top of photo */
         .pt-cross-wm{position:absolute;top:20px;left:50%;transform:translateX(-50%);opacity:.2;pointer-events:none;}
         .pt-nm{position:absolute;bottom:30px;left:0;right:0;text-align:center;padding:0 22px;z-index:2;}
@@ -119,6 +121,12 @@ export default function ProtestantTemplate({ data }: { data: InviteData }) {
         .pt-foot-v{font-family:'Raleway',sans-serif;font-size:8.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(238,238,232,.22);margin-top:6px;}
         .pt-bot-red{height:3px;background:#B91C1C;}
         .pt-audio{position:fixed;top:14px;right:14px;z-index:100;background:rgba(12,12,12,.9);border:1px solid rgba(255,255,255,.18);color:rgba(238,238,232,.7);width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);font-size:14px;}
+
+        @keyframes name-glow {
+          0%,100% { text-shadow: 0 2px 20px rgba(238,238,232,.85); }
+          50%      { text-shadow: 0 2px 40px rgba(238,238,232,.85), 0 0 80px rgba(238,238,232,.35); }
+        }
+        .pt-nm-script { animation: name-glow 3.5s ease-in-out infinite; }
       `}</style>
 
       <div className={`pt pt-in${ready?" go":""}`}>
@@ -131,6 +139,8 @@ export default function ProtestantTemplate({ data }: { data: InviteData }) {
         <div className="pt-hero">
           <img src={data.couplePhotoUrl} alt=""/>
           <div className="pt-ov"/>
+          {/* <div className="pt-pat" style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",position:absolute;inset:0;pointer-events:none;opacity:.04;background-image:linear-gradient(rgba(185,28,28,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(185,28,28,.5) 1px,transparent 1px);background-size:80px 80px;}}/> */}
+          <div className="pt-vig" style={{position:"absolute",inset:0,boxShadow:"inset 0 0 120px rgba(0,0,0,0.55)",pointerEvents:"none",zIndex:3}}/>
           <svg className="pt-cross-wm" viewBox="0 0 44 60" width="32" height="44" fill="none" stroke="#fff" strokeWidth="2.5"><line x1="22" y1="2" x2="22" y2="58"/><line x1="4" y1="18" x2="40" y2="18"/></svg>
           <div className="pt-nm">
             <p className="pt-nm-script">{data.groomName} & {data.brideName}</p>
@@ -237,7 +247,6 @@ export default function ProtestantTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        {/* WeddingGallery removed */}
         <div className="pt-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"20px 0"}}>

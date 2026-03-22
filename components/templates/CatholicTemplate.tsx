@@ -2,12 +2,10 @@
 import React, { useRef, useState, useEffect } from "react";
 import { InviteData } from "@/lib/types";
 import { useCountdown, useRSVP } from "@/lib/hooks";
-// ...existing code...
 
 // ─── RELIGION TEMPLATE: Catholic ─────────────────────────────────────────────
 // Faith identity only: deep navy + gold, Latin Missa, rosary bead dividers,
 // formal Garamond, Catholic wedding rite programme. No ethnic culture.
-
 
 const DEFAULT_PROGRAM = [
   { time:"9:00 AM",  timeAm:"3:00 ጠዋት",  title:"Holy Mass (Missa)",     titleLa:"Sancta Missa",     desc:"Nuptial Mass — Rite of Marriage" },
@@ -48,9 +46,12 @@ export default function CatholicTemplate({ data }: { data: InviteData }) {
         .ca-motto{background:rgba(0,0,0,.3);padding:14px 24px;text-align:center;border-bottom:1px solid rgba(184,150,62,.18);}
         .ca-motto-la{font-family:'EB Garamond',serif;font-size:13px;font-style:italic;color:rgba(184,150,62,.65);letter-spacing:.05em;}
         /* hero */
-        .ca-hero{position:relative;height:67vh;min-height:420px;}
+        .ca-hero{position:relative;height:92vh;min-height:420px;}
         .ca-hero img{width:100%;height:100%;object-fit:cover;display:block;}
-        .ca-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,27,58,.18) 0%,rgba(14,27,58,.52) 60%,${NAVY} 100%);}
+        .ca-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,27,58,.86) 0%,rgba(14,27,58,.22) 30%,rgba(14,27,58,.13) 50%,rgba(14,27,58,.64) 75%,${NAVY} 100%);z-index:1;}
+        .ca-pat{position:absolute;inset:0;pointer-events:none;opacity:.045;background-image:radial-gradient(circle,rgba(184,150,62,1) 1px,transparent 1px);background-size:18px 18px;z-index:2;}
+        .ca-vig{position:absolute;inset:0;box-shadow:inset 0 0 120px rgba(0,0,0,.58);pointer-events:none;z-index:3;}
+        .ca-grain{position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.028;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:180px;}
         /* ornate frame */
         .ca-frame{position:absolute;inset:12px;pointer-events:none;}
         .ca-frame::before{content:'';position:absolute;inset:0;border:1px solid rgba(184,150,62,.28);}
@@ -133,6 +134,12 @@ export default function CatholicTemplate({ data }: { data: InviteData }) {
         .ca-foot-v{font-family:'Cinzel',serif;font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;color:rgba(246,240,228,.22);margin-top:5px;}
         .ca-bot{height:4px;background:linear-gradient(90deg,transparent,${GOLD},transparent);}
         .ca-audio{position:fixed;top:14px;right:14px;z-index:100;background:rgba(14,27,58,.9);border:1px solid rgba(184,150,62,.35);color:${GOLD};width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);font-size:14px;}
+
+        @keyframes name-glow {
+          0%,100% { text-shadow: 0 2px 20px rgba(246,240,228,.85); }
+          50%      { text-shadow: 0 2px 40px rgba(246,240,228,.85), 0 0 80px rgba(246,240,228,.35); }
+        }
+        .ca-nm-en { animation: name-glow 3.5s ease-in-out infinite; }
       `}</style>
 
       <div className={`ca ca-in${ready?" go":""}`}>
@@ -148,6 +155,8 @@ export default function CatholicTemplate({ data }: { data: InviteData }) {
         <div className="ca-hero">
           <img src={data.couplePhotoUrl} alt=""/>
           <div className="ca-ov"/>
+          <div className="ca-pat" style={{position:"absolute",inset:0,zIndex:2,pointerEvents:"none",opacity:.045,backgroundImage:"radial-gradient(circle,rgba(184,150,62,1) 1px,transparent 1px)",backgroundSize:"18px 18px"}}/>
+          <div className="ca-vig" style={{position:"absolute",inset:0,boxShadow:"inset 0 0 120px rgba(0,0,0,0.58)",pointerEvents:"none",zIndex:3}}/>
           <div className="ca-frame">
             <div className="ca-fc tl"/><div className="ca-fc tr"/>
             <div className="ca-fc bl"/><div className="ca-fc br"/>
@@ -275,7 +284,6 @@ export default function CatholicTemplate({ data }: { data: InviteData }) {
         )}
 
         {/* RSVP */}
-        {/* WeddingGallery removed */}
         <div className="ca-rsvp">
           {rsvp.submitted?(
             <div style={{textAlign:"center",padding:"20px 0"}}>
